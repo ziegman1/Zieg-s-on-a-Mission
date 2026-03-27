@@ -5,6 +5,11 @@ import { prisma } from "@/lib/db";
 
 const SITE_COPY_ID = "default";
 
+function hasDatabaseUrl(): boolean {
+  const u = process.env.DATABASE_URL?.trim();
+  return Boolean(u);
+}
+
 function mergeNavLinks(saved: unknown): NavLinkDef[] {
   const d = DEFAULT_SITE_COPY.navLinks;
   if (!Array.isArray(saved) || saved.length !== d.length) return d;
@@ -68,6 +73,9 @@ export function mergeSiteCopyPayload(dbPayload: unknown): SiteCopy {
 }
 
 export const getSiteCopy = cache(async (): Promise<SiteCopy> => {
+  if (!hasDatabaseUrl()) {
+    return structuredClone(DEFAULT_SITE_COPY);
+  }
   try {
     const row = await prisma.siteCopy.findUnique({ where: { id: SITE_COPY_ID } });
     return mergeSiteCopyPayload(row?.payload ?? {});

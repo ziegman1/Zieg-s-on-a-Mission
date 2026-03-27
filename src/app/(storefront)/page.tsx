@@ -1,13 +1,9 @@
 import Link from "next/link";
 import { Dancing_Script } from "next/font/google";
-import { listUnifiedProducts } from "@/lib/catalog";
-import { slugForUrl } from "@/lib/utils";
 import { CATEGORY_SLUGS, CATEGORY_LABELS } from "@/data/product-tags";
+import { HOME_STATIC, getStaticHomeHero } from "@/data/home-static";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getSiteCopy, homeHeroWithHrefs } from "@/lib/site-copy";
-
-export const dynamic = "force-dynamic";
 
 const heroTitle = Dancing_Script({
   subsets: ["latin"],
@@ -19,13 +15,12 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   drinkware: "Tumblers, mugs, and drinkware",
 };
 
-export default async function HomePage() {
-  const copy = await getSiteCopy();
-  const hero = homeHeroWithHrefs(copy);
-  const featuredProducts = await listUnifiedProducts({ featured: true });
-  const productsWithImages = featuredProducts.filter(
-    (p) => p.images?.length > 0 && p.images[0]?.url?.trim(),
-  );
+/** Public homepage is fully static — no DB / Prisma / catalog. */
+export const dynamic = "force-static";
+
+export default function HomePage() {
+  const hero = getStaticHomeHero();
+  const copy = HOME_STATIC.home;
 
   return (
     <div>
@@ -39,10 +34,8 @@ export default async function HomePage() {
             className="w-full h-full object-cover object-[center_22%] sm:object-center"
             fetchPriority="high"
           />
-          {/* Lighter on the right so subjects stay vivid; text side still softened */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgb(234_229_225/0.48)_0%,rgb(234_229_225/0.09)_28%,transparent_52%)] sm:bg-[linear-gradient(to_right,rgb(234_229_225/0.4)_0%,rgb(234_229_225/0.05)_26%,transparent_48%)]" />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-surface/22 via-transparent to-transparent sm:from-brand-surface/12 pointer-events-none" />
-          {/* Stronger wash behind hero copy — same position, higher contrast for text */}
           <div
             className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_100%_72%_at_22%_48%,rgb(234_229_225/0.24)_0%,rgb(234_229_225/0.08)_42%,transparent_62%)] sm:bg-[radial-gradient(ellipse_90%_62%_at_20%_46%,rgb(234_229_225/0.2)_0%,rgb(234_229_225/0.06)_40%,transparent_58%)]"
             aria-hidden
@@ -82,28 +75,28 @@ export default async function HomePage() {
           <Card className="border-brand-primary/25 bg-white/90 shadow-sm">
             <CardContent className="p-6 sm:p-8">
               <h2 className="font-serif text-xl text-brand-primary tracking-wide mb-3">
-                {copy.home.whoTitle}
+                {copy.whoTitle}
               </h2>
-              <p className="text-brand-ink/85 leading-relaxed">{copy.home.whoBody}</p>
+              <p className="text-brand-ink/85 leading-relaxed">{copy.whoBody}</p>
               <Link
                 href="/about"
                 className="inline-block mt-4 text-brand-primary font-medium hover:underline"
               >
-                {copy.home.whoCta}
+                {copy.whoCta}
               </Link>
             </CardContent>
           </Card>
           <Card className="border-brand-primary/25 bg-white/90 shadow-sm">
             <CardContent className="p-6 sm:p-8">
               <h2 className="font-serif text-xl text-brand-primary tracking-wide mb-3">
-                {copy.home.whyTitle}
+                {copy.whyTitle}
               </h2>
-              <p className="text-brand-ink/85 leading-relaxed">{copy.home.whyBody}</p>
+              <p className="text-brand-ink/85 leading-relaxed">{copy.whyBody}</p>
               <Link
                 href="/mission"
                 className="inline-block mt-4 text-brand-primary font-medium hover:underline"
               >
-                {copy.home.whyCta}
+                {copy.whyCta}
               </Link>
             </CardContent>
           </Card>
@@ -112,9 +105,9 @@ export default async function HomePage() {
 
       <section className="py-14 px-4 max-w-7xl mx-auto border-t border-brand-primary/15">
         <h2 className="font-serif text-2xl text-brand-primary tracking-wide mb-2">
-          {copy.home.merchTitle}
+          {copy.merchTitle}
         </h2>
-        <p className="text-brand-ink/75 mb-8 max-w-2xl">{copy.home.merchBlurb}</p>
+        <p className="text-brand-ink/75 mb-8 max-w-2xl">{copy.merchBlurb}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {CATEGORY_SLUGS.map((slug) => (
             <Link key={slug} href={`/merch?category=${slug}`}>
@@ -133,63 +126,15 @@ export default async function HomePage() {
 
       <section className="py-14 px-4 max-w-7xl mx-auto">
         <h2 className="font-serif text-2xl text-brand-primary tracking-wide mb-8">
-          {copy.home.featuredTitle}
+          {copy.featuredTitle}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {productsWithImages.map((p) => {
-            const img = p.primaryImageUrl
-              ? { url: p.primaryImageUrl, alt: p.title }
-              : p.images[0];
-            const priceCents = p.basePriceCents ?? p.variants[0]?.priceCents ?? 0;
-            const isPaused = p.paused === true;
-            const isComingSoon = p.comingSoon === true;
-            const isUnavailable = isPaused || isComingSoon;
-            const watermarkText = isComingSoon ? "Coming Soon" : "Out of stock";
-            return (
-              <Link key={p.id} href={`/product/${slugForUrl(p.slug)}`} className="block h-full">
-                <Card
-                  className={`border-brand-primary/25 bg-white/90 shadow-sm overflow-hidden hover:border-brand-primary/55 transition-colors h-full ${isUnavailable ? "opacity-60" : ""}`}
-                >
-                  <div className="aspect-square bg-brand-surface/80 relative">
-                    {img ? (
-                      <img
-                        src={img.url}
-                        alt={img.alt ?? p.title}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <span className="absolute inset-0 flex items-center justify-center text-brand-ink/40 text-sm">
-                        No image
-                      </span>
-                    )}
-                    {isUnavailable && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                        <span className="text-lg font-semibold text-white/90 uppercase tracking-widest rotate-[-12deg] drop-shadow-lg">
-                          {watermarkText}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-medium text-brand-ink">{p.title}</h3>
-                    <p className="text-brand-accent mt-1 font-medium">
-                      {priceCents > 0 ? `$${(priceCents / 100).toFixed(2)}` : "—"}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-        {productsWithImages.length === 0 && (
-          <p className="text-brand-ink/60">{copy.home.featuredEmpty}</p>
-        )}
+        <p className="text-brand-ink/60">{copy.featuredEmpty}</p>
         <p className="mt-10 text-center">
           <Link
             href="/merch"
             className="inline-flex items-center justify-center rounded-full px-8 py-3 bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
           >
-            {copy.home.viewAllMerchLabel}
+            {copy.viewAllMerchLabel}
           </Link>
         </p>
       </section>
