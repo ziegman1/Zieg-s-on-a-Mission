@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
+import type { Session } from "next-auth";
 import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
@@ -31,9 +32,15 @@ export default async function AdminLayout({
     );
   }
 
-  const session = await auth();
+  let session: Session | null = null;
+  try {
+    session = await auth();
+  } catch (e) {
+    console.error("[admin layout] auth() failed:", e);
+    redirect(`/admin/login?callbackUrl=${encodeURIComponent(pathname || "/admin")}`);
+  }
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "STAFF";
-  if (!session?.user) redirect(`/admin/login?callbackUrl=${encodeURIComponent(pathname)}`);
+  if (!session?.user) redirect(`/admin/login?callbackUrl=${encodeURIComponent(pathname || "/admin")}`);
   if (!isAdmin) redirect("/");
 
   return (

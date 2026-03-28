@@ -18,5 +18,7 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  // `/admin/:path*` does not match the index route `/admin` — without `/admin`, `x-pathname`
+  // was never set and the layout could not treat `/admin/login` as public.
+  matcher: ["/admin", "/admin/:path*"],
 };
