@@ -1,9 +1,9 @@
 {
-  "name": "fidelis-merch",
+  "name": "ziegs-on-a-mission-merch-store",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "dotenv -e .env -e .env.production -e .env.vercel -e .env.local -- next dev --webpack",
+    "dev": "dotenv -e .env.local -- next dev --webpack",
     "build": "tsx scripts/build.ts",
     "start": "next start",
     "lint": "eslint",

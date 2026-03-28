@@ -33,8 +33,8 @@ export interface ManualProductDefinition {
 
 export const manualProducts: ManualProductDefinition[] = [
   {
-    slug: "fidelis-etched-tumbler",
-    title: "Mission Etched Tumbler",
+    slug: "ziegs-on-a-mission-tumbler",
+    title: "Ziegs on a Mission Tumbler",
     description: `Premium 20oz stainless steel tumbler with etched Zieg's on a Mission branding. Perfect for coffee, tea, or cold drinks on the go.
 
 • Double-wall vacuum insulated — keeps hot drinks hot and cold drinks cold
@@ -45,9 +45,9 @@ export const manualProducts: ManualProductDefinition[] = [
     category: "Drinkware",
     tags: ["drinkware", "tumbler", "in-house", "fulfilled-in-house"],
     images: [
-      { url: "/logo/fidelis-icon.svg", alt: "Mission etched tumbler", sortOrder: 0 },
-      { url: "/images/products/fidelis-etched-tumbler.jpg", alt: "Mission etched tumbler", sortOrder: 1 },
-      { url: "/images/products/fidelis-etched-tumbler-lifestyle.jpg", alt: "Tumbler in use", sortOrder: 2 },
+      { url: "/images/hero-zieg-mission.png", alt: "Ziegs on a Mission tumbler", sortOrder: 0 },
+      { url: "/images/zieg-hero.png", alt: "Mission merch", sortOrder: 1 },
+      { url: "/icon.png", alt: "Brand mark", sortOrder: 2 },
     ],
     variants: [
       {
@@ -63,19 +63,19 @@ export const manualProducts: ManualProductDefinition[] = [
     sourceProductId: null,
   },
   {
-    slug: "fidelis-heritage-mug",
-    title: "Mission Heritage Mug",
-    description: `Classic ceramic mug with Zieg's on a Mission branding. 11oz capacity.
+    slug: "team-expansion-supporter-mug",
+    title: "Team Expansion Supporter Mug",
+    description: `Classic ceramic mug with Zieg's on a Mission / Team Expansion styling. 11oz capacity.
 
 • Microwave and dishwasher safe
 • Sturdy ceramic, comfortable handle
 • In-house fulfilled by our team — not Printify or other POD`,
-    shortDescription: "11oz ceramic mission mug. In-house fulfilled.",
+    shortDescription: "11oz ceramic supporter mug. In-house fulfilled.",
     category: "Drinkware",
-    tags: ["drinkware", "mug", "in-house", "fulfilled-in-house"],
+    tags: ["drinkware", "mug", "in-house", "fulfilled-in-house", "team-expansion"],
     images: [
-      { url: "/logo/fidelis-icon.svg", alt: "Mission heritage mug", sortOrder: 0 },
-      { url: "/images/products/fidelis-heritage-mug.jpg", alt: "Mission heritage mug", sortOrder: 1 },
+      { url: "/logo/team-expansion.png", alt: "Team Expansion supporter mug", sortOrder: 0 },
+      { url: "/images/zieg-hero.png", alt: "Mission merch", sortOrder: 1 },
     ],
     variants: [
       {
@@ -88,6 +88,40 @@ export const manualProducts: ManualProductDefinition[] = [
       },
     ],
     featured: false,
+    sourceProductId: null,
+  },
+  {
+    slug: "ziegs-on-a-mission-classic-tee",
+    title: "Ziegs on a Mission Classic Tee",
+    description: `Soft cotton tee celebrating the mission. Wear it as a conversation starter and a reminder to pray for the unreached.
+
+• Comfortable everyday fit
+• Supports ministry through merch purchases
+• Print-on-demand or in-house fulfillment depending on inventory (check product notes in admin)`,
+    shortDescription: "Classic mission tee — placeholder listing; adjust fulfillment in admin when live.",
+    category: "Apparel",
+    tags: ["apparel", "tee", "ziegs-on-a-mission"],
+    images: [
+      { url: "/images/zieg-hero.png", alt: "Ziegs on a Mission classic tee", sortOrder: 0 },
+      { url: "/images/hero-zieg-mission.png", alt: "Mission", sortOrder: 1 },
+    ],
+    variants: [
+      {
+        name: "M",
+        sku: "TEE-M",
+        priceCents: 2699,
+        options: { Size: "M" },
+        quantity: 25,
+      },
+      {
+        name: "L",
+        sku: "TEE-L",
+        priceCents: 2699,
+        options: { Size: "L" },
+        quantity: 25,
+      },
+    ],
+    featured: true,
     sourceProductId: null,
   },
 ];

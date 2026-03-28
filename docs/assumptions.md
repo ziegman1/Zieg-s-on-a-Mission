@@ -1,4 +1,4 @@
-# Fidelis Merch — Assumptions
+# Zieg’s on a Mission Merch — Assumptions
 
 Decisions and assumptions made during the “Get Started” pass. Update this doc as requirements change.
 
@@ -59,7 +59,7 @@ Decisions and assumptions made during the “Get Started” pass. Update this do
 
 ## Design & Assets
 
-- **Logo:** Use provided PNGs (transparent, black background) where appropriate; paths referenced in layout/header.
+- **Logo:** Team Expansion / mission artwork in `public/logo` (e.g. `team-expansion.png`); paths referenced in layout/header.
 - **Colors/fonts:** As in `/docs/branding.md`; Tailwind theme extended via `tailwind.config.ts`.
 - **Responsive:** Mobile-first; nav collapses to drawer on small screens.
 

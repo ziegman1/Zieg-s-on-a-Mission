@@ -3,7 +3,8 @@
  * Slug substrings that match are treated as featured (for products not already featured in DB).
  */
 export const featuredProductSlugPatterns: string[] = [
-  "seminary-hoodie",
+  "ziegs-on-a-mission",
+  "team-expansion",
   "polo",
 ];
 

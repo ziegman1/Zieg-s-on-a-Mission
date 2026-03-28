@@ -5,20 +5,26 @@ node_modules/
 .next/
 out/
 
-# Env (secrets)
+# Env and secrets (never commit)
 .env
 .env.local
 .env.production
 .env.vercel
-.env*
+.env.backup
 .env*.local
 .env.*.local
+# Broad guard — keep the committed template allowed (see below)
+.env*
+!.env.example
+
+# Local archive of old env files (compromised / retired values)
+.env-archive/
 
 # Debug
 npm-debug.log*
 .pnp.*
 
-# Vercel
+# Vercel CLI link metadata (relink per machine / project as needed)
 .vercel
 
 # TypeScript

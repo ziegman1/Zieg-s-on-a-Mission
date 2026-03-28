@@ -1,4 +1,4 @@
-// Fidelis Merch — Prisma schema
+// Zieg's on a Mission Merch — Prisma schema
 // Multi-supplier fulfillment: dropship (Printify) + self-fulfilled
 
 generator client {

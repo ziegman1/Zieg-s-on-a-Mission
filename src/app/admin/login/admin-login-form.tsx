@@ -59,7 +59,7 @@ export function AdminLoginForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@fidelis.example"
+                placeholder="jziegenhorn@teamexpansion.org"
                 required
                 className="bg-zinc-800 border-zinc-600"
               />
@@ -80,7 +80,7 @@ export function AdminLoginForm() {
             </Button>
           </form>
           <p className="mt-4 text-xs text-zinc-500">
-            Default seed: admin@fidelis.example / admin123
+            Seeded admin: <span className="text-zinc-400">jziegenhorn@teamexpansion.org</span>
           </p>
         </CardContent>
       </Card>

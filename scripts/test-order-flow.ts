@@ -157,7 +157,7 @@ async function createTestCheckout(): Promise<{ url: string; sessionId: string } 
       ],
       success_url: `${BASE_URL}/order/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${BASE_URL}/cart`,
-      metadata: { store: "fidelis-merch" },
+      metadata: { store: "ziegs-on-a-mission-merch" },
       shipping_address_collection: {
         allowed_countries: ["US", "CA", "GB", "AU", "DE", "FR", "IE", "NZ", "JP", "MX", "ES", "IT", "NL", "BE", "AT", "CH", "PL", "PT", "SE", "NO", "DK", "FI"],
       },
@@ -280,7 +280,7 @@ async function main() {
   console.log("6. Verify order:");
   console.log("   npm run test:order -- --verify <session_id>");
   console.log("\nFor production: ensure webhook is configured at");
-  console.log("  https://www.fidelismerch.com/api/webhooks/stripe");
+  console.log("  https://ziegsonamission.com/api/webhooks/stripe");
   console.log("  Event: checkout.session.completed\n");
 
   await prisma.$disconnect();

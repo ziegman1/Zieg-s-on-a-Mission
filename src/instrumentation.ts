@@ -1,6 +1,6 @@
 /**
  * Reserved for Next.js instrumentation hooks.
  * Env files for local dev are loaded via the `dotenv-cli` invocation in `npm run dev`
- * (`-e .env`, `.env.production`, `.env.vercel`, `.env.local`).
+ * (`dotenv -e .env.local` in `npm run dev`).
  */
 export async function register() {}

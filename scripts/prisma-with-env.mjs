@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Runs Prisma CLI with env from .env.local and .env.
+ * Runs Prisma CLI with env from .env.local (and .env if present).
  * Sets DIRECT_URL from DATABASE_URL if not set (for local dev / Vercel Postgres).
  */
 import { spawnSync } from "child_process";

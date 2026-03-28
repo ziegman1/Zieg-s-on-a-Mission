@@ -27,7 +27,7 @@ Orders are created when:
 
 For (A) to work:
 1. **Stripe Dashboard** → Developers → Webhooks (Live mode)
-2. Add endpoint: `https://www.fidelismerch.com/api/webhooks/stripe`
+2. Add endpoint: `https://ziegsonamission.com/api/webhooks/stripe`
 3. Event: `checkout.session.completed`
 4. Copy the **Signing secret** (whsec_...)
 5. Add to **Vercel** → Settings → Environment Variables: `STRIPE_WEBHOOK_SECRET`

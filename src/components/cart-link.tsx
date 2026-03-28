@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getCart, CART_KEY } from "@/lib/cart-storage";
+import { getCart, CART_KEY, CART_UPDATE_EVENT } from "@/lib/cart-storage";
 
 export function CartLink({ className }: { className?: string }) {
   const [count, setCount] = useState(0);
@@ -19,11 +19,11 @@ export function CartLink({ className }: { className?: string }) {
       if (e.key === CART_KEY) update();
     };
     update();
-    window.addEventListener("fidelis-cart-update", update);
+    window.addEventListener(CART_UPDATE_EVENT, update);
     window.addEventListener("storage", onStorage);
     document.addEventListener("visibilitychange", update);
     return () => {
-      window.removeEventListener("fidelis-cart-update", update);
+      window.removeEventListener(CART_UPDATE_EVENT, update);
       window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", update);
     };

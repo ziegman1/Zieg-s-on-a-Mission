@@ -15,6 +15,7 @@ import { resolve } from "path";
 import { Resend } from "resend";
 import { prisma } from "../src/lib/db";
 import { LEGAL_CONFIG } from "../src/data/legal-config";
+import { DEFAULT_SITE_COPY } from "../src/data/site-copy-defaults";
 
 config({ path: resolve(process.cwd(), ".env") });
 config({ path: resolve(process.cwd(), ".env.local") });
@@ -50,12 +51,14 @@ async function sendOrderEmails(order: {
   }
 
   const siteUrl = LEGAL_CONFIG.siteUrl;
+  const siteName = DEFAULT_SITE_COPY.site.name;
+  const from = process.env.EMAIL_FROM?.trim() || LEGAL_CONFIG.orderEmailFrom;
 
   // Customer confirmation
   await resend.emails.send({
-    from: "Fidelis Merch <orders@fidelismerch.com>",
+    from,
     to: order.email,
-    subject: "Your Fidelis Merch Order Confirmation",
+    subject: `Your order confirmation — ${siteName}`,
     html: `<h1>Thank you for your order!</h1>
 <p>Your order ID is <strong>${order.id}</strong>.</p>
 <p>Your items are now being prepared for production. You will receive another email when your order ships.</p>
@@ -68,7 +71,7 @@ async function sendOrderEmails(order: {
   <a href="${siteUrl}/returns">Returns</a> · 
   <a href="${siteUrl}/contact">Contact</a>
 </p>
-<p style="font-size:12px;color:#666;">© ${new Date().getFullYear()} Fidelis Merch</p>`,
+<p style="font-size:12px;color:#666;">© ${new Date().getFullYear()} ${siteName}</p>`,
   });
 
   // Admin notification
@@ -126,7 +129,7 @@ ${shippingLabelHtml}
 `;
 
   await resend.emails.send({
-    from: "Fidelis Merch <orders@fidelismerch.com>",
+    from,
     to: "jszcs04@gmail.com",
     subject: `[Resent] New order: ${order.id} — $${(order.totalCents / 100).toFixed(2)}`,
     html: adminHtml,

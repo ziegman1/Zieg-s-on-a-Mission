@@ -1,84 +1,65 @@
-# Fidelis Merch — Design System & Branding
+# Zieg’s on a Mission Merch — Design System & Branding
 
-Derived from the provided logo and brand assets (shield, Celtic cross, FIDELIS wordmark, JUDE 1:3).
+Visual direction for the **Zieg’s on a Mission** site and **Zieg’s on a Mission Merch** store, in ministry partnership with **Team Expansion**. Tokens are implemented in `src/app/globals.css` (CSS variables + Tailwind v4 `@theme`).
 
 ---
 
 ## Brand Attributes
 
-- **Clean, premium, seminary/heritage-inspired**
-- Formal, traditional, dignified
-- Strong contrast (dark backgrounds, metallic gold, deep red)
+- Warm, mission-minded, approachable  
+- Clear hierarchy: ministry story first, merch as a supporting way to partner  
+- Strong but calm contrast (sky/ink palette, gold accent, optional deep red for emphasis)  
 
 ---
 
 ## Color Palette
 
-| Role | Name | Hex | Usage |
-|------|------|-----|--------|
-| **Background (primary)** | Black | `#000000` | Main dark background, footer, header |
-| **Primary accent** | Fidelis Gold | `#B89649` | CTAs, headings, borders, logo outline |
-| **Secondary accent** | Fidelis Red | `#8B2F31` | Cross fill, highlights, badges, links on light |
-| **Neutral light** | Cream | `#F5F0E6` | Body backgrounds (light sections), cards |
-| **Neutral mid** | Warm Gray | `#6B5B4F` | Secondary text, borders on light |
-| **Muted gold** | Gold Muted | `#A08C69` | Secondary accents, disabled states |
+| Role | Name | Hex (reference) | Usage |
+|------|------|-------------------|--------|
+| **Primary / header band** | Sky blue | `#83b0da` | Header, brand primary surfaces (`--brand-primary`) |
+| **Accent** | Warm gold | `#edb73e` | Buttons, highlights (`--brand-accent`) |
+| **Ink** | Deep slate | `#1e3644` | Body text on light surfaces (`--brand-ink`) |
+| **Surface** | Warm cream | `#eae5e1` | Page background (`--brand-surface`, `--cream`) |
+| **Deep red** | Mission red | `#8b2f31` | Badges, emphasis (`--brand-deep-red`) |
 
-**Tailwind theme tokens (reference):**
-- `background`: black / cream
-- `primary` / `accent`: gold
-- `secondary` / `accent-red`: deep red
-- `muted`: warm gray, gold muted
+Tailwind-style tokens exposed from `@theme` include `--color-brand-primary`, `--color-brand-accent`, `--color-brand-ink`, `--color-brand-deep-red`, `--color-cream`. Prefer these over hard-coded hex in new UI.
 
 ---
 
 ## Typography
 
-| Use | Font | Tailwind / CSS | Notes |
-|-----|------|----------------|--------|
-| **Display / brand** | Serif (e.g. Cinzel, Playfair Display) | `font-serif` / `font-display` | Headings, “Fidelis” wordmark, hero |
-| **Body** | Sans-serif (e.g. Lato, Source Sans 3) | `font-sans` | Body copy, UI, nav |
-| **Motto / detail** | Same serif, smaller | `font-serif text-sm` | “JUDE 1:3”, captions |
-
-- Headings: uppercase optional for hero/brand; sentence case for content.
-- Letter-spacing: slightly increased for display serif (`tracking-wide`).
+| Use | Font | Notes |
+|-----|------|--------|
+| **UI / body** | Geist Sans (Next font) | Default layout font |
+| **Mono** | Geist Mono | Code, technical labels |
+| **Display** | `font-serif` where used | Section titles, footer name treatment |
 
 ---
 
-## Logo Usage
+## Logo & Imagery
 
-- **Primary:** Full logo (wordmark + shield + JUDE 1:3) on black or cream.
-- **Icon only:** Shield + cross only for favicon, small nav, social.
-- **Files:** Use provided assets (e.g. `Fidelis_ONLY_Transparent`, `Large_Transparent_Logo`) for light/dark contexts.
-- **Clear space:** Minimum padding around logo; do not stretch or distort.
-
----
-
-## Buttons
-
-- **Primary:** Gold background (`fidelis-gold`), dark text or black; hover slightly lighter gold.
-- **Secondary:** Outline gold on black/cream; fill on hover.
-- **Destructive:** Red accent for delete/danger.
-- **Style:** Subtle radius (e.g. `rounded-md`), no heavy shadows; optional subtle border.
+- **Header:** `public/logo/team-expansion.png` (Team Expansion wordmark lockup).  
+- **Hero / marketing:** `public/images/hero-zieg-mission.png`, `public/images/zieg-hero.png` as needed.  
+- **Favicon / OG:** `public/icon.png`, `public/apple-touch-icon.png`, `public/og-image.jpg`.  
+- Maintain clear space; do not stretch or clip logos awkwardly on small screens.  
 
 ---
 
-## Spacing & Radius
+## Buttons & CTAs
 
-- **Spacing:** Generous padding for sections; 8px grid (e.g. 4, 8, 16, 24, 32, 48, 64).
-- **Radius:** `rounded-md` (e.g. 6px) for cards, buttons; `rounded-sm` for inputs.
-- **Borders:** 1px; gold or warm gray; avoid busy borders.
-
----
-
-## UI Primitives (shadcn/ui)
-
-- Base components on shadcn/ui; override with brand colors (gold, red, black, cream).
-- Inputs: cream/white background on light sections; dark inputs on black with gold focus ring.
-- Cards: subtle border (gold or warm gray), cream or black background by context.
+- **Primary:** `bg-brand-accent` + `text-brand-ink` (gold on dark-friendly ink).  
+- **Links on header:** White / near-white on `--brand-primary` header band.  
+- **Outline / secondary:** Border using brand primary or zinc in admin dark theme.  
 
 ---
 
 ## Storefront vs Admin
 
-- **Storefront:** Full brand (gold, red, black, cream); serif for hero/headings; sans for body.
-- **Admin:** Same palette for consistency; slightly more neutral (gray) for tables/charts; gold for primary actions.
+- **Storefront:** Light mission surface, brand primary header, serif touches for name/footer.  
+- **Admin:** Dark shell (`bg-black`, `text-cream`) with brand primary links and gold accent for primary actions.  
+
+---
+
+## shadcn/ui
+
+Base components follow shadcn patterns; map destructive and focus rings to the palette above. Admin forms use dark-friendly input styling via layout wrappers.  

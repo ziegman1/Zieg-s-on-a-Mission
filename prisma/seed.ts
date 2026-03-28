@@ -4,17 +4,20 @@ import { hash } from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Admin user (password: admin123) — change in production
-  const adminPassword = await hash("admin123", 10);
+  // Default admin: jziegenhorn@teamexpansion.org — override with ADMIN_EMAIL / ADMIN_PASSWORD in .env.local
+  const adminEmail = process.env.ADMIN_EMAIL?.trim() || "jziegenhorn@teamexpansion.org";
+  const passwordHash = process.env.ADMIN_PASSWORD?.trim()
+    ? await hash(process.env.ADMIN_PASSWORD.trim(), 10)
+    : "$2b$10$.Z8p8MKCbJNkm/qfMpavxOfLQlNZz6dhsXonuNakwEbSfFu5SE5YC";
   await prisma.user.upsert({
-    where: { email: "admin@fidelis.example" },
+    where: { email: adminEmail },
     create: {
-      email: "admin@fidelis.example",
+      email: adminEmail,
       name: "Admin",
-      passwordHash: adminPassword,
+      passwordHash,
       role: "ADMIN",
     },
-    update: {},
+    update: { passwordHash, role: "ADMIN" },
   });
 
   // Create Printify provider
@@ -53,12 +56,12 @@ async function main() {
 
   // Sample self-fulfilled product
   const product1 = await prisma.product.upsert({
-    where: { slug: "fidelis-laser-tumbler" },
+    where: { slug: "ziegs-on-a-mission-sample-tumbler" },
     create: {
-      title: "Fidelis Laser-Engraved Tumbler",
-      slug: "fidelis-laser-tumbler",
+      title: "Ziegs on a Mission Sample Tumbler",
+      slug: "ziegs-on-a-mission-sample-tumbler",
       description:
-        "Premium stainless steel tumbler with laser-engraved Fidelis shield. Keeps drinks cold or hot.",
+        "Premium stainless steel tumbler with laser-engraved mission branding. Keeps drinks cold or hot.",
       fulfillmentType: "self_fulfilled",
       published: true,
       featured: true,
@@ -85,7 +88,7 @@ async function main() {
       },
       images: {
         create: [
-          { url: "/placeholder-product.jpg", alt: "Fidelis Tumbler", sortOrder: 0 },
+          { url: "/images/hero-zieg-mission.png", alt: "Ziegs on a Mission tumbler", sortOrder: 0 },
         ],
       },
     },
@@ -103,11 +106,11 @@ async function main() {
 
   // Sample dropship product (no external mapping in seed; admin links in UI)
   const product2 = await prisma.product.upsert({
-    where: { slug: "fidelis-crest-tee" },
+    where: { slug: "ziegs-on-a-mission-classic-tee-sample" },
     create: {
-      title: "Fidelis Crest T-Shirt",
-      slug: "fidelis-crest-tee",
-      description: "Classic tee with the Fidelis shield and Celtic cross. Printify.",
+      title: "Ziegs on a Mission Classic Tee (sample)",
+      slug: "ziegs-on-a-mission-classic-tee-sample",
+      description: "Classic tee with mission branding. Link to Printify in admin when ready.",
       fulfillmentType: "dropship",
       providerId: printify.id,
       published: true,
@@ -122,7 +125,7 @@ async function main() {
       },
       images: {
         create: [
-          { url: "/placeholder-product.jpg", alt: "Fidelis Crest Tee", sortOrder: 0 },
+          { url: "/images/zieg-hero.png", alt: "Ziegs on a Mission classic tee", sortOrder: 0 },
         ],
       },
     },

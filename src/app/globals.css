@@ -50,8 +50,7 @@
   --color-brand-surface: var(--brand-surface);
   --color-brand-accent: var(--brand-accent);
   --color-brand-ink: var(--brand-ink);
-  --color-fidelis-gold: var(--brand-primary);
-  --color-fidelis-red: var(--fidelis-red);
+  --color-brand-deep-red: var(--brand-deep-red);
   --color-cream: var(--cream);
 }
 
@@ -61,8 +60,7 @@
   --brand-surface: #eae5e1;
   --brand-accent: #edb73e;
   --brand-ink: #1e3644;
-  --fidelis-gold: #83b0da;
-  --fidelis-red: #8B2F31;
+  --brand-deep-red: #8b2f31;
   --cream: #eae5e1;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

@@ -41,7 +41,7 @@ export default async function AdminLayout({
       <header className="border-b border-brand-primary/35 px-6 py-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <Link href="/admin" className="font-serif text-xl text-brand-primary tracking-wide">
-            Zieg&apos;s Merch — Admin
+            Zieg&apos;s on a Mission Merch — Admin
           </Link>
           <nav className="flex items-center gap-6">
             {adminNav.map(({ href, label }) => (

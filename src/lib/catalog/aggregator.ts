@@ -92,7 +92,7 @@ async function getCollectionProductSlugs(
 /**
  * Fetch a single product by slug from the unified catalog.
  * - Normalizes spaces to hyphens (e.g. "water bottle" → "water-bottle")
- * - Falls back to prefix match for Printify products (e.g. "fidelis-laser-water-bottle" matches "fidelis-laser-water-bottle-abc12345")
+ * - Falls back to prefix match for Printify products (e.g. "mission-tumbler" matches "mission-tumbler-abc12345")
  */
 export async function getUnifiedProductBySlug(
   slug: string

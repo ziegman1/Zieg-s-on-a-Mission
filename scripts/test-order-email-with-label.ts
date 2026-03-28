@@ -6,6 +6,7 @@
 import { config } from "dotenv";
 import { resolve } from "path";
 import { Resend } from "resend";
+import { LEGAL_CONFIG } from "../src/data/legal-config";
 
 config({ path: resolve(process.cwd(), ".env") });
 config({ path: resolve(process.cwd(), ".env.local") });
@@ -25,14 +26,14 @@ async function main() {
     process.exit(1);
   }
 
-  const siteUrl = "https://www.fidelismerch.com";
+  const siteUrl = LEGAL_CONFIG.siteUrl;
   const orderId = "sample_order_123";
   const totalCents = 5499;
   const customerEmail = "customer@example.com";
 
   const itemsHtml = `
-<tr><td>2×</td><td>Fidelis Hoodie — Light Steel / M</td><td>$79.98</td></tr>
-<tr><td>1×</td><td>Fidelis T-Shirt — Black / L</td><td>$29.99</td></tr>
+<tr><td>2×</td><td>Ziegs on a Mission Hoodie — Light Steel / M</td><td>$79.98</td></tr>
+<tr><td>1×</td><td>Team Expansion Supporter Tee — Black / L</td><td>$29.99</td></tr>
 `;
 
   const shippingName = "Jane Smith";
@@ -77,9 +78,11 @@ ${shippingLabelHtml}
 <p style="font-size:12px;color:#666;">Admin: <a href="${siteUrl}/admin/orders/${orderId}">View order</a></p>
 `;
 
+  const from = process.env.EMAIL_FROM?.trim() || LEGAL_CONFIG.orderEmailFrom;
+
   const resend = new Resend(key);
   const { data, error } = await resend.emails.send({
-    from: "Fidelis Merch <orders@fidelismerch.com>",
+    from,
     to: "jszcs04@gmail.com",
     subject: `Sample order (with printable label): ${orderId} — $${(totalCents / 100).toFixed(2)}`,
     html: adminHtml,

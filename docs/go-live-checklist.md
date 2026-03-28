@@ -50,7 +50,7 @@ In Vercel: **Project → Settings → Environment Variables**. Add these for **P
 | `PRINTIFY_API_KEY` | Printify API / Integrations | |
 | `PRINTIFY_SHOP_ID` | Printify → Shop / API | |
 | `RESEND_API_KEY` | Resend dashboard | Optional; for order emails. |
-| `EMAIL_FROM` | Your choice | Optional; e.g. `Fidelis Merch <orders@yourdomain.com>`. |
+| `EMAIL_FROM` | Your choice | Optional; e.g. `Zieg's on a Mission Merch <orders@ziegsonamission.com>`. |
 
 **Important:** Use the **pooler** URL for `DATABASE_URL` (with `?pgbouncer=true`). Using the direct URL (5432) on Vercel can exhaust connections.
 
@@ -85,7 +85,7 @@ In Vercel: **Project → Settings → Environment Variables**. Add these for **P
   DATABASE_URL="postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres" npx tsx prisma/seed.ts
   ```
 
-  Then **change the seed admin password immediately** (seed uses `admin@fidelis.example` / `admin123`).
+  Then **change the seed admin password immediately** (default seeded user is `jziegenhorn@teamexpansion.org`; set `ADMIN_PASSWORD` in env before seeding, or rotate credentials in production).
 
 - **Option B:** Skip seed and create an admin user another way (e.g. sign up then set `role = 'ADMIN'` in Supabase Table Editor).
 

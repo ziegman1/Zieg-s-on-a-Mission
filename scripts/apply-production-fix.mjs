@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Applies fix-production-schema.sql to the database and marks migration as applied.
- * Loads env from .env, .env.local, .env.vercel, .env.production.
+ * Loads env from .env.local (and .env if present).
  * Supports Vercel Postgres (POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING).
  */
 import { spawnSync } from "child_process";
@@ -47,7 +47,7 @@ function normalizeDbUrl(url) {
 }
 
 const env = { ...process.env };
-for (const f of [".env", ".env.local", ".env.vercel", ".env.production"]) {
+for (const f of [".env.local", ".env"]) {
   Object.assign(env, loadEnv(resolve(root, f)));
 }
 
@@ -71,7 +71,7 @@ env.DIRECT_URL = directUrl || dbUrl;
 
 if (!dbUrl) {
   console.error("[apply-production-fix] ERROR: DATABASE_URL is not set.");
-  console.error("  Set DATABASE_URL or POSTGRES_PRISMA_URL in .env.local or .env.vercel.");
+  console.error("  Set DATABASE_URL or POSTGRES_PRISMA_URL in .env.local.");
   process.exit(1);
 }
 

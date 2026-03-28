@@ -2,7 +2,7 @@
  * Custom storefront image mapping: gallery order and color-specific main image.
  * Use this to override product imagery regardless of source (e.g. lifestyle shots for apparel).
  *
- * Example: Fidelis hoodie
+ * Example: multi-color hoodie from Printify
  * - orderedGallery: [lifestyle, navy, maroon, gray, black, group]
  * - colorToImageUrl: { Navy: url1, Maroon: url2, ... } so when "Navy" is selected, main image switches.
  */
@@ -26,20 +26,7 @@ export interface ProductImageMappingEntry {
 
 export const productImageMappings: ProductImageMappingEntry[] = [
   {
-    slug: "fidelis-international-seminary-hoodie",
-    slugContains: true,
-    colorOrder: ["Black", "Navy", "Maroon", "Light steel"],
-    colorToImageIndex: {
-      Black: 0,
-      Navy: 1,
-      Maroon: 2,
-      "Light steel": 3,
-      "Light Steel": 3,
-    },
-  },
-  // Fidelis Hoodie (Printify title may produce slug "fidelis-hoodie-xxx")
-  {
-    slug: "fidelis-hoodie",
+    slug: "ziegs-on-a-mission",
     slugContains: true,
     colorOrder: ["Black", "Navy", "Maroon", "Light steel"],
     colorToImageIndex: {

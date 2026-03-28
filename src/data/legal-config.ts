@@ -5,7 +5,7 @@
 
 export const LEGAL_CONFIG = {
   /** Support / contact email */
-  supportEmail: "orders@ziegsonamission.com",
+  supportEmail: "jeremy@ziegsonamission.com",
 
   /** Resend "from" header — must match a verified domain in Resend */
   orderEmailFrom:

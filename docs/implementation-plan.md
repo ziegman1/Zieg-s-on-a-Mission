@@ -1,8 +1,8 @@
-# Fidelis Merch — Implementation Plan
+# Zieg’s on a Mission Merch — Implementation Plan
 
 ## Overview
 
-Phased approach to deliver a production-ready e-commerce site for Fidelis International Seminary with multi-supplier fulfillment (Printify + self-fulfilled), admin product/order management, and a brand-aligned storefront.
+Phased approach to deliver a production-ready ministry site with optional merch: multi-supplier fulfillment (Printify + self-fulfilled), admin product/order management, and a storefront aligned with **Zieg’s on a Mission** and **Team Expansion**.
 
 ---
 

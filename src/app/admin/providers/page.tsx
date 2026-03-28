@@ -15,7 +15,8 @@ export default async function AdminProvidersPage() {
       <h1 className="font-serif text-3xl text-brand-primary tracking-wide">Providers</h1>
       <p className="text-zinc-400 max-w-2xl">
         Dropship providers (e.g. Printify). Configure API keys in environment variables (PRINTIFY_API_KEY, PRINTIFY_SHOP_ID).
-        For local dev, run <code className="text-xs bg-zinc-800 px-1 rounded">vercel env pull</code> to pull Vercel vars into .env.vercel.
+        For local dev, set keys in <code className="text-xs bg-zinc-800 px-1 rounded">.env.local</code> or run{" "}
+        <code className="text-xs bg-zinc-800 px-1 rounded">vercel env pull</code> against your Zieg&apos;s-linked Vercel project (writes <code className="text-xs bg-zinc-800 px-1 rounded">.env.local</code>).
       </p>
       <div className="space-y-1">
         <SyncPrintifyButton />

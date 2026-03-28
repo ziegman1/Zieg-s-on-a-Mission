@@ -158,7 +158,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     beforeContactLead: "For faster answers, please review our",
   },
   legalSupport: {
-    supportEmail: "orders@ziegsonamission.com",
+    supportEmail: "jeremy@ziegsonamission.com",
     supportResponseTime: "within 1–2 business days",
   },
 };
