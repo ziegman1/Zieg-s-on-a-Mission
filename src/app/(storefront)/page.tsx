@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { Dancing_Script } from "next/font/google";
 import { getStaticHomeHero } from "@/data/home-static";
 import { GUIDED_HOME_CLOSING, GUIDED_HOME_SECTIONS } from "@/data/home-guided-sections";
@@ -33,7 +34,7 @@ export default function HomePage() {
             aria-hidden
           />
         </div>
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 py-16 sm:py-24 flex flex-col justify-center min-h-[min(90vh,52rem)]">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 py-12 sm:py-16 flex flex-col justify-center min-h-[min(90vh,52rem)]">
           <div className="max-w-[min(100%,calc(36rem-75px))] text-left -translate-y-[50px]">
             <h1
               className={`${heroTitle.className} text-[2.25rem] sm:text-4xl md:text-5xl lg:text-[3.25rem] text-brand-ink font-bold tracking-normal leading-[1.15] [text-shadow:0_1px_0_rgba(255,255,255,0.65),0_2px_12px_rgba(255,255,255,0.45),0_0.5px_0_rgba(30,54,68,0.55)]`}
@@ -70,54 +71,83 @@ export default function HomePage() {
       </section>
 
       <div className="bg-brand-surface text-brand-ink">
-        {GUIDED_HOME_SECTIONS.map((section, i) => (
-          <section
-            key={section.id}
-            className={
-              i % 2 === 0
-                ? "border-t border-brand-primary/15 bg-white/45"
-                : "border-t border-brand-primary/15 bg-brand-surface"
-            }
-          >
-            <div className="mx-auto max-w-2xl px-4 py-12 sm:py-14 text-center sm:text-left">
+        {GUIDED_HOME_SECTIONS.map((section, i) => {
+          const isTextLeft = i % 2 === 0;
+          const sectionBg = i % 2 === 0 ? "bg-white" : "bg-neutral-50";
+
+          const textColumn = (
+            <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4">
               <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{section.title}</h2>
-              <p className="mt-4 text-brand-ink/85 leading-relaxed">{section.body}</p>
+              <p className="mt-3 text-brand-ink/85 leading-relaxed">{section.body}</p>
               <Link
                 href={section.href}
-                className="mt-5 inline-block text-brand-primary font-medium hover:underline"
+                className="text-blue-600 hover:underline mt-4 inline-block font-medium"
               >
                 {section.ctaLabel}
               </Link>
             </div>
-          </section>
-        ))}
+          );
 
-        <section className="border-t border-brand-primary/20 bg-brand-primary/10 px-4 py-14 sm:py-16">
-          <div className="mx-auto max-w-xl text-center">
-            <p className="text-brand-ink/88 leading-relaxed">{GUIDED_HOME_CLOSING.body}</p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Button
-                asChild
-                variant="outline"
-                className="rounded-full px-7 h-11 border-brand-primary/45 bg-white/90 text-brand-ink"
-              >
-                <Link href="/mission">Learn more</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="rounded-full px-7 h-11 border-brand-primary/45 bg-white/90 text-brand-ink"
-              >
-                <Link href="/give">Give</Link>
-              </Button>
-              <Button
-                asChild
-                className="rounded-full px-7 h-11 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold"
-              >
-                <Link href="/partner">Partner</Link>
-              </Button>
+          const spacerColumn = (
+            <div
+              className="hidden md:block md:col-span-1 min-h-[5rem]"
+              aria-hidden
+            />
+          );
+
+          return (
+            <Fragment key={section.id}>
+              <section className={sectionBg}>
+                <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
+                  <div className="border-t border-gray-200 w-full mb-8 sm:mb-10" />
+                  <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
+                    {isTextLeft ? (
+                      <>
+                        {textColumn}
+                        {spacerColumn}
+                      </>
+                    ) : (
+                      <>
+                        {spacerColumn}
+                        {textColumn}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {section.id === "mission" ? (
+                <section className="py-16 sm:py-20 bg-blue-50">
+                  <div className="max-w-3xl mx-auto px-6 text-center text-lg text-gray-700 leading-relaxed">
+                    You’re not just reading a story — you’re stepping into one.
+                  </div>
+                </section>
+              ) : null}
+            </Fragment>
+          );
+        })}
+
+        <section className="bg-white">
+          <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
+            <div className="border-t border-gray-200 w-full mb-8 sm:mb-10" />
+            <div className="max-w-xl mx-auto text-center">
+              <p className="text-brand-ink/88 leading-relaxed">{GUIDED_HOME_CLOSING.body}</p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+                <Link href="/mission" className="text-blue-600 hover:underline font-medium">
+                  Learn more
+                </Link>
+                <Link href="/give" className="text-blue-600 hover:underline font-medium">
+                  Give
+                </Link>
+                <Button
+                  asChild
+                  className="rounded-full px-7 h-11 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold"
+                >
+                  <Link href="/partner">Partner</Link>
+                </Button>
+              </div>
+              <p className="mt-10 text-sm text-brand-ink/55">{DEFAULT_SITE_COPY.site.tagline}</p>
             </div>
-            <p className="mt-10 text-sm text-brand-ink/55">{DEFAULT_SITE_COPY.site.tagline}</p>
           </div>
         </section>
       </div>

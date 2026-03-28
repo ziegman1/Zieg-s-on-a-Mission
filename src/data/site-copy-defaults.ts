@@ -105,7 +105,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
   },
   homeHero: {
     headline: "Zieg's on a Mission",
-    body: `We exist to mobilize and equip ordinary people to make an extraordinary impact for God's Kingdom. Serving with Team Expansion, our vision is to see disciples multiplied and churches planted among the unreached. Through mobilization, training, and coaching, we help raise up new workers who will carry the Gospel to the ends of the earth. We'd love for you to be part of this story.`,
+    body: `We exist to mobilize and equip ordinary people to make an extraordinary impact for God's Kingdom. Serving with Team Expansion, our vision is to see disciples multiplied and churches planted among the unreached. Through mobilization, training, and coaching, we help raise up new workers who will carry the Gospel to the ends of the earth. We’d love for you to be part of this story.`,
     primaryCtaLabel: "Become a Monthly Partner",
     secondaryCtaLabel: "Give",
   },
