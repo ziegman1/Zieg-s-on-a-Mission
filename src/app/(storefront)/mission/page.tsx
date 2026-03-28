@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
   return {
     title: "Mission",
-    description: `The heart of ${copy.site.name} — gospel advance, partnership, and how merch supports the work.`,
+    description: `The heart of ${copy.site.name} — gospel advance, monthly partnership, and how thank-you gifts support the work.`,
   };
 }
 
@@ -31,16 +31,22 @@ export default async function MissionPage() {
       </section>
       <div className="!mt-10 flex flex-wrap gap-3 not-prose">
         <Link
-          href="/merch"
+          href="/partner"
           className="inline-flex items-center justify-center rounded-full px-6 py-3 bg-brand-accent text-brand-ink font-semibold hover:bg-brand-accent/90 transition-colors"
         >
-          Browse merch
+          Become a Monthly Partner
         </Link>
         <Link
-          href="/about"
+          href="/give"
+          className="inline-flex items-center justify-center rounded-full px-6 py-3 bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
+        >
+          Give
+        </Link>
+        <Link
+          href="/merch"
           className="inline-flex items-center rounded-full px-6 py-3 border border-brand-primary/40 text-brand-ink font-medium hover:border-brand-primary/60 transition-colors"
         >
-          About us
+          Gifts &amp; merch
         </Link>
       </div>
       <nav className="!mt-8 flex flex-wrap gap-4 not-prose">
@@ -48,7 +54,10 @@ export default async function MissionPage() {
           Blog
         </Link>
         <Link href="/contact" className="text-brand-primary font-medium hover:underline">
-          Partner with us — contact
+          Contact
+        </Link>
+        <Link href="/about" className="text-brand-primary font-medium hover:underline">
+          About us
         </Link>
       </nav>
     </MinistryPageShell>

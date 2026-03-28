@@ -158,7 +158,7 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
             />
           </Field>
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Primary button (→ /mission)">
+            <Field label="Primary button (→ /partner)">
               <Input
                 value={copy.homeHero.primaryCtaLabel}
                 onChange={(e) =>
@@ -169,7 +169,7 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
                 }
               />
             </Field>
-            <Field label="Secondary button (→ /merch)">
+            <Field label="Secondary button (→ /give)">
               <Input
                 value={copy.homeHero.secondaryCtaLabel}
                 onChange={(e) =>
@@ -185,7 +185,7 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
       </details>
 
       <details className="rounded-lg border border-brand-primary/30 bg-zinc-900/50 p-4">
-        <summary className="cursor-pointer font-medium text-brand-primary">Home — cards & merch blocks</summary>
+        <summary className="cursor-pointer font-medium text-brand-primary">Home — cards & pathways</summary>
         <div className="mt-4 space-y-6">
           <p className="text-xs text-zinc-500">“Who we are” / “Why we exist” cards</p>
           <div className="grid gap-4">
@@ -240,7 +240,7 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
               />
             </Field>
           </div>
-          <Field label="Merch collections — title">
+          <Field label="Gifts & merch pathway — title">
             <Input
               value={copy.home.merchTitle}
               onChange={(e) =>
@@ -248,7 +248,7 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
               }
             />
           </Field>
-          <Field label="Merch collections — blurb">
+          <Field label="Gifts & merch pathway — blurb">
             <Textarea
               rows={2}
               value={copy.home.merchBlurb}
@@ -257,7 +257,7 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
               }
             />
           </Field>
-          <Field label="Featured merch — title">
+          <Field label="Support pathways — title">
             <Input
               value={copy.home.featuredTitle}
               onChange={(e) =>
@@ -265,15 +265,16 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
               }
             />
           </Field>
-          <Field label="Featured — empty state message">
-            <Input
+          <Field label="Support pathways — body">
+            <Textarea
+              rows={4}
               value={copy.home.featuredEmpty}
               onChange={(e) =>
                 setCopy((c) => ({ ...c, home: { ...c.home, featuredEmpty: e.target.value } }))
               }
             />
           </Field>
-          <Field label="View all merch — button label">
+          <Field label="Explore gifts & merch — button label">
             <Input
               value={copy.home.viewAllMerchLabel}
               onChange={(e) =>

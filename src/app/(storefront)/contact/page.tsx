@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
   return {
     title: "Contact",
-    description: `Contact ${copy.site.name} for order support, shipping questions, and returns.`,
+    description: `Contact ${copy.site.name} — partnership, giving, prayer, and support when the shop is active.`,
   };
 }
 
@@ -19,6 +19,21 @@ export default async function ContactPage() {
   return (
     <LegalPageShell title="Contact">
       <p>{intro}</p>
+
+      <p className="not-prose flex flex-wrap gap-3 mt-6">
+        <Link
+          href="/partner"
+          className="inline-flex rounded-full bg-brand-accent px-5 py-2 text-sm font-semibold text-brand-ink hover:bg-brand-accent/90"
+        >
+          Become a Monthly Partner
+        </Link>
+        <Link
+          href="/give"
+          className="inline-flex rounded-full border border-brand-primary/40 px-5 py-2 text-sm font-medium text-brand-ink hover:border-brand-primary/60"
+        >
+          Give
+        </Link>
+      </p>
 
       <h2>Support Email</h2>
       <p>

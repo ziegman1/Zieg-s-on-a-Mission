@@ -33,7 +33,7 @@ export const siteCopySaveSchema = z.object({
     merchTitle: z.string().min(1).max(200),
     merchBlurb: z.string().min(1).max(2000),
     featuredTitle: z.string().min(1).max(200),
-    featuredEmpty: z.string().min(1).max(500),
+    featuredEmpty: z.string().min(1).max(2000),
     viewAllMerchLabel: z.string().min(1).max(120),
   }),
   homeHero: z.object({

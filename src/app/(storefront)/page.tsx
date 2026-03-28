@@ -1,30 +1,22 @@
 import Link from "next/link";
 import { Dancing_Script } from "next/font/google";
-import { CATEGORY_SLUGS, CATEGORY_LABELS } from "@/data/product-tags";
-import { HOME_STATIC, getStaticHomeHero } from "@/data/home-static";
+import { getStaticHomeHero } from "@/data/home-static";
+import { GUIDED_HOME_CLOSING, GUIDED_HOME_SECTIONS } from "@/data/home-guided-sections";
+import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 const heroTitle = Dancing_Script({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
 });
 
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  apparel: "T-shirts, hoodies, polos, and more",
-  drinkware: "Tumblers, mugs, and drinkware",
-};
-
-/** Public homepage is fully static — no DB / Prisma / catalog. */
 export const dynamic = "force-static";
 
 export default function HomePage() {
   const hero = getStaticHomeHero();
-  const copy = HOME_STATIC.home;
 
   return (
     <div>
-      {/* Hero — image: subjects right; text left; soft fade matches brand surface */}
       <section className="relative min-h-[min(90vh,52rem)] flex items-stretch border-b border-brand-primary/20">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -65,79 +57,70 @@ export default function HomePage() {
               >
                 <Link href={hero.secondaryCta.href}>{hero.secondaryCta.label}</Link>
               </Button>
+              <Button
+                asChild
+                variant="ghost"
+                className="rounded-full px-5 h-12 text-brand-ink/90 bg-white/50 hover:bg-white/70"
+              >
+                <Link href="/mission">Learn more</Link>
+              </Button>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-14 px-4 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-brand-primary/25 bg-white/90 shadow-sm">
-            <CardContent className="p-6 sm:p-8">
-              <h2 className="font-serif text-xl text-brand-primary tracking-wide mb-3">
-                {copy.whoTitle}
-              </h2>
-              <p className="text-brand-ink/85 leading-relaxed">{copy.whoBody}</p>
-              <Link
-                href="/about"
-                className="inline-block mt-4 text-brand-primary font-medium hover:underline"
-              >
-                {copy.whoCta}
-              </Link>
-            </CardContent>
-          </Card>
-          <Card className="border-brand-primary/25 bg-white/90 shadow-sm">
-            <CardContent className="p-6 sm:p-8">
-              <h2 className="font-serif text-xl text-brand-primary tracking-wide mb-3">
-                {copy.whyTitle}
-              </h2>
-              <p className="text-brand-ink/85 leading-relaxed">{copy.whyBody}</p>
-              <Link
-                href="/mission"
-                className="inline-block mt-4 text-brand-primary font-medium hover:underline"
-              >
-                {copy.whyCta}
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <section className="py-14 px-4 max-w-7xl mx-auto border-t border-brand-primary/15">
-        <h2 className="font-serif text-2xl text-brand-primary tracking-wide mb-2">
-          {copy.merchTitle}
-        </h2>
-        <p className="text-brand-ink/75 mb-8 max-w-2xl">{copy.merchBlurb}</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {CATEGORY_SLUGS.map((slug) => (
-            <Link key={slug} href={`/merch?category=${slug}`}>
-              <Card className="border-brand-primary/25 bg-white/90 shadow-sm overflow-hidden hover:border-brand-primary/55 transition-colors h-full">
-                <CardContent className="p-6">
-                  <h3 className="font-medium text-brand-ink">{CATEGORY_LABELS[slug]}</h3>
-                  {CATEGORY_DESCRIPTIONS[slug] && (
-                    <p className="text-sm text-brand-ink/70 mt-1">{CATEGORY_DESCRIPTIONS[slug]}</p>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="py-14 px-4 max-w-7xl mx-auto">
-        <h2 className="font-serif text-2xl text-brand-primary tracking-wide mb-8">
-          {copy.featuredTitle}
-        </h2>
-        <p className="text-brand-ink/60">{copy.featuredEmpty}</p>
-        <p className="mt-10 text-center">
-          <Link
-            href="/merch"
-            className="inline-flex items-center justify-center rounded-full px-8 py-3 bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
+      <div className="bg-brand-surface text-brand-ink">
+        {GUIDED_HOME_SECTIONS.map((section, i) => (
+          <section
+            key={section.id}
+            className={
+              i % 2 === 0
+                ? "border-t border-brand-primary/15 bg-white/45"
+                : "border-t border-brand-primary/15 bg-brand-surface"
+            }
           >
-            {copy.viewAllMerchLabel}
-          </Link>
-        </p>
-      </section>
+            <div className="mx-auto max-w-2xl px-4 py-12 sm:py-14 text-center sm:text-left">
+              <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{section.title}</h2>
+              <p className="mt-4 text-brand-ink/85 leading-relaxed">{section.body}</p>
+              <Link
+                href={section.href}
+                className="mt-5 inline-block text-brand-primary font-medium hover:underline"
+              >
+                {section.ctaLabel}
+              </Link>
+            </div>
+          </section>
+        ))}
+
+        <section className="border-t border-brand-primary/20 bg-brand-primary/10 px-4 py-14 sm:py-16">
+          <div className="mx-auto max-w-xl text-center">
+            <p className="text-brand-ink/88 leading-relaxed">{GUIDED_HOME_CLOSING.body}</p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-full px-7 h-11 border-brand-primary/45 bg-white/90 text-brand-ink"
+              >
+                <Link href="/mission">Learn more</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-full px-7 h-11 border-brand-primary/45 bg-white/90 text-brand-ink"
+              >
+                <Link href="/give">Give</Link>
+              </Button>
+              <Button
+                asChild
+                className="rounded-full px-7 h-11 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold"
+              >
+                <Link href="/partner">Partner</Link>
+              </Button>
+            </div>
+            <p className="mt-10 text-sm text-brand-ink/55">{DEFAULT_SITE_COPY.site.tagline}</p>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

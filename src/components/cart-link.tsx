@@ -6,7 +6,14 @@ import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCart, CART_KEY, CART_UPDATE_EVENT } from "@/lib/cart-storage";
 
-export function CartLink({ className }: { className?: string }) {
+export function CartLink({
+  className,
+  subtle = false,
+}: {
+  className?: string;
+  /** Smaller, lower-emphasis treatment for mission-first nav */
+  subtle?: boolean;
+}) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -33,12 +40,15 @@ export function CartLink({ className }: { className?: string }) {
     <Link
       href="/cart"
       className={cn(
-        "text-brand-primary hover:text-brand-accent transition-colors inline-flex items-center gap-1.5",
+        subtle
+          ? "text-white/70 hover:text-white text-xs sm:text-sm transition-colors inline-flex items-center gap-1"
+          : "text-brand-primary hover:text-brand-accent transition-colors inline-flex items-center gap-1.5",
         className,
       )}
       aria-label={count > 0 ? `Cart (${count} items)` : "Cart"}
     >
-      <ShoppingCart className="w-5 h-5" />
+      <ShoppingCart className={subtle ? "w-4 h-4 opacity-90" : "w-5 h-5"} />
+      {subtle && <span className="hidden sm:inline">Cart</span>}
       {count > 0 && (
         <span
           className="min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center rounded-full bg-brand-accent text-brand-ink text-xs font-semibold"

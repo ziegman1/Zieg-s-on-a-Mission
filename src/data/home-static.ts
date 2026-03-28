@@ -15,7 +15,7 @@ export function getStaticHomeHero() {
   return {
     headline: h.headline,
     body: h.body,
-    primaryCta: { href: "/mission" as const, label: h.primaryCtaLabel },
-    secondaryCta: { href: "/merch" as const, label: h.secondaryCtaLabel },
+    primaryCta: { href: "/partner" as const, label: h.primaryCtaLabel },
+    secondaryCta: { href: "/give" as const, label: h.secondaryCtaLabel },
   };
 }

@@ -42,11 +42,17 @@ export default async function BlogPage() {
         <Link href="/" className="text-brand-primary font-medium hover:underline">
           ← Home
         </Link>
+        <Link href="/partner" className="text-brand-primary font-medium hover:underline">
+          Become a partner
+        </Link>
+        <Link href="/give" className="text-brand-primary font-medium hover:underline">
+          Give
+        </Link>
         <Link href="/about" className="text-brand-primary font-medium hover:underline">
           About
         </Link>
-        <Link href="/merch" className="text-brand-primary font-medium hover:underline">
-          Merch
+        <Link href="/merch" className="text-brand-ink/70 font-medium hover:text-brand-primary hover:underline">
+          Gifts &amp; merch
         </Link>
       </nav>
     </MinistryPageShell>

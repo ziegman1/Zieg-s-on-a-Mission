@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
   return {
     title: "About",
-    description: `Learn about ${copy.site.name} — who we are and why this ministry exists.`,
+    description: `Learn about ${copy.site.name} — who we are and how monthly partnership sustains the mission.`,
   };
 }
 
@@ -24,6 +24,12 @@ export default async function AboutPage() {
         </section>
       ))}
       <nav className="!mt-12 pt-8 border-t border-brand-primary/25 flex flex-wrap gap-4 not-prose">
+        <Link href="/partner" className="text-brand-primary font-medium hover:underline">
+          Become a partner →
+        </Link>
+        <Link href="/give" className="text-brand-primary font-medium hover:underline">
+          Give
+        </Link>
         <Link href="/mission" className="text-brand-primary font-medium hover:underline">
           Our mission →
         </Link>

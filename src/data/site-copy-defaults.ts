@@ -68,43 +68,46 @@ export type SiteCopy = {
 export const DEFAULT_SITE_COPY: SiteCopy = {
   site: {
     name: "Zieg's on a Mission",
-    tagline: "Ministry · Mission · Merch",
+    tagline: "Mission · Partnership · Ministry",
     description:
-      "Zieg's on a Mission — mobilizing disciples, sharing the gospel, and offering merch that supports the work.",
+      "Join the mission as a monthly partner — training, mobilization, and gospel advance with Team Expansion. Optional merch and thank-you gifts for supporters.",
   },
   navLinks: [
     { href: "/", label: "Home" },
     { href: "/about", label: "About" },
     { href: "/mission", label: "Mission" },
-    { href: "/blog", label: "Blog" },
+    { href: "/partner", label: "Partner" },
+    { href: "/give", label: "Give" },
     { href: "/merch", label: "Merch" },
+    { href: "/blog", label: "Blog" },
     { href: "/contact", label: "Contact" },
   ],
   footer: {
     blurb:
-      "A ministry website with a merch store—gospel advance, partnership, and resources in one place.",
+      "A ministry partnership home — monthly partners sustain the work; one-time gifts and optional merch support the mission alongside you.",
   },
   home: {
     whoTitle: "Who we are",
     whoBody:
-      "Get to know the story behind the ministry—our family, our calling, and how this site serves partners and friends.",
+      "We’re Jeremy and family — ordinary people who believe God calls every follower of Jesus into mission. Get to know our story and how we serve with Team Expansion.",
     whoCta: "About us →",
-    whyTitle: "Why we exist",
+    whyTitle: "Why monthly partnership",
     whyBody:
-      "Training, coaching, and gospel partnership—plus merch that helps fund day-to-day ministry needs.",
+      "Consistent support creates stability for training, mobilization, and care in the field. Partnership means shared mission — not a transaction — with optional thank-you gifts along the way.",
     whyCta: "Read our mission →",
-    merchTitle: "Merch collections",
+    merchTitle: "Partner gifts & optional merch",
     merchBlurb:
-      "Apparel and more—every purchase supports the work. Browse by category or see featured picks below.",
-    featuredTitle: "Featured merch",
-    featuredEmpty: "No featured products yet. Visit the shop when items are live.",
-    viewAllMerchLabel: "View all merch",
+      "Some items are shared as thank-yous for partners; a broader collection may open over time. Merch supports the mission — it never replaces partnership.",
+    featuredTitle: "Ways to support the mission",
+    featuredEmpty:
+      "Monthly partners keep the work sustainable. One-time gifts help with special needs. We’re glad you’re here.",
+    viewAllMerchLabel: "Explore gifts & merch",
   },
   homeHero: {
     headline: "Zieg's on a Mission",
-    body: `We exist to mobilize and equip ordinary people to make an extraordinary impact for God's Kingdom. Serving with Team Expansion, our vision is to see disciples multiplied and churches planted among the unreached. Through mobilization, training, and coaching, we help raise up new workers who will carry the Gospel to the ends of the earth.`,
-    primaryCtaLabel: "Partner with us",
-    secondaryCtaLabel: "Shop merch",
+    body: `We exist to mobilize and equip ordinary people to make an extraordinary impact for God's Kingdom. Serving with Team Expansion, our vision is to see disciples multiplied and churches planted among the unreached. Through mobilization, training, and coaching, we help raise up new workers who will carry the Gospel to the ends of the earth. We'd love for you to be part of this story.`,
+    primaryCtaLabel: "Become a Monthly Partner",
+    secondaryCtaLabel: "Give",
   },
   about: {
     title: "About us",
@@ -112,25 +115,26 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     sections: [
       {
         heading: "Who we are",
-        body: `We serve with Team Expansion and care deeply about disciples being made and churches being planted where Christ is least known. Zieg's on a Mission is our public home for that story: updates for friends, partners, and anyone curious about what God is doing through ordinary people.`,
+        body: `We serve with Team Expansion and care deeply about disciples being made and churches being planted where Christ is least known. This site is our home for the story — and an invitation to join the mission as a monthly partner, friend, or prayer supporter.`,
       },
       {
-        heading: "Why this site",
-        body: `You'll find our heart for the mission, a simple way to shop merch that helps fund day-to-day needs, and room to grow—blog posts, resources, and news as the Lord leads. Thank you for stopping by and for your prayers.`,
+        heading: "Partnership first",
+        body: `We’re growing a team of monthly partners who make ongoing ministry possible. You’ll also find ways to give a one-time gift, explore optional merch and thank-you gifts, and read updates on the blog. Thank you for stopping by and for your prayers.`,
       },
     ],
   },
   mission: {
     title: "Our mission",
-    lede: `We exist to mobilize and equip people for God's Kingdom—especially among the unreached. Through partnership, training, and coaching, we want to see more workers sent, sustained, and fruitful.`,
-    focusHeading: "What we're focused on",
+    lede: `We exist to mobilize and equip people for God's Kingdom—especially among the unreached. Monthly partnership helps us train, send, and sustain workers with consistency and care.`,
+    focusHeading: "What partnership helps accomplish",
     bullets: [
-      "Mobilizing and equipping believers to make disciples",
-      "Encouraging churches and teams toward the unreached",
-      "Inviting partners into prayer, giving, and practical support",
+      "Training and equipping believers to make disciples",
+      "Mobilizing churches and teams toward the unreached",
+      "Sustaining field care and coaching through monthly partners",
+      "Inviting friends into prayer, recurring support, and shared mission",
     ],
-    merchHeading: "Merch with a purpose",
-    merchBody: `The store on this site helps cover ministry costs and special projects. When you wear or gift something from the shop, you're also fueling gospel advance—thank you.`,
+    merchHeading: "Thank-you gifts & optional merch",
+    merchBody: `Items on this site may include thank-you gifts for partners or optional merch that supports ministry costs. They’re never a substitute for partnership — they’re one more way to celebrate and fuel the mission together.`,
   },
   blog: {
     title: "Blog",
@@ -145,15 +149,14 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     emptyNote: `No posts yet—check back soon, or say hello on the contact page if you'd like to connect.`,
   },
   contact: {
-    intro: `We're here to help. For questions about your order, shipping, or returns, please reach out using the information below.`,
-    responseExpectation: `We aim to respond within 1–2 business days. Please include your order number when contacting us about a specific order.`,
-    helpHeading: "How We Can Help",
+    intro: `We’re glad you reached out. For partnership, giving, or general questions, use the form or email below. For order-related questions when the shop is active, include your order number if you have one.`,
+    responseExpectation: `We aim to respond within 1–2 business days.`,
+    helpHeading: "How we can help",
     helpBullets: [
-      "Order status and tracking",
-      "Shipping questions or delays",
-      "Damaged or defective items",
-      "Return and refund requests",
-      "General product questions",
+      "Becoming a monthly partner or making a one-time gift",
+      "Questions about thank-you gifts or milestones",
+      "Order status when merch is available",
+      "Prayer, updates, and ministry questions",
     ],
     beforeContactLead: "For faster answers, please review our",
   },

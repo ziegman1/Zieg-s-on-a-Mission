@@ -39,17 +39,25 @@ export default async function StorefrontLayout({
               unoptimized
             />
           </Link>
-          <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6 justify-start sm:justify-end">
-            {copy.navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className="text-xs sm:text-sm text-white hover:text-white/90 transition-colors whitespace-nowrap"
-              >
-                {label}
-              </Link>
-            ))}
-            <CartLink className="text-white hover:text-white/90 transition-colors inline-flex items-center gap-1.5" />
+          <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-5 justify-start sm:justify-end">
+            {copy.navLinks.map(({ href, label }) => {
+              const isMerch = href === "/merch";
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={
+                    isMerch
+                      ? "text-xs sm:text-sm text-white/80 hover:text-white transition-colors whitespace-nowrap"
+                      : "text-xs sm:text-sm text-white hover:text-white/90 transition-colors whitespace-nowrap"
+                  }
+                >
+                  {label}
+                </Link>
+              );
+            })}
+            <span className="hidden sm:block w-px h-4 bg-white/30 shrink-0" aria-hidden />
+            <CartLink subtle className="!text-white/75 hover:!text-white" />
           </nav>
         </div>
       </header>
