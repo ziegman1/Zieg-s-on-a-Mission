@@ -49,7 +49,18 @@ if (!validDb || !validDirect) {
   try {
     run("npx prisma migrate deploy");
   } catch (e) {
-    console.warn("[build] prisma migrate deploy failed, continuing with next build:", (e as Error).message);
+    if (process.env.SKIP_PRISMA_MIGRATE === "1") {
+      console.warn(
+        "[build] prisma migrate deploy failed but SKIP_PRISMA_MIGRATE=1 — continuing:",
+        (e as Error).message
+      );
+    } else {
+      console.error(
+        "[build] prisma migrate deploy failed. Fix the database URL/migrations or set SKIP_PRISMA_MIGRATE=1 to override (not recommended).\n" +
+          String((e as Error).message)
+      );
+      process.exit(1);
+    }
   }
 }
 

@@ -1,8 +1,10 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { prisma } from "@/lib/db";
+import { prismaForCredentialsAuth } from "@/lib/prisma-credentials";
 import type { UserRole } from "@prisma/client";
+
+const authDebug = process.env.AUTH_DEBUG === "1";
 
 declare module "next-auth" {
   interface User {
@@ -26,15 +28,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         const email = (credentials?.email as string | undefined)?.trim();
         const password = credentials?.password as string | undefined;
-        if (!email || !password) return null;
+        if (!email || !password) {
+          if (authDebug) console.warn("[auth] credentials: missing email or password");
+          return null;
+        }
+        const prismaAuth = prismaForCredentialsAuth();
         try {
-          const user = await prisma.user.findFirst({
+          const user = await prismaAuth.user.findFirst({
             where: { email: { equals: email, mode: "insensitive" } },
           });
-          if (!user || !user.passwordHash) return null;
-          if (user.role !== "ADMIN" && user.role !== "STAFF") return null;
+          if (!user) {
+            if (authDebug) console.warn("[auth] credentials: no user row for email");
+            return null;
+          }
+          if (!user.passwordHash) {
+            if (authDebug) console.warn("[auth] credentials: user has no passwordHash");
+            return null;
+          }
+          if (user.role !== "ADMIN" && user.role !== "STAFF") {
+            if (authDebug) console.warn("[auth] credentials: role not admin/staff");
+            return null;
+          }
           const ok = await compare(password, user.passwordHash);
-          if (!ok) return null;
+          if (!ok) {
+            if (authDebug) console.warn("[auth] credentials: password mismatch");
+            return null;
+          }
           return {
             id: user.id,
             email: user.email ?? undefined,
