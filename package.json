@@ -15,6 +15,7 @@
     "db:execute:migration": "node scripts/prisma-with-env.mjs db execute --file prisma/migrations/20250308120000_add_product_status_and_extras/migration.sql --schema prisma/schema.prisma",
     "db:fix:production": "node scripts/apply-production-fix.mjs",
     "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
+    "db:seed:admin": "dotenv -e .env.local -- tsx prisma/seed-admin.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:validate": "dotenv -e .env.local -- prisma validate",
     "test:order": "dotenv -e .env.local -- tsx scripts/test-order-flow.ts",

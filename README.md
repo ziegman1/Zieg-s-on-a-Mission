@@ -60,7 +60,8 @@ npm run db:seed
 
 Seed creates:
 
-- Admin user: **jziegenhorn@teamexpansion.org** — password from **ADMIN_PASSWORD** in `.env.local` when you run `db:seed`, or the default bcrypt in `prisma/seed.ts` if unset (rotate after first deploy)  
+- Admin user: **jziegenhorn@teamexpansion.org** — set **ADMIN_PASSWORD** in `.env.local` when you run `db:seed`, or the repo’s default bcrypt in `prisma/seed.ts` / `seed-admin.ts` if unset (rotate after first deploy)  
+- **Production / Vercel:** Deploy does **not** run seed. If admin login fails, run **`npm run db:seed:admin`** (or full **`npm run db:seed`**) using the **same** `DATABASE_URL` as production (e.g. `vercel env pull` then run locally, or run from a machine that can reach the DB).  
 - Printify provider  
 - Featured & Apparel collections  
 - Sample products (self-fulfilled + dropship placeholders)  
@@ -86,6 +87,7 @@ npm run dev
 | `npm run db:push` | Push schema (no migrations) |
 | `npm run db:migrate` | Run migrations |
 | `npm run db:seed` | Seed database |
+| `npm run db:seed:admin` | Upsert admin user only (fix production login) |
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run test:email` | Test Resend admin notification |
 | `npm run test:order` | Order flow / Stripe helpers |

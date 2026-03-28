@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Minimal proxy: only sets x-pathname for /admin so layout can do path-aware auth.
+ * Next.js proxy (middleware): sets x-pathname for /admin so layout can treat /admin/login as public.
  * No auth, Prisma, or heavy imports — keeps Edge bundle under size limit.
  */
 export function proxy(req: NextRequest) {
