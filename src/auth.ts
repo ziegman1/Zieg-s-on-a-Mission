@@ -27,19 +27,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = (credentials?.email as string | undefined)?.trim();
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
-        const user = await prisma.user.findFirst({
-          where: { email: { equals: email, mode: "insensitive" } },
-        });
-        if (!user || !user.passwordHash) return null;
-        const ok = await compare(password, user.passwordHash);
-        if (!ok) return null;
-        return {
-          id: user.id,
-          email: user.email ?? undefined,
-          name: user.name ?? undefined,
-          image: user.image ?? undefined,
-          role: user.role,
-        };
+        try {
+          const user = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: "insensitive" } },
+          });
+          if (!user || !user.passwordHash) return null;
+          if (user.role !== "ADMIN" && user.role !== "STAFF") return null;
+          const ok = await compare(password, user.passwordHash);
+          if (!ok) return null;
+          return {
+            id: user.id,
+            email: user.email ?? undefined,
+            name: user.name ?? undefined,
+            image: user.image ?? undefined,
+            role: user.role,
+          };
+        } catch (e) {
+          console.error("[auth] credentials authorize failed:", e);
+          return null;
+        }
       },
     }),
   ],
