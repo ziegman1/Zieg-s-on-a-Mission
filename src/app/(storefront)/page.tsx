@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { Dancing_Script } from "next/font/google";
-import { getStaticHomeHero } from "@/data/home-static";
-import { GUIDED_HOME_CLOSING, GUIDED_HOME_SECTIONS } from "@/data/home-guided-sections";
-import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
+import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
+import { getSiteCopy, homeHeroWithHrefs } from "@/lib/site-copy";
 import { Button } from "@/components/ui/button";
 
 const heroTitle = Dancing_Script({
@@ -11,10 +10,11 @@ const heroTitle = Dancing_Script({
   weight: ["400", "600", "700"],
 });
 
-export const dynamic = "force-static";
-
-export default function HomePage() {
-  const hero = getStaticHomeHero();
+export default async function HomePage() {
+  const copy = await getSiteCopy();
+  const hero = homeHeroWithHrefs(copy);
+  const guided = copy.homeGuided;
+  const heroSrc = guided.heroImageUrl?.trim() || DEFAULT_HOME_HERO_IMAGE_PATH;
 
   return (
     <div>
@@ -22,7 +22,7 @@ export default function HomePage() {
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/images/hero-zieg-mission.png"
+            src={heroSrc}
             alt=""
             className="w-full h-full object-cover object-[center_22%] sm:object-center"
             fetchPriority="high"
@@ -63,7 +63,7 @@ export default function HomePage() {
                 variant="ghost"
                 className="rounded-full px-5 h-12 text-brand-ink/90 bg-white/50 hover:bg-white/70"
               >
-                <Link href="/mission">Learn more</Link>
+                <Link href="/mission">{guided.heroLearnMoreLabel}</Link>
               </Button>
             </div>
           </div>
@@ -71,9 +71,10 @@ export default function HomePage() {
       </section>
 
       <div className="bg-brand-surface text-brand-ink">
-        {GUIDED_HOME_SECTIONS.map((section, i) => {
+        {guided.sections.map((section, i) => {
           const isTextLeft = i % 2 === 0;
           const sectionBg = i % 2 === 0 ? "bg-white" : "bg-neutral-50";
+          const imgUrl = section.imageUrl?.trim();
 
           const textColumn = (
             <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4">
@@ -95,6 +96,19 @@ export default function HomePage() {
             />
           );
 
+          const visualColumn = imgUrl ? (
+            <div className="col-span-2 md:col-span-1 flex items-center justify-center md:justify-end">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imgUrl}
+                alt=""
+                className="max-h-64 w-full max-w-md rounded-lg object-cover shadow-sm border border-gray-200/80"
+              />
+            </div>
+          ) : (
+            spacerColumn
+          );
+
           return (
             <Fragment key={section.id}>
               <section className={sectionBg}>
@@ -104,11 +118,11 @@ export default function HomePage() {
                     {isTextLeft ? (
                       <>
                         {textColumn}
-                        {spacerColumn}
+                        {visualColumn}
                       </>
                     ) : (
                       <>
-                        {spacerColumn}
+                        {visualColumn}
                         {textColumn}
                       </>
                     )}
@@ -119,7 +133,7 @@ export default function HomePage() {
               {section.id === "mission" ? (
                 <section className="py-16 sm:py-20 bg-blue-50">
                   <div className="max-w-3xl mx-auto px-6 text-center text-lg text-gray-700 leading-relaxed">
-                    You’re not just reading a story — you’re stepping into one.
+                    {guided.scrollBreakBody}
                   </div>
                 </section>
               ) : null}
@@ -131,7 +145,7 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
             <div className="border-t border-gray-200 w-full mb-8 sm:mb-10" />
             <div className="max-w-xl mx-auto text-center">
-              <p className="text-brand-ink/88 leading-relaxed">{GUIDED_HOME_CLOSING.body}</p>
+              <p className="text-brand-ink/88 leading-relaxed">{guided.closingBody}</p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
                 <Link href="/mission" className="text-blue-600 hover:underline font-medium">
                   Learn more
@@ -146,7 +160,7 @@ export default function HomePage() {
                   <Link href="/partner">Partner</Link>
                 </Button>
               </div>
-              <p className="mt-10 text-sm text-brand-ink/55">{DEFAULT_SITE_COPY.site.tagline}</p>
+              <p className="mt-10 text-sm text-brand-ink/55">{copy.site.tagline}</p>
             </div>
           </div>
         </section>

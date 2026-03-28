@@ -2,6 +2,19 @@
  * Default storefront copy. Admin edits merge on top (see getSiteCopy).
  */
 
+import { DEFAULT_HOME_GUIDED, type HomeGuided } from "./home-guided-default-sections";
+import {
+  DEFAULT_GIVE_PAGE,
+  DEFAULT_MERCH_PAGE,
+  DEFAULT_PARTNER_PAGE,
+  type GivePageCopy,
+  type MerchPageCopy,
+  type PartnerPageCopy,
+} from "./marketing-pages-defaults";
+
+export type { HomeGuided, HomeGuidedSectionRow } from "./home-guided-default-sections";
+export type { GivePageCopy, MerchPageCopy, PartnerPageCopy } from "./marketing-pages-defaults";
+
 export type NavLinkDef = { href: string; label: string };
 
 export type SiteCopy = {
@@ -31,6 +44,8 @@ export type SiteCopy = {
     primaryCtaLabel: string;
     secondaryCtaLabel: string;
   };
+  /** Homepage below-the-fold: guided sections, hero image URL, scroll break, closing. */
+  homeGuided: HomeGuided;
   about: {
     title: string;
     lede: string;
@@ -63,6 +78,12 @@ export type SiteCopy = {
     supportEmail: string;
     supportResponseTime: string;
   };
+  /** /partner — full page copy (tiers also used on /give for suggested levels). */
+  partnerPage: PartnerPageCopy;
+  /** /give — copy only; tiers come from `partnerPage.tiers`. */
+  givePage: GivePageCopy;
+  /** /merch */
+  merchPage: MerchPageCopy;
 };
 
 export const DEFAULT_SITE_COPY: SiteCopy = {
@@ -109,6 +130,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     primaryCtaLabel: "Become a Monthly Partner",
     secondaryCtaLabel: "Give",
   },
+  homeGuided: DEFAULT_HOME_GUIDED,
   about: {
     title: "About us",
     lede: `We're Jeremy and family—ordinary people who believe God calls every follower of Jesus into mission, whether across the street or around the world.`,
@@ -164,4 +186,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     supportEmail: "jeremy@ziegsonamission.com",
     supportResponseTime: "within 1–2 business days",
   },
+  partnerPage: DEFAULT_PARTNER_PAGE,
+  givePage: DEFAULT_GIVE_PAGE,
+  merchPage: DEFAULT_MERCH_PAGE,
 };

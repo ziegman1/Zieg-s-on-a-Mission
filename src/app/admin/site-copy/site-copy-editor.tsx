@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { resetSiteCopyToDefaultsAction, saveSiteCopyAction } from "./actions";
+import { AdminImageUrlField } from "./admin-image-url-field";
+import { MarketingPagesEditor } from "./marketing-pages-editor";
 
 function Field({
   label,
@@ -181,6 +183,111 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
               />
             </Field>
           </div>
+          <AdminImageUrlField
+            label="Hero background image URL"
+            hint="Leave empty for the default bundled image. Paste a URL or upload (Vercel Blob)."
+            value={copy.homeGuided.heroImageUrl}
+            onChange={(heroImageUrl) =>
+              setCopy((c) => ({ ...c, homeGuided: { ...c.homeGuided, heroImageUrl } }))
+            }
+          />
+          <Field label="Third hero button (→ /mission)">
+            <Input
+              value={copy.homeGuided.heroLearnMoreLabel}
+              onChange={(e) =>
+                setCopy((c) => ({
+                  ...c,
+                  homeGuided: { ...c.homeGuided, heroLearnMoreLabel: e.target.value },
+                }))
+              }
+            />
+          </Field>
+        </div>
+      </details>
+
+      <details open className="rounded-lg border border-brand-primary/30 bg-zinc-900/50 p-4">
+        <summary className="cursor-pointer font-medium text-brand-primary">
+          Home — guided sections (main homepage)
+        </summary>
+        <div className="mt-4 space-y-6">
+          <p className="text-xs text-zinc-500">
+            Seven blocks below the hero (About → Contact). IDs and links are fixed; edit titles, body, CTAs, and
+            optional images.
+          </p>
+          <Field label="Mid-page scroll break (after Mission)">
+            <Textarea
+              rows={2}
+              value={copy.homeGuided.scrollBreakBody}
+              onChange={(e) =>
+                setCopy((c) => ({
+                  ...c,
+                  homeGuided: { ...c.homeGuided, scrollBreakBody: e.target.value },
+                }))
+              }
+            />
+          </Field>
+          <Field label="Closing paragraph (above final buttons)">
+            <Textarea
+              rows={3}
+              value={copy.homeGuided.closingBody}
+              onChange={(e) =>
+                setCopy((c) => ({
+                  ...c,
+                  homeGuided: { ...c.homeGuided, closingBody: e.target.value },
+                }))
+              }
+            />
+          </Field>
+          {copy.homeGuided.sections.map((row, i) => (
+            <div
+              key={row.id}
+              className="rounded-md border border-zinc-700 p-4 space-y-3 bg-zinc-950/40"
+            >
+              <p className="text-sm text-brand-primary font-medium">
+                {row.title} <span className="text-zinc-500 font-normal">({row.href})</span>
+              </p>
+              <Field label="Section title">
+                <Input
+                  value={row.title}
+                  onChange={(e) => {
+                    const sections = [...copy.homeGuided.sections];
+                    sections[i] = { ...sections[i]!, title: e.target.value };
+                    setCopy((c) => ({ ...c, homeGuided: { ...c.homeGuided, sections } }));
+                  }}
+                />
+              </Field>
+              <Field label="Body">
+                <Textarea
+                  rows={4}
+                  value={row.body}
+                  onChange={(e) => {
+                    const sections = [...copy.homeGuided.sections];
+                    sections[i] = { ...sections[i]!, body: e.target.value };
+                    setCopy((c) => ({ ...c, homeGuided: { ...c.homeGuided, sections } }));
+                  }}
+                />
+              </Field>
+              <Field label="CTA label">
+                <Input
+                  value={row.ctaLabel}
+                  onChange={(e) => {
+                    const sections = [...copy.homeGuided.sections];
+                    sections[i] = { ...sections[i]!, ctaLabel: e.target.value };
+                    setCopy((c) => ({ ...c, homeGuided: { ...c.homeGuided, sections } }));
+                  }}
+                />
+              </Field>
+              <AdminImageUrlField
+                label="Optional image (wide column)"
+                value={row.imageUrl}
+                onChange={(imageUrl) => {
+                  const sections = [...copy.homeGuided.sections];
+                  sections[i] = { ...sections[i]!, imageUrl };
+                  setCopy((c) => ({ ...c, homeGuided: { ...c.homeGuided, sections } }));
+                }}
+              />
+            </div>
+          ))}
         </div>
       </details>
 
@@ -522,6 +629,8 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
           </Field>
         </div>
       </details>
+
+      <MarketingPagesEditor copy={copy} setCopy={setCopy} />
 
       <details className="rounded-lg border border-brand-primary/30 bg-zinc-900/50 p-4">
         <summary className="cursor-pointer font-medium text-brand-primary">Contact & support (also used on legal pages for email)</summary>

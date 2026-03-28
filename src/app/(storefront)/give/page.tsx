@@ -1,69 +1,56 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  COMPLIANCE_PLACEHOLDER,
-  getMonthlyGivingHref,
-  getOneTimeGivingHref,
-  PARTNERSHIP_TIERS,
-} from "@/data/partnership-content";
+import { getMonthlyGivingHref, getOneTimeGivingHref } from "@/data/partnership-content";
+import { getSiteCopy } from "@/lib/site-copy";
 
-export const dynamic = "force-static";
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  const g = copy.givePage;
+  return {
+    title: g.metaTitle,
+    description: g.metaDescription,
+  };
+}
 
-export const metadata: Metadata = {
-  title: "Give",
-  description:
-    "Support Zieg's on a Mission through monthly partnership or a one-time gift — training, mobilization, and gospel advance.",
-};
-
-const ONE_TIME_SUGGESTIONS = ["$50", "$100", "$250", "$500", "Other amount"] as const;
-
-export default function GivePage() {
+export default async function GivePage() {
+  const copy = await getSiteCopy();
+  const g = copy.givePage;
+  const tiers = copy.partnerPage.tiers;
   const monthlyHref = getMonthlyGivingHref();
   const oneTimeHref = getOneTimeGivingHref();
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-12 sm:py-16 text-brand-ink">
       <header className="mb-10 text-center sm:text-left">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">Give</p>
-        <h1 className="mt-3 font-serif text-3xl sm:text-4xl text-brand-primary tracking-wide">
-          Support the mission
-        </h1>
-        <p className="mt-4 text-lg text-brand-ink/85 leading-relaxed max-w-2xl">
-          You can walk with us through <strong className="font-semibold text-brand-ink">monthly partnership</strong>{" "}
-          (our primary need for stability) or a <strong className="font-semibold text-brand-ink">one-time gift</strong>{" "}
-          for special opportunities. Either way, thank you for fueling gospel advance.
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">{g.kicker}</p>
+        <h1 className="mt-3 font-serif text-3xl sm:text-4xl text-brand-primary tracking-wide">{g.title}</h1>
+        <p className="mt-4 text-lg text-brand-ink/85 leading-relaxed max-w-2xl">{g.intro}</p>
       </header>
 
       <section className="space-y-6 mb-14">
-        <h2 className="font-serif text-xl text-brand-ink tracking-wide">Monthly partnership — primary path</h2>
-        <p className="text-brand-ink/85 leading-relaxed">
-          Recurring support helps us plan training, mobilization, and care in the field. When you’re ready, use the
-          button below — or contact us if you’d like to talk through options first.
-        </p>
+        <h2 className="font-serif text-xl text-brand-ink tracking-wide">{g.monthlySectionHeading}</h2>
+        <p className="text-brand-ink/85 leading-relaxed">{g.monthlySectionBody}</p>
         <div className="flex flex-wrap gap-3">
           <Button
             asChild
             className="rounded-full px-8 h-12 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold shadow-md"
           >
-            <Link href={monthlyHref}>Start monthly partnership</Link>
+            <Link href={monthlyHref}>{g.startMonthlyCta}</Link>
           </Button>
           <Button asChild variant="outline" className="rounded-full px-6 border-brand-primary/45">
-            <Link href="/partner">Learn about partnership</Link>
+            <Link href="/partner">{g.learnPartnerCta}</Link>
           </Button>
         </div>
       </section>
 
       <section className="rounded-2xl border border-brand-primary/25 bg-white/70 p-6 sm:p-8 mb-14 shadow-sm">
         <h2 className="font-serif text-xl text-brand-primary tracking-wide text-center sm:text-left">
-          Suggested monthly levels
+          {g.suggestedLevelsHeading}
         </h2>
-        <p className="mt-2 text-sm text-brand-ink/75 text-center sm:text-left">
-          Same partnership tiers as our partner page — choose what fits your family.
-        </p>
+        <p className="mt-2 text-sm text-brand-ink/75 text-center sm:text-left">{g.suggestedLevelsIntro}</p>
         <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-          {PARTNERSHIP_TIERS.map((t) => (
+          {tiers.map((t) => (
             <li
               key={t.name}
               className="rounded-lg border border-brand-primary/15 bg-brand-surface/80 px-4 py-3 text-sm"
@@ -75,21 +62,18 @@ export default function GivePage() {
         </ul>
         <div className="mt-8 flex justify-center sm:justify-start">
           <Button asChild className="rounded-full bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold">
-            <Link href={monthlyHref}>Become a monthly partner</Link>
+            <Link href={monthlyHref}>{g.becomeMonthlyCta}</Link>
           </Button>
         </div>
       </section>
 
       <section className="mb-14">
-        <h2 className="font-serif text-xl text-brand-ink tracking-wide">One-time gift</h2>
-        <p className="mt-3 text-brand-ink/85 leading-relaxed">
-          One-time gifts help with special projects, travel, or urgent needs. If a monthly rhythm isn’t the right
-          fit yet, we’re still grateful.
-        </p>
+        <h2 className="font-serif text-xl text-brand-ink tracking-wide">{g.oneTimeHeading}</h2>
+        <p className="mt-3 text-brand-ink/85 leading-relaxed">{g.oneTimeBody}</p>
         <div className="mt-6 flex flex-wrap gap-2">
-          {ONE_TIME_SUGGESTIONS.map((label) => (
+          {g.oneTimeSuggestions.map((label, i) => (
             <span
-              key={label}
+              key={`${i}-${label}`}
               className="inline-flex items-center rounded-full border border-brand-primary/25 bg-white/60 px-4 py-2 text-sm text-brand-ink/85"
             >
               {label}
@@ -101,33 +85,32 @@ export default function GivePage() {
           variant="outline"
           className="mt-8 rounded-full px-8 h-11 border-brand-primary/50 text-brand-ink"
         >
-          <Link href={oneTimeHref}>Give a one-time gift</Link>
+          <Link href={oneTimeHref}>{g.oneTimeCta}</Link>
         </Button>
       </section>
 
       <section className="mb-12">
-        <h2 className="font-serif text-xl text-brand-primary tracking-wide">Thank-you gifts</h2>
+        <h2 className="font-serif text-xl text-brand-primary tracking-wide">{g.thankYouHeading}</h2>
         <p className="mt-3 text-brand-ink/85 leading-relaxed">
-          Some support levels may include occasional thank-you gifts or milestone gifts — always as gratitude, never
-          as something you “earn” like a purchase. See our{" "}
+          {g.thankYouBeforePartnerLink}
           <Link href="/partner" className="text-brand-primary font-medium hover:underline">
-            partner page
-          </Link>{" "}
-          for how we frame gifts alongside partnership.
+            {g.thankYouPartnerLinkLabel}
+          </Link>
+          {g.thankYouAfterPartnerLink}
         </p>
       </section>
 
       <section className="rounded-lg border border-brand-primary/20 bg-white/55 px-5 py-4 text-sm text-brand-ink/75 leading-relaxed mb-10">
-        <p className="font-medium text-brand-ink/90">Giving &amp; tax language (editable later)</p>
-        <p className="mt-2">{COMPLIANCE_PLACEHOLDER}</p>
+        <p className="font-medium text-brand-ink/90">{g.complianceHeading}</p>
+        <p className="mt-2">{g.complianceBody}</p>
       </section>
 
       <div className="flex flex-wrap gap-3 border-t border-brand-primary/20 pt-10">
         <Button asChild variant="ghost" className="text-brand-primary">
-          <Link href="/contact">Questions? Contact us</Link>
+          <Link href="/contact">{g.footerContactCta}</Link>
         </Button>
         <Button asChild variant="ghost" className="text-brand-primary">
-          <Link href="/partner">Partnership details</Link>
+          <Link href="/partner">{g.footerPartnerCta}</Link>
         </Button>
       </div>
     </article>
