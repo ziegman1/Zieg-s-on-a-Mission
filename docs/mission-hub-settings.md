@@ -6,8 +6,10 @@ Unified settings at `/community/settings` with role-aware navigation.
 
 ```bash
 npm run db:migrate        # local
-npm run db:migrate:deploy # production
+npm run db:migrate:deploy # production (.env.local)
 ```
+
+Production Mission Hub empty after deploy? See [mission-hub-production-setup.md](./mission-hub-production-setup.md) (migrations + default spaces seed).
 
 Files:
 
