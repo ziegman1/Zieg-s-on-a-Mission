@@ -1,4 +1,3 @@
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 
 /** Prisma order for every public/admin space list */
