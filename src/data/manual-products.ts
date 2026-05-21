@@ -47,7 +47,7 @@ export const manualProducts: ManualProductDefinition[] = [
     images: [
       { url: "/images/hero-zieg-mission.png", alt: "Ziegs on a Mission tumbler", sortOrder: 0 },
       { url: "/images/zieg-hero.png", alt: "Mission merch", sortOrder: 1 },
-      { url: "/icon.png", alt: "Brand mark", sortOrder: 2 },
+      { url: "/logo/team-expansion.png", alt: "Team Expansion", sortOrder: 2 },
     ],
     variants: [
       {

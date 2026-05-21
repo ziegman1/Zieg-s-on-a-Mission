@@ -137,3 +137,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mission Hub installed PWA — extra safe-area when launched from home screen */
+html.mission-hub-standalone .mission-hub-root {
+  min-height: 100dvh;
+}

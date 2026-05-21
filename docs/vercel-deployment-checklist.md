@@ -36,7 +36,7 @@ Add these in **Vercel → Project → Settings → Environment Variables**. Set 
 
 - [ ] **Framework Preset:** Next.js  
 - [ ] **Root Directory:** repo root (or `.`)  
-- [ ] **Build Command:** default (repo uses `npm run build` → `scripts/build.ts`)  
+- [ ] **Build Command:** default (`npm run build` — generates Prisma client + Next build; **does not** run DB migrations)  
 - [ ] **Output Directory:** default  
 
 ---
@@ -55,6 +55,7 @@ Add these in **Vercel → Project → Settings → Environment Variables**. Set 
 2. **Review settings** — Framework Next.js, root directory correct.  
 3. **Add env vars** — Add variables from section 1 for Production (and Preview if needed).  
 4. **Deploy** — Run the first deployment and confirm the build succeeds.  
+5. **Migrations (manual)** — After deploy, apply schema changes from your machine when intentional: `npm run db:migrate:deploy` with production credentials in `.env.local` (or `DIRECT_URL` for Supabase direct/session pooler). Builds on Vercel never run migrations automatically.
 
 ---
 

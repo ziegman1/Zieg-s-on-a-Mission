@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { headers } from "next/headers";
 import { CartLink } from "@/components/cart-link";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { getSiteCopy } from "@/lib/site-copy";
@@ -18,6 +19,19 @@ export default async function StorefrontLayout({
 }) {
   const copy = await getSiteCopy();
   const navMain = copy.navLinks.filter((l) => l.href !== "/");
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "";
+  const isMissionHub =
+    pathname === "/community" || pathname.startsWith("/community/");
+
+  if (isMissionHub) {
+    return (
+      <div className="min-h-dvh bg-[#ebe8e4] text-brand-ink">
+        <PageViewTracker />
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-surface text-brand-ink">

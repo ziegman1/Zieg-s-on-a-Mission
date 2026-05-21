@@ -9,6 +9,7 @@ const adminNav = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/stats", label: "Stats" },
   { href: "/admin/site-copy", label: "Site copy" },
+  { href: "/admin/community", label: "Community" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/shipping", label: "Shipping" },

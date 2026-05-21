@@ -1,10 +1,24 @@
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { safeCallbackUrl } from "@/lib/auth-callback";
+import { isAdminRole } from "@/lib/admin-users";
 import { AdminLoginForm } from "./admin-login-form";
 
-export default async function AdminLoginPage() {
+type PageProps = {
+  searchParams: Promise<{ callbackUrl?: string }>;
+};
+
+export default async function AdminLoginPage({ searchParams }: PageProps) {
+  const { callbackUrl: raw } = await searchParams;
+  const callbackUrl = safeCallbackUrl(raw);
   const session = await auth();
-  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "STAFF";
-  if (session?.user && isAdmin) redirect("/admin");
-  return <AdminLoginForm />;
+  if (session?.user && isAdminRole(session.user.role)) {
+    redirect(callbackUrl);
+  }
+  return (
+    <Suspense fallback={null}>
+      <AdminLoginForm />
+    </Suspense>
+  );
 }

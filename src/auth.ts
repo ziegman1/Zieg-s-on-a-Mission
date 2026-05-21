@@ -1,10 +1,20 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
+import { AUTH_SESSION_MAX_AGE_SECONDS } from "@/lib/auth-callback";
 import { prismaForCredentialsAuth } from "@/lib/prisma-credentials";
 import type { UserRole } from "@prisma/client";
+import { isAdminRole } from "@/lib/admin-users";
+import { canSignInWithCredentials } from "@/lib/auth-roles";
 
 const authDebug = process.env.AUTH_DEBUG === "1";
+const useSecureCookies = process.env.NODE_ENV === "production";
+
+if (!process.env.AUTH_SECRET && process.env.NODE_ENV !== "test") {
+  console.error(
+    "[auth] AUTH_SECRET is missing — sign-in will fail. Set AUTH_SECRET in .env.local (openssl rand -base64 32).",
+  );
+}
 
 declare module "next-auth" {
   interface User {
@@ -16,8 +26,21 @@ declare module "next-auth" {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET,
   trustHost: true,
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
+  session: { strategy: "jwt", maxAge: AUTH_SESSION_MAX_AGE_SECONDS },
+  useSecureCookies,
+  cookies: {
+    sessionToken: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
+      },
+    },
+  },
   pages: { signIn: "/admin/login" },
   providers: [
     Credentials({
@@ -45,8 +68,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (authDebug) console.warn("[auth] credentials: user has no passwordHash");
             return null;
           }
-          if (user.role !== "ADMIN" && user.role !== "STAFF") {
-            if (authDebug) console.warn("[auth] credentials: role not admin/staff");
+          if (!canSignInWithCredentials(user.role)) {
+            if (authDebug) console.warn("[auth] credentials: role cannot sign in");
             return null;
           }
           const ok = await compare(password, user.passwordHash);
@@ -88,5 +111,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 });
 
 export function requireAdmin(session: { user?: { role?: string } } | null): boolean {
-  return session?.user?.role === "ADMIN" || session?.user?.role === "STAFF";
+  return isAdminRole(session?.user?.role);
 }

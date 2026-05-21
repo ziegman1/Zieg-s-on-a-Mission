@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { loginAction, type LoginState } from "./actions";
+import { isMissionHubReturnPath, safeCallbackUrl } from "@/lib/auth-callback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,15 +13,21 @@ const initial: LoginState = { error: null };
 
 export function AdminLoginForm() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/admin";
+  const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
   const [state, formAction, pending] = useActionState(loginAction, initial);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black px-4">
       <Card className="w-full max-w-md border-brand-primary/35 bg-zinc-900 text-cream">
         <CardHeader>
-          <CardTitle className="font-serif text-2xl text-brand-primary">Admin Sign In</CardTitle>
-          <CardDescription>Zieg&apos;s on a Mission Merch — Admin</CardDescription>
+          <CardTitle className="font-serif text-2xl text-brand-primary">
+            {isMissionHubReturnPath(callbackUrl) ? "Mission Hub — Owner sign in" : "Admin Sign In"}
+          </CardTitle>
+          <CardDescription>
+            {isMissionHubReturnPath(callbackUrl)
+              ? "Sign in to publish and manage posts in Mission Hub."
+              : "Zieg's on a Mission Merch — Admin"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={formAction} className="space-y-4">

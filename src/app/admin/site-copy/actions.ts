@@ -19,6 +19,7 @@ const REVALIDATE_PATHS = [
   "/merch",
   "/partner",
   "/give",
+  "/community",
 ] as const;
 
 export async function saveSiteCopyAction(

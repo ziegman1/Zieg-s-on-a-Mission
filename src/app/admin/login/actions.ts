@@ -1,23 +1,12 @@
 "use server";
 
-import { AuthError, CredentialsSignin } from "next-auth";
-import { signIn } from "@/auth";
+import { signInCredentialsAndRedirect } from "@/lib/auth-sign-in";
+import { safeCallbackUrl } from "@/lib/auth-callback";
+import { isAdminRole } from "@/lib/admin-users";
+import { logMissionHubLogin } from "@/lib/community/auth-login-log";
+import { prismaForCredentialsAuth } from "@/lib/prisma-credentials";
 
 export type LoginState = { error: string | null };
-
-/** Successful `signIn` calls `redirect()`, which throws this in the App Router. */
-function isNextRedirectError(error: unknown): boolean {
-  if (typeof error !== "object" || error === null || !("digest" in error)) return false;
-  const digest = (error as { digest?: unknown }).digest;
-  return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT");
-}
-
-function safeCallbackUrl(raw: unknown): string {
-  if (typeof raw !== "string" || !raw.startsWith("/") || raw.startsWith("//")) {
-    return "/admin";
-  }
-  return raw;
-}
 
 export async function loginAction(
   _prev: LoginState,
@@ -31,22 +20,65 @@ export async function loginAction(
     return { error: "Email and password are required." };
   }
 
-  try {
-    await signIn("credentials", {
-      email: email.trim(),
-      password,
-      redirectTo: callbackUrl,
+  const trimmedEmail = email.trim();
+  const prisma = prismaForCredentialsAuth();
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: trimmedEmail, mode: "insensitive" } },
+    select: { role: true, passwordHash: true },
+  });
+
+  if (!user) {
+    logMissionHubLogin({
+      email: trimmedEmail,
+      role: null,
+      success: false,
+      error: "user_not_found",
+      callbackUrl,
+      context: "admin/login",
     });
-  } catch (error) {
-    if (isNextRedirectError(error)) throw error;
-    if (error instanceof CredentialsSignin) {
-      return { error: "Invalid email or password." };
-    }
-    if (error instanceof AuthError) {
-      return { error: "Sign in failed. Try again." };
-    }
-    console.error("[admin login]", error);
-    return { error: "Something went wrong." };
+    return { error: "Invalid email or password." };
+  }
+
+  if (!isAdminRole(user.role)) {
+    logMissionHubLogin({
+      email: trimmedEmail,
+      role: user.role,
+      success: false,
+      error: "not_admin_role",
+      callbackUrl,
+      context: "admin/login",
+    });
+    return {
+      error:
+        "Admin sign in is for owners only. Use Mission Hub sign in at /community/login for member accounts.",
+    };
+  }
+
+  if (!user.passwordHash) {
+    logMissionHubLogin({
+      email: trimmedEmail,
+      role: user.role,
+      success: false,
+      error: "no_password_hash",
+      callbackUrl,
+      context: "admin/login",
+    });
+    return {
+      error:
+        "This admin account has no password set. Set ADMIN_PASSWORD (or ADMIN_PASSWORD_LINDSAY) and run db:seed:admin.",
+    };
+  }
+
+  const signInResult = await signInCredentialsAndRedirect({
+    email: trimmedEmail,
+    password,
+    callbackUrl,
+    role: user.role,
+    context: "admin/login",
+  });
+
+  if (!signInResult.ok) {
+    return { error: signInResult.error };
   }
 
   return { error: null };

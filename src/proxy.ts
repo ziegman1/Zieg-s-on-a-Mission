@@ -1,24 +1,39 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  isValidVisitorKey,
+  MISSION_HUB_VISITOR_COOKIE,
+  visitorCookieOptions,
+} from "@/lib/community/visitor-cookie";
 
 /**
- * Next.js proxy (middleware): sets x-pathname for /admin so layout can treat /admin/login as public.
- * No auth, Prisma, or heavy imports — keeps Edge bundle under size limit.
+ * Next.js proxy: admin x-pathname header + Mission Hub visitor cookie (no Prisma/auth).
  */
 export function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
-  if (!path.startsWith("/admin")) return NextResponse.next();
+  let response: NextResponse;
 
-  const requestHeaders = new Headers(req.headers);
-  requestHeaders.set("x-pathname", path);
+  const isMissionHub = path === "/community" || path.startsWith("/community/");
+  const needsPathname = path.startsWith("/admin") || isMissionHub;
 
-  return NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  if (needsPathname) {
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-pathname", path);
+    response = NextResponse.next({ request: { headers: requestHeaders } });
+  } else {
+    response = NextResponse.next();
+  }
+
+  if (isMissionHub) {
+    const existing = req.cookies.get(MISSION_HUB_VISITOR_COOKIE)?.value;
+    if (!isValidVisitorKey(existing)) {
+      response.cookies.set(MISSION_HUB_VISITOR_COOKIE, crypto.randomUUID(), visitorCookieOptions);
+    }
+  }
+
+  return response;
 }
 
 export const config = {
-  // `/admin/:path*` does not match the index route `/admin` — without `/admin`, `x-pathname`
-  // was never set and the layout could not treat `/admin/login` as public.
-  matcher: ["/admin", "/admin/:path*"],
+  matcher: ["/admin", "/admin/:path*", "/community", "/community/:path*"],
 };

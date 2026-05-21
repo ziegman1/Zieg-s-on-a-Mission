@@ -59,8 +59,13 @@ model User {
   image         String?
   passwordHash  String?
   role          UserRole  @default(CUSTOMER)
+  communityNotificationPrefs Json? @map("community_notification_prefs")
   accounts      Account[]
   sessions      Session[]
+  communityMember CommunityMemberRecord?
+  communityPostsAuthored CommunityPostRecord[] @relation("CommunityPostAuthor")
+  notificationsReceived CommunityNotificationRecord[] @relation("NotificationRecipient")
+  notificationsSent     CommunityNotificationRecord[] @relation("NotificationActor")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -346,4 +351,168 @@ model SiteCopy {
   id        String   @id @default("default")
   payload   Json     @default("{}")
   updatedAt DateTime @updatedAt
+}
+
+// ——— Mission Hub community (Supabase `community_spaces` + RLS) ———
+model CommunitySpaceRecord {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  slug        String   @unique
+  description String?
+  icon        String?
+  coverImageUrl String? @map("cover_image_url")
+  featured    Boolean  @default(false)
+  settings    Json     @default("{}")
+  spaceType   String   @default("standard") @map("space_type")
+  welcomeMessage String? @map("welcome_message")
+  engagementPrompt String? @map("engagement_prompt")
+  themeMood   String?  @map("theme_mood")
+  allowComments Boolean @default(true) @map("allow_comments")
+  allowReactions Boolean @default(true) @map("allow_reactions")
+  allowMemberPosts Boolean @default(false) @map("allow_member_posts")
+  requirePostApproval Boolean @default(false) @map("require_post_approval")
+  allowVoiceMessages Boolean @default(false) @map("allow_voice_messages")
+  showWelcomeMessage Boolean @default(true) @map("show_welcome_message")
+  pinWelcomeMessage Boolean @default(true) @map("pin_welcome_message")
+  status      String   @default("draft")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  posts       CommunityPostRecord[]
+
+  @@index([status, sortOrder])
+  @@index([spaceType])
+  @@map("community_spaces")
+}
+
+model CommunityPostRecord {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  spaceId       String    @map("space_id") @db.Uuid
+  authorUserId  String?   @map("author_user_id")
+  title         String?
+  body          String
+  excerpt       String?
+  postType      String    @default("update") @map("post_type")
+  status        String    @default("draft")
+  coverImageUrl String?   @map("cover_image_url")
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  space      CommunitySpaceRecord       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  authorUser User?                      @relation("CommunityPostAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  reactions  CommunityPostReactionRecord[]
+  comments   CommunityPostCommentRecord[]
+  notifications CommunityNotificationRecord[]
+
+  @@index([spaceId, status])
+  @@index([status, publishedAt])
+  @@index([authorUserId])
+  @@map("community_posts")
+}
+
+model CommunityPostReactionRecord {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId       String   @map("post_id") @db.Uuid
+  reactionType String   @map("reaction_type")
+  visitorKey   String   @map("visitor_key")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post CommunityPostRecord @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, visitorKey, reactionType])
+  @@index([postId])
+  @@index([reactionType])
+  @@index([visitorKey])
+  @@map("community_post_reactions")
+}
+
+model CommunityMemberRecord {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String?   @unique @map("user_id")
+  firstName       String    @map("first_name")
+  lastName        String    @map("last_name")
+  displayName     String?   @map("display_name")
+  bio             String?
+  email           String?   @unique
+  profileImageUrl String?   @map("profile_image_url")
+  visitorKey      String?   @unique @map("visitor_key")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user     User?                        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  comments CommunityPostCommentRecord[]
+  notificationsActed CommunityNotificationRecord[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("community_members")
+}
+
+model CommunityPostCommentRecord {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId          String    @map("post_id") @db.Uuid
+  parentCommentId String?   @map("parent_comment_id") @db.Uuid
+  visitorKey      String    @map("visitor_key")
+  memberId        String?   @map("member_id") @db.Uuid
+  displayName     String?   @map("display_name")
+  body            String
+  status          String    @default("published")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  post          CommunityPostRecord            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentComment CommunityPostCommentRecord?    @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies       CommunityPostCommentRecord[]   @relation("CommentReplies")
+  member        CommunityMemberRecord?         @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  notifications CommunityNotificationRecord[]
+
+  @@index([postId])
+  @@index([parentCommentId])
+  @@index([visitorKey])
+  @@index([memberId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("community_post_comments")
+}
+
+model CommunityNotificationRecord {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientUserId String?   @map("recipient_user_id")
+  actorUserId     String?   @map("actor_user_id")
+  actorMemberId   String?   @map("actor_member_id") @db.Uuid
+  postId          String?   @map("post_id") @db.Uuid
+  commentId       String?   @map("comment_id") @db.Uuid
+  type            String
+  title           String
+  body            String?
+  readAt          DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  recipientUser User?                        @relation("NotificationRecipient", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  actorUser     User?                        @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorMember   CommunityMemberRecord?       @relation(fields: [actorMemberId], references: [id], onDelete: SetNull)
+  post          CommunityPostRecord?         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment       CommunityPostCommentRecord?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([recipientUserId])
+  @@index([recipientUserId, readAt])
+  @@index([createdAt])
+  @@map("community_notifications")
+}
+
+model CommunityHubSettingsRecord {
+  id              String   @id @default("default")
+  title           String?
+  tagline         String?
+  logoUrl         String?  @map("logo_url")
+  coverImageUrl   String?  @map("cover_image_url")
+  welcomeText     String?  @map("welcome_text")
+  invitationTitle String?  @map("invitation_title")
+  invitationBody  String?  @map("invitation_body")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("community_hub_settings")
 }

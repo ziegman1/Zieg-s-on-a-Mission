@@ -60,8 +60,8 @@ npm run db:seed
 
 Seed creates:
 
-- Admin user: **jziegenhorn@teamexpansion.org** — set **ADMIN_PASSWORD** in `.env.local` when you run `db:seed`, or the repo’s default bcrypt in `prisma/seed.ts` / `seed-admin.ts` if unset (rotate after first deploy)  
-- **Production / Vercel:** Deploy does **not** run seed. If admin login fails, run **`npm run db:seed:admin`** (or full **`npm run db:seed`**) using the **same** `DATABASE_URL` as production (e.g. `vercel env pull` then run locally, or run from a machine that can reach the DB).  
+- Admin owners (see `src/lib/admin-users.ts`): **jziegenhorn@teamexpansion.org**, **lziegenhorn@teamexpansion.org** — set **ADMIN_PASSWORD** / **ADMIN_PASSWORD_LINDSAY** in env when running `db:seed` or `db:seed:admin` (never commit passwords)  
+- **Production / Vercel:** Deploy does **not** run seed. Run **`npm run db:seed:admin`** against production `DATABASE_URL` or use **`POST /api/admin/setup-credentials`** with `email` + `password` once.  
 - Printify provider  
 - Featured & Apparel collections  
 - Sample products (self-fulfilled + dropship placeholders)  
@@ -81,11 +81,12 @@ npm run dev
 | Script | Description |
 |--------|-------------|
 | `npm run dev` | Start dev server |
-| `npm run build` | Production build (`scripts/build.ts` → Prisma + `next build`) |
+| `npm run build` | Production build (`prisma generate` + `next build`; does **not** run migrations) |
 | `npm run start` | Start production server |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:push` | Push schema (no migrations) |
-| `npm run db:migrate` | Run migrations |
+| `npm run db:migrate` | Create + apply migrations locally (`migrate dev`) |
+| `npm run db:migrate:deploy` | Apply pending migrations to target DB (`migrate deploy`) |
 | `npm run db:seed` | Seed database |
 | `npm run db:seed:admin` | Upsert admin user only (fix production login) |
 | `npm run db:studio` | Open Prisma Studio |

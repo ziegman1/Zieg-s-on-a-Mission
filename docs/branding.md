@@ -40,7 +40,8 @@ Tailwind-style tokens exposed from `@theme` include `--color-brand-primary`, `--
 
 - **Header:** `public/logo/team-expansion.png` (Team Expansion wordmark lockup).  
 - **Hero / marketing:** `public/images/hero-zieg-mission.png`, `public/images/zieg-hero.png` as needed.  
-- **Favicon / OG:** `public/icon.png`, `public/apple-touch-icon.png`, `public/og-image.jpg`.  
+- **Favicon / OG:** `public/favicon.ico`, `public/icon.png` (32×32 Team Expansion mark), `public/apple-touch-icon.png`, `public/og-image.jpg` (mission hero).  
+- **Mission Hub PWA:** `public/mission-hub/icon-192.png`, `icon-512.png`, `apple-touch-icon.png` (MH lettermark on brand primary).  
 - Maintain clear space; do not stretch or clip logos awkwardly on small screens.  
 
 ---

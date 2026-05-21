@@ -1,0 +1,68 @@
+import type { ReactNode } from "react";
+import type { CommunityMemberProfile } from "@/lib/community/members";
+import type { CommunityOwner } from "@/lib/community/owner-types";
+import { MH } from "@/lib/community/hub-design";
+import { CommunityBottomNav } from "./community-bottom-nav";
+import { CommunityInstallHint } from "./community-install-hint";
+import { CommunityTopbar } from "./community-topbar";
+import { MissionHubStandaloneInit } from "./mission-hub-standalone-init";
+import { MissionHubSwRegister } from "./mission-hub-sw-register";
+import { cn } from "@/lib/utils";
+
+/**
+ * Mission Hub app chrome: dedicated top bar + bottom nav, no storefront header/footer.
+ */
+export function MissionHubShell({
+  owner,
+  member,
+  siteName,
+  showBottomNav = true,
+  showInstallHint = true,
+  accountImageUrl = null,
+  notificationUserId = null,
+  initialUnreadCount = 0,
+  children,
+}: {
+  owner: CommunityOwner | null;
+  member: CommunityMemberProfile | null;
+  siteName: string;
+  /** Auth-focused pages can hide bottom nav */
+  showBottomNav?: boolean;
+  /** Login/join hide install hint */
+  showInstallHint?: boolean;
+  accountImageUrl?: string | null;
+  notificationUserId?: string | null;
+  initialUnreadCount?: number;
+  children: ReactNode;
+}) {
+  const signedIn = Boolean(owner ?? member);
+  return (
+    <div
+      className={cn(
+        "mission-hub-root min-h-dvh flex flex-col text-brand-ink",
+        MH.bg,
+      )}
+    >
+      <MissionHubStandaloneInit />
+      <MissionHubSwRegister />
+      <CommunityTopbar
+        owner={owner}
+        member={member}
+        siteName={siteName}
+        accountImageUrl={accountImageUrl}
+        notificationUserId={notificationUserId}
+        initialUnreadCount={initialUnreadCount}
+      />
+      <main
+        className={cn(
+          "flex-1 w-full",
+          showBottomNav ? MH.bottomNavH : "pb-6",
+        )}
+      >
+        {showInstallHint ? <CommunityInstallHint signedIn={signedIn} /> : null}
+        {children}
+      </main>
+      {showBottomNav ? <CommunityBottomNav /> : null}
+    </div>
+  );
+}

@@ -101,6 +101,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     { href: "/give", label: "Give" },
     { href: "/merch", label: "Merch" },
     { href: "/blog", label: "Blog" },
+    { href: "/community", label: "Community" },
     { href: "/contact", label: "Contact" },
   ],
   footer: {
