@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
+import { AdminLoginConfigAlert } from "@/components/admin/admin-login-config-alert";
+import type { AuthConfigIssue } from "@/lib/auth-env";
 import { loginAction, type LoginState } from "./actions";
 import { isMissionHubReturnPath, safeCallbackUrl } from "@/lib/auth-callback";
 import { Button } from "@/components/ui/button";
@@ -11,13 +13,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const initial: LoginState = { error: null };
 
-export function AdminLoginForm() {
+export function AdminLoginForm({
+  configBlocked = false,
+  configIssues,
+  authError,
+}: {
+  configBlocked?: boolean;
+  configIssues?: AuthConfigIssue[];
+  authError?: string;
+}) {
   const searchParams = useSearchParams();
   const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
   const [state, formAction, pending] = useActionState(loginAction, initial);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black px-4">
+    <div className="min-h-screen flex items-center justify-center bg-black px-4 py-8">
       <Card className="w-full max-w-md border-brand-primary/35 bg-zinc-900 text-cream">
         <CardHeader>
           <CardTitle className="font-serif text-2xl text-brand-primary">
@@ -30,6 +40,7 @@ export function AdminLoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <AdminLoginConfigAlert issues={configIssues} error={authError} />
           <form action={formAction} className="space-y-4">
             <input type="hidden" name="callbackUrl" value={callbackUrl} />
             {state.error && (
@@ -58,7 +69,11 @@ export function AdminLoginForm() {
                 className="bg-zinc-800 border-zinc-600"
               />
             </div>
-            <Button type="submit" className="w-full bg-brand-accent text-brand-ink hover:bg-brand-accent/90" disabled={pending}>
+            <Button
+              type="submit"
+              className="w-full bg-brand-accent text-brand-ink hover:bg-brand-accent/90"
+              disabled={pending || configBlocked}
+            >
               {pending ? "Signing in…" : "Sign in"}
             </Button>
           </form>

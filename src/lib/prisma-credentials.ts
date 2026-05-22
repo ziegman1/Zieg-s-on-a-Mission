@@ -8,17 +8,22 @@ function cleanDbUrl(s: string | undefined): string {
 }
 
 /**
- * Credentials login reads `User` via Prisma. On Supabase, `DATABASE_URL` often points at the
- * transaction pooler (`postgres.<project>` on :6543) while `DIRECT_URL` uses the session/direct
- * connection (`postgres` on :5432). If RLS was enabled without policies, the pooled role can see
- * zero rows while the direct session (superuser / table owner) still sees data — or migrations
- * that disable RLS may not have been applied while the build continued. When `DIRECT_URL` differs
- * from `DATABASE_URL`, use a dedicated client on `DIRECT_URL` for this query only.
+ * Credentials login reads `User` via Prisma. On Supabase, `DATABASE_URL` is the transaction pooler
+ * (:6543, `?pgbouncer=true`). `DIRECT_URL` is `db.<ref>.supabase.co:5432` for migrations only.
+ *
+ * On Vercel/serverless the direct host is usually unreachable (P1001), which broke admin login.
+ * Use the pooled `DATABASE_URL` in production; optional `DIRECT_URL` client is for local dev when
+ * you need to bypass pooler RLS quirks (`MISSION_HUB_AUTH_USE_DIRECT=1`).
  */
 export function prismaForCredentialsAuth(): PrismaClient {
   const direct = cleanDbUrl(process.env.DIRECT_URL);
   const pooled = cleanDbUrl(process.env.DATABASE_URL);
-  if (!direct || direct === pooled) {
+  const preferPooler =
+    process.env.VERCEL === "1" ||
+    process.env.MISSION_HUB_AUTH_USE_POOLER === "1" ||
+    process.env.NODE_ENV === "production";
+
+  if (preferPooler || !direct || direct === pooled) {
     return defaultPrisma;
   }
   if (!globalForCred.__prismaCredentials) {

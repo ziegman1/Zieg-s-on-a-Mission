@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import type { Session } from "next-auth";
-import { auth, signOut } from "@/auth";
+import { signOut } from "@/auth";
+import { safeAuth } from "@/lib/safe-auth";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
 
@@ -22,8 +23,10 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = (await headers()).get("x-pathname") ?? "";
-  const isLoginPage = pathname === "/admin/login";
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "";
+  const isLoginPage =
+    pathname === "/admin/login" || pathname.startsWith("/admin/login/");
 
   if (isLoginPage) {
     return (
@@ -33,13 +36,11 @@ export default async function AdminLayout({
     );
   }
 
-  let session: Session | null = null;
-  try {
-    session = await auth();
-  } catch (e) {
-    console.error("[admin layout] auth() failed:", e);
+  const authResult = await safeAuth();
+  if (!authResult.ok) {
     redirect(`/admin/login?callbackUrl=${encodeURIComponent(pathname || "/admin")}`);
   }
+  const session: Session | null = authResult.session;
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "STAFF";
   if (!session?.user) redirect(`/admin/login?callbackUrl=${encodeURIComponent(pathname || "/admin")}`);
   if (!isAdmin) redirect("/");

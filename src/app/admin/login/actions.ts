@@ -2,9 +2,11 @@
 
 import { signInCredentialsAndRedirect } from "@/lib/auth-sign-in";
 import { safeCallbackUrl } from "@/lib/auth-callback";
+import { getAuthConfigIssues } from "@/lib/auth-env";
 import { isAdminRole } from "@/lib/admin-users";
 import { logMissionHubLogin } from "@/lib/community/auth-login-log";
 import { prismaForCredentialsAuth } from "@/lib/prisma-credentials";
+import type { UserRole } from "@prisma/client";
 
 export type LoginState = { error: string | null };
 
@@ -20,12 +22,29 @@ export async function loginAction(
     return { error: "Email and password are required." };
   }
 
+  const configIssues = getAuthConfigIssues();
+  if (configIssues.length > 0) {
+    return {
+      error:
+        "Sign-in is not configured on the server. Check AUTH_SECRET and DATABASE_URL in Vercel, then redeploy.",
+    };
+  }
+
   const trimmedEmail = email.trim();
-  const prisma = prismaForCredentialsAuth();
-  const user = await prisma.user.findFirst({
-    where: { email: { equals: trimmedEmail, mode: "insensitive" } },
-    select: { role: true, passwordHash: true },
-  });
+  let user: { role: UserRole; passwordHash: string | null } | null = null;
+  try {
+    const prisma = prismaForCredentialsAuth();
+    user = await prisma.user.findFirst({
+      where: { email: { equals: trimmedEmail, mode: "insensitive" } },
+      select: { role: true, passwordHash: true },
+    });
+  } catch (e) {
+    console.error("[admin/login] database lookup failed:", e);
+    return {
+      error:
+        "Could not reach the database. Verify DATABASE_URL on Vercel (Supabase pooler :6543 with ?pgbouncer=true), then try again.",
+    };
+  }
 
   if (!user) {
     logMissionHubLogin({

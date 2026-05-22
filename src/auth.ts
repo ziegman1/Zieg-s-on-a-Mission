@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { AUTH_SESSION_MAX_AGE_SECONDS } from "@/lib/auth-callback";
+import { getAuthSecret } from "@/lib/auth-env";
 import { prismaForCredentialsAuth } from "@/lib/prisma-credentials";
 import type { UserRole } from "@prisma/client";
 import { isAdminRole } from "@/lib/admin-users";
@@ -10,9 +11,9 @@ import { canSignInWithCredentials } from "@/lib/auth-roles";
 const authDebug = process.env.AUTH_DEBUG === "1";
 const useSecureCookies = process.env.NODE_ENV === "production";
 
-if (!process.env.AUTH_SECRET && process.env.NODE_ENV !== "test") {
+if (!getAuthSecret() && process.env.NODE_ENV !== "test") {
   console.error(
-    "[auth] AUTH_SECRET is missing — sign-in will fail. Set AUTH_SECRET in .env.local (openssl rand -base64 32).",
+    "[auth] AUTH_SECRET (or NEXTAUTH_SECRET) is missing — sign-in will fail. Set AUTH_SECRET in Vercel env (openssl rand -base64 32).",
   );
 }
 
@@ -26,7 +27,7 @@ declare module "next-auth" {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET,
+  secret: getAuthSecret(),
   trustHost: true,
   session: { strategy: "jwt", maxAge: AUTH_SESSION_MAX_AGE_SECONDS },
   useSecureCookies,

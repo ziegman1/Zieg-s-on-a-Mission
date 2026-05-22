@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { toggleCommunityPostReactionAction } from "@/app/(storefront)/community/reaction-actions";
 import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
-import { prayerThreadPillLabel } from "@/lib/community/prayer-thread-copy";
 import type { CommunityReactionType, ReactionCounts } from "@/lib/community/types";
 import { CommunityPrayerComposerSheet } from "./community-prayer-composer-sheet";
 import { CommunityPrayerThreadSheet } from "./community-prayer-thread-sheet";
@@ -14,22 +13,13 @@ import {
 } from "./community-praying-button";
 import { cn } from "@/lib/utils";
 
-const actionPillSecondary = cn(
-  "inline-flex w-auto max-w-full shrink-0 items-center gap-1 rounded-full px-2.5 py-1",
-  "text-[12.5px] font-medium leading-tight text-brand-primary/85",
-  "bg-white/60 ring-1 ring-brand-primary/12",
-  "transition-all duration-150 ease-out",
-  "hover:bg-brand-primary/[0.06] active:scale-[0.98] touch-manipulation",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30",
-);
-
-const actionPillPrimary = cn(
-  "inline-flex w-auto max-w-full shrink-0 items-center gap-1 rounded-full px-3 py-1",
+const shareCtaClass = cn(
+  "inline-flex shrink-0 items-center rounded-full px-3 py-1.5",
   "text-[13px] font-medium leading-tight text-white",
   "bg-brand-primary border border-brand-primary/90",
-  "shadow-[0_2px_8px_rgba(131,176,218,0.28)]",
+  "shadow-[0_1px_6px_rgba(131,176,218,0.22)]",
   "transition-all duration-150 ease-out",
-  "hover:bg-brand-primary/93 hover:shadow-[0_2px_10px_rgba(131,176,218,0.32)]",
+  "hover:bg-brand-primary/93 hover:shadow-[0_2px_8px_rgba(131,176,218,0.28)]",
   "active:scale-[0.98] touch-manipulation",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1",
 );
@@ -117,52 +107,60 @@ export function CommunityPrayerEngagement({
     setComposerOpen(false);
   }
 
-  const threadPillLabel = prayerThreadPillLabel(prayerCount);
   const shareLabel = preset.comments.emptyCta;
+  const threadAriaLabel =
+    prayerCount === 0
+      ? "View prayers — none shared yet"
+      : `View ${prayerCount} ${prayerCount === 1 ? "prayer" : "prayers"}`;
+
+  if (!allowReactions && !allowComments) {
+    return null;
+  }
 
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {allowReactions ? (
-          <CommunityPrayingButton
-            count={prayingCount}
-            active={isPraying}
-            disabled={isPending}
-            onToggle={togglePraying}
-          />
-        ) : null}
+    <div className={cn("flex flex-col gap-0.5", className)}>
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          {allowReactions ? (
+            <CommunityPrayingButton
+              count={prayingCount}
+              active={isPraying}
+              disabled={isPending}
+              onToggle={togglePraying}
+            />
+          ) : null}
+
+          {allowComments ? (
+            <button type="button" onClick={() => setComposerOpen(true)} className={shareCtaClass}>
+              {shareLabel}
+            </button>
+          ) : null}
+        </div>
 
         {allowComments ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setThreadOpen(true)}
-              className={cn(
-                actionPillSecondary,
-                countPulse && "ring-brand-primary/25 bg-brand-primary/[0.05]",
-              )}
-            >
-              <span aria-hidden className="text-[13px] leading-none">
-                🙏
-              </span>
-              <span className="tabular-nums">{threadPillLabel}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setComposerOpen(true)}
-              className={actionPillPrimary}
-            >
-              <span aria-hidden className="text-[13px] leading-none">
-                🙏
-              </span>
-              <span>{shareLabel}</span>
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => setThreadOpen(true)}
+            aria-label={threadAriaLabel}
+            className={cn(
+              "shrink-0 inline-flex items-center gap-0.5 py-1 pl-1 min-h-[2rem] min-w-[2rem] justify-center",
+              "text-brand-primary/70 hover:text-brand-primary",
+              "transition-colors duration-150 touch-manipulation active:opacity-80",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30 rounded-md",
+              countPulse && "text-brand-primary",
+            )}
+          >
+            <span className="text-[15px] leading-none" aria-hidden>
+              🙏
+            </span>
+            <span className="tabular-nums text-[13px] font-semibold leading-none">
+              {prayerCount}
+            </span>
+          </button>
         ) : null}
       </div>
 
-      {error ? <p className="text-xs text-red-600 pt-0.5">{error}</p> : null}
+      {error ? <p className="text-xs text-red-600">{error}</p> : null}
 
       <CommunityPrayerComposerSheet
         open={composerOpen}
