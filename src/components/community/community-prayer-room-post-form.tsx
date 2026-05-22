@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, useTransition } from "react";
-import { Loader2, Mic, PenLine } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { createPrayerRoomPostAction } from "@/app/(storefront)/community/post-actions";
 import type { CommentAuthorContext } from "@/lib/community/members";
 import { encodeVoicePrayerBody } from "@/lib/community/prayer-response-body";
@@ -59,8 +59,8 @@ export function CommunityPrayerRoomPostForm({
   const titleId = useId();
   const bodyId = useId();
 
-  const showVoice =
-    allowVoice && preset.kind === "voice_prayer";
+  const voiceOnly = preset.kind === "voice_prayer";
+  const showVoice = allowVoice && voiceOnly;
   const canRecord = supportsBrowserVoiceRecording();
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function CommunityPrayerRoomPostForm({
   }, [preset.kind, preset.initialMode]);
 
   useEffect(() => {
-    if (!autoFocus || mode !== "written") return;
+    if (!autoFocus || mode !== "written" || voiceOnly) return;
     const timer = window.setTimeout(() => {
       const el = document.getElementById(bodyId) as HTMLTextAreaElement | null;
       if (!el) return;
@@ -81,9 +81,9 @@ export function CommunityPrayerRoomPostForm({
       const len = el.value.length;
       el.setSelectionRange(len, len);
       el.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }, 180);
+    }, 120);
     return () => window.clearTimeout(timer);
-  }, [autoFocus, mode, bodyId, preset.kind]);
+  }, [autoFocus, mode, bodyId, preset.kind, voiceOnly]);
 
   function resetVoice() {
     setVoiceReady(null);
@@ -146,74 +146,37 @@ export function CommunityPrayerRoomPostForm({
   const writtenSubmitDisabled = isPending || (mode === "written" && !body.trim());
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex items-center gap-2.5">
-        <CommunityAvatar name={name} imageUrl={authorImage(authorContext)} size="sm" />
-        <p className="text-xs text-brand-ink/60">
+    <form onSubmit={handleSubmit} className={cn("space-y-3", voiceOnly && "space-y-4")}>
+      {!voiceOnly ? (
+        <div className="flex items-center gap-2.5">
+          <CommunityAvatar name={name} imageUrl={authorImage(authorContext)} size="sm" />
+          <p className="text-xs text-brand-ink/60">
+            Sharing as <span className="font-medium text-brand-ink">{name}</span>
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-center text-brand-ink/55">
           Sharing as <span className="font-medium text-brand-ink">{name}</span>
         </p>
-      </div>
+      )}
 
-      <div className="space-y-1.5">
-        <Label htmlFor={titleId} className="text-xs text-brand-ink/65">
-          Title (optional)
-        </Label>
-        <Input
-          id={titleId}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={preset.titlePlaceholder}
-          disabled={isPending}
-          className="h-10 rounded-xl border-black/[0.08] bg-white text-[15px]"
-        />
-      </div>
-
-      {showVoice ? (
-        <div
-          className="flex rounded-full bg-brand-surface/50 p-0.5 ring-1 ring-black/[0.04]"
-          role="tablist"
-          aria-label="Post format"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "written"}
-            onClick={() => {
-              setMode("written");
-              setError(null);
-            }}
-            className={cn(
-              "flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-medium min-h-[2.75rem]",
-              mode === "written"
-                ? "bg-white text-brand-ink shadow-sm"
-                : "text-brand-ink/55",
-            )}
-          >
-            <PenLine className="h-3.5 w-3.5" aria-hidden />
-            Written
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "voice"}
-            onClick={() => {
-              setMode("voice");
-              setError(null);
-            }}
-            className={cn(
-              "flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-xs font-medium min-h-[2.75rem]",
-              mode === "voice"
-                ? "bg-white text-brand-ink shadow-sm"
-                : "text-brand-ink/55",
-            )}
-          >
-            <Mic className="h-3.5 w-3.5" aria-hidden />
-            Voice
-          </button>
+      {!voiceOnly ? (
+        <div className="space-y-1.5">
+          <Label htmlFor={titleId} className="text-xs text-brand-ink/65">
+            Title (optional)
+          </Label>
+          <Input
+            id={titleId}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={preset.titlePlaceholder}
+            disabled={isPending}
+            className="h-9 rounded-xl border-black/[0.08] bg-white text-[14px]"
+          />
         </div>
       ) : null}
 
-      {mode === "written" || !showVoice ? (
+      {mode === "written" && !voiceOnly ? (
         <div className="space-y-1.5">
           <Label htmlFor={bodyId} className="sr-only">
             Post body
@@ -223,19 +186,21 @@ export function CommunityPrayerRoomPostForm({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={preset.bodyPlaceholder}
-            rows={5}
+            rows={4}
             maxLength={50000}
             disabled={isPending}
             enterKeyHint="send"
-            className="min-h-[8rem] text-[15px] leading-relaxed bg-white border-black/[0.08] resize-none rounded-xl"
+            className="min-h-[6.5rem] text-[15px] leading-relaxed bg-white border-black/[0.08] resize-none rounded-xl"
           />
         </div>
-      ) : (
+      ) : showVoice ? (
         <div className="space-y-3">
           <CommunityVoicePrayerRecorder
             key={recorderKey}
             spaceSlug={spaceSlug}
             disabled={isPending}
+            autoStartRecording={voiceOnly && canRecord}
+            minimal={voiceOnly}
             onReady={(result) => {
               setVoiceReady(result);
               setError(null);
@@ -243,35 +208,24 @@ export function CommunityPrayerRoomPostForm({
             onClear={() => setVoiceReady(null)}
           />
           {!canRecord ? (
-            <p className="text-xs text-brand-ink/55 leading-relaxed">
-              Recording is not available in this browser — use upload, or switch to Written.
+            <p className="text-xs text-center text-brand-ink/55 leading-relaxed">
+              Recording is not available in this browser — upload a file instead.
             </p>
           ) : null}
-          <div className="space-y-1.5">
-            <Label htmlFor={bodyId} className="text-xs text-brand-ink/65">
-              Optional note
-            </Label>
-            <Textarea
-              id={bodyId}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder={preset.bodyPlaceholder}
-              rows={2}
-              disabled={isPending}
-              className="text-sm bg-white border-black/[0.08] resize-none rounded-xl"
-            />
-          </div>
         </div>
-      )}
+      ) : null}
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-red-600 text-center">{error}</p> : null}
 
       <Button
         type="submit"
         disabled={
           mode === "voice" && showVoice ? voiceSubmitDisabled : writtenSubmitDisabled
         }
-        className="w-full rounded-full min-h-[3rem] text-[15px] font-semibold bg-brand-primary hover:bg-brand-primary"
+        className={cn(
+          "w-full rounded-full font-semibold bg-brand-primary hover:bg-brand-primary",
+          voiceOnly ? "min-h-[2.75rem] text-[14px]" : "min-h-[2.875rem] text-[15px]",
+        )}
       >
         {isPending ? (
           <>

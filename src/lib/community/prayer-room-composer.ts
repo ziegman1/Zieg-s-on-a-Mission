@@ -7,7 +7,10 @@ export type PrayerRoomComposerKind =
 export type PrayerRoomComposerPreset = {
   kind: PrayerRoomComposerKind;
   postType: "prayer" | "praise" | "encouragement";
+  /** Legacy / internal label */
   ctaLabel: string;
+  /** Label in the participation picker sheet */
+  choiceLabel: string;
   sheetTitle: string;
   sheetDescription: string;
   titlePlaceholder: string;
@@ -25,6 +28,7 @@ export const PRAYER_ROOM_COMPOSER_PRESETS: Record<
     kind: "prayer_request",
     postType: "prayer",
     ctaLabel: "Share a Prayer Request",
+    choiceLabel: "Share Prayer Request",
     sheetTitle: "Share a Prayer Request",
     sheetDescription: "Your request helps our family pray with purpose.",
     titlePlaceholder: "What can we pray for?",
@@ -37,6 +41,7 @@ export const PRAYER_ROOM_COMPOSER_PRESETS: Record<
     kind: "praise_report",
     postType: "praise",
     ctaLabel: "Share a Praise Report / Testimony",
+    choiceLabel: "Share Praise / Testimony",
     sheetTitle: "Share a Praise Report",
     sheetDescription: "Celebrate what God has done with the community.",
     titlePlaceholder: "What are you praising God for?",
@@ -49,6 +54,7 @@ export const PRAYER_ROOM_COMPOSER_PRESETS: Record<
     kind: "encouragement",
     postType: "encouragement",
     ctaLabel: "Leave Encouragement",
+    choiceLabel: "Leave Encouragement",
     sheetTitle: "Leave Encouragement",
     sheetDescription: "Offer Scripture, prayer, or a word of hope.",
     titlePlaceholder: "Encouragement for the community",
@@ -62,7 +68,8 @@ export const PRAYER_ROOM_COMPOSER_PRESETS: Record<
     kind: "voice_prayer",
     postType: "prayer",
     ctaLabel: "Send Voice Prayer",
-    sheetTitle: "Send Voice Prayer",
+    choiceLabel: "Record Voice Prayer",
+    sheetTitle: "Record Voice Prayer",
     sheetDescription: "Record or upload a short voice prayer for the room.",
     titlePlaceholder: "What can we pray for?",
     bodyPlaceholder: "Optional note with your voice prayer…",

@@ -14,7 +14,7 @@ import {
 } from "@/lib/community/prayer-room-composer";
 import { canUseVoicePrayer } from "@/lib/community/voice-prayer";
 import { CommunityPostFeed } from "./community-post-feed";
-import { CommunityPrayerParticipationBar } from "./community-prayer-participation-bar";
+import { CommunitySpacePageHeader } from "./community-space-page-header";
 import { CommunityPrayerRoomComposer } from "./community-prayer-room-composer";
 import { CommunityPrayerRoomWelcomeActions } from "./community-prayer-room-welcome-actions";
 import { CommunityPrayerToast } from "./community-prayer-toast";
@@ -43,13 +43,22 @@ export function CommunitySpiritualSpaceView({
   );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const prayerRoom =
-    getSpaceInteractionPreset(space.experience.spaceType, space.slug).mode ===
-    "prayer";
+  const preset = getSpaceInteractionPreset(space.experience.spaceType, space.slug);
+  const prayerRoom = preset.mode === "prayer";
   const allowVoice = canUseVoicePrayer(space.experience);
+  const openJoin = useCallback(() => {
+    setComposerKind(null);
+    setComposerOpen(true);
+  }, []);
+
   const openComposer = useCallback((kind: PrayerRoomComposerKind) => {
     setComposerKind(kind);
     setComposerOpen(true);
+  }, []);
+
+  const handleComposerOpenChange = useCallback((next: boolean) => {
+    setComposerOpen(next);
+    if (!next) setComposerKind(null);
   }, []);
 
   const scrollToFeed = useCallback(() => {
@@ -88,14 +97,20 @@ export function CommunitySpiritualSpaceView({
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-5">
+      <div className="space-y-3 sm:space-y-5">
         <CommunitySpaceHero space={space} />
+        <CommunitySpacePageHeader
+          title={space.title}
+          owner={owner}
+          composerSpaces={composerSpaces}
+          defaultSpaceId={space.id}
+          defaultPostType={preset.mode === "prayer" ? "prayer" : undefined}
+        />
         <CommunitySpaceWelcomeIntro space={space} />
         {prayerRoom ? (
           <CommunityPrayerRoomWelcomeActions
             posts={posts}
-            allowVoice={allowVoice}
-            onCompose={handleComposeClick}
+            onJoin={openJoin}
             onScrollToFeed={scrollToFeed}
           />
         ) : null}
@@ -111,9 +126,7 @@ export function CommunitySpiritualSpaceView({
           ) : (
             <CommunitySpiritualEmptyState
               showOwnerCta={prayerRoom}
-              onShareRequest={
-                prayerRoom ? () => handleComposeClick("prayer_request") : undefined
-              }
+              onShareRequest={prayerRoom ? openJoin : undefined}
               variant={prayerRoom ? "prayer" : "default"}
             />
           )}
@@ -127,8 +140,9 @@ export function CommunitySpiritualSpaceView({
 
       <CommunityPrayerRoomComposer
         open={composerOpen}
-        onOpenChange={setComposerOpen}
+        onOpenChange={handleComposerOpenChange}
         kind={composerKind}
+        onKindSelect={openComposer}
         spaceId={space.id}
         spaceSlug={space.slug}
         returnPath={

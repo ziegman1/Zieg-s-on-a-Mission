@@ -24,14 +24,16 @@ export function CommunityPrayerWarmthStrip({
   className?: string;
   compact?: boolean;
 }) {
-  const label = prayerParticipationWarmthLabel(prayingCount, prayerResponseCount);
-  const stackSize = Math.min(
-    3,
-    Math.max(prayingCount > 0 ? 1 : 0, prayerResponseCount > 0 ? 1 : 0),
-  );
-  const initials = prayerAvatarStackLabels(
-    prayingCount > 0 ? prayingCount : prayerResponseCount,
-  );
+  const showStack = prayingCount >= 2;
+  const label = showStack
+    ? prayerParticipationWarmthLabel(prayingCount, prayerResponseCount)
+    : null;
+  const stackSize = showStack
+    ? Math.min(3, Math.max(prayingCount > 0 ? 1 : 0, prayerResponseCount > 0 ? 1 : 0))
+    : 0;
+  const initials = showStack
+    ? prayerAvatarStackLabels(prayingCount > 0 ? prayingCount : prayerResponseCount)
+    : [];
 
   if (!label && stackSize === 0) return null;
 

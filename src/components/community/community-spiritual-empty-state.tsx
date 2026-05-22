@@ -45,7 +45,7 @@ export function CommunitySpiritualEmptyState({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-2",
           )}
         >
-          {prayer ? "Post Your Prayer" : "Share a prayer request"}
+          {prayer ? "Join in Prayer" : "Share a prayer request"}
         </button>
       ) : (
         <p className="mt-6 text-xs text-brand-ink/45">

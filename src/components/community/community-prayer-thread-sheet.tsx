@@ -1,7 +1,6 @@
 "use client";
 
 import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
-import { prayerThreadButtonLabel } from "@/lib/community/prayer-thread-copy";
 import { CommunityBottomSheet } from "./community-bottom-sheet";
 import { CommunityPrayerThreadContent } from "./community-prayer-thread-content";
 

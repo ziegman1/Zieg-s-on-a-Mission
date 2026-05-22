@@ -3,17 +3,36 @@
 import { useEffect, useState, useTransition } from "react";
 import { toggleCommunityPostReactionAction } from "@/app/(storefront)/community/reaction-actions";
 import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
-import { prayerThreadButtonLabel } from "@/lib/community/prayer-thread-copy";
+import { prayerThreadPillLabel } from "@/lib/community/prayer-thread-copy";
 import type { CommunityReactionType, ReactionCounts } from "@/lib/community/types";
 import { CommunityPrayerComposerSheet } from "./community-prayer-composer-sheet";
 import { CommunityPrayerThreadSheet } from "./community-prayer-thread-sheet";
 import { CommunityPrayerToast } from "./community-prayer-toast";
-import { CommunityPrayerWarmthStrip } from "./community-prayer-warmth-strip";
 import {
   CommunityPrayingButton,
   PRAYING_REACTION_TYPE,
 } from "./community-praying-button";
 import { cn } from "@/lib/utils";
+
+const actionPillSecondary = cn(
+  "inline-flex w-auto max-w-full shrink-0 items-center gap-1 rounded-full px-2.5 py-1",
+  "text-[12.5px] font-medium leading-tight text-brand-primary/85",
+  "bg-white/60 ring-1 ring-brand-primary/12",
+  "transition-all duration-150 ease-out",
+  "hover:bg-brand-primary/[0.06] active:scale-[0.98] touch-manipulation",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30",
+);
+
+const actionPillPrimary = cn(
+  "inline-flex w-auto max-w-full shrink-0 items-center gap-1 rounded-full px-3 py-1",
+  "text-[13px] font-medium leading-tight text-white",
+  "bg-brand-primary border border-brand-primary/90",
+  "shadow-[0_2px_8px_rgba(131,176,218,0.28)]",
+  "transition-all duration-150 ease-out",
+  "hover:bg-brand-primary/93 hover:shadow-[0_2px_10px_rgba(131,176,218,0.32)]",
+  "active:scale-[0.98] touch-manipulation",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1",
+);
 
 export function CommunityPrayerEngagement({
   postId,
@@ -98,70 +117,52 @@ export function CommunityPrayerEngagement({
     setComposerOpen(false);
   }
 
-  const threadLabel = prayerThreadButtonLabel(prayerCount, preset.comments);
-  const showWarmth = prayingCount > 0 || prayerCount > 0;
+  const threadPillLabel = prayerThreadPillLabel(prayerCount);
+  const shareLabel = preset.comments.emptyCta;
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
-      {allowReactions ? (
-        <CommunityPrayingButton
-          count={prayingCount}
-          active={isPraying}
-          disabled={isPending}
-          onToggle={togglePraying}
-        />
-      ) : null}
+    <div className={cn("flex flex-col gap-1", className)}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {allowReactions ? (
+          <CommunityPrayingButton
+            count={prayingCount}
+            active={isPraying}
+            disabled={isPending}
+            onToggle={togglePraying}
+          />
+        ) : null}
 
-      {allowComments ? (
-        <div className={cn("flex flex-col gap-1.5", !allowReactions && "mt-0")}>
-          <div className="space-y-1">
-            {showWarmth ? (
-              <CommunityPrayerWarmthStrip
-                prayingCount={prayingCount}
-                prayerResponseCount={prayerCount}
-                compact
-              />
-            ) : null}
-
+        {allowComments ? (
+          <>
             <button
               type="button"
               onClick={() => setThreadOpen(true)}
               className={cn(
-                "inline-flex w-full min-h-[2.125rem] items-center justify-center gap-1.5 rounded-full px-3.5",
-                "text-[13px] font-medium text-brand-primary/85",
-                "bg-white/60 ring-1 ring-brand-primary/12",
-                "transition-all duration-150 ease-out",
-                "hover:bg-brand-primary/[0.06] active:scale-[0.98] touch-manipulation",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30",
+                actionPillSecondary,
                 countPulse && "ring-brand-primary/25 bg-brand-primary/[0.05]",
               )}
             >
-              <span aria-hidden>🙏</span>
-              <span>{threadLabel}</span>
+              <span aria-hidden className="text-[13px] leading-none">
+                🙏
+              </span>
+              <span className="tabular-nums">{threadPillLabel}</span>
             </button>
-          </div>
 
-          <button
-            type="button"
-            onClick={() => setComposerOpen(true)}
-            className={cn(
-              "inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4",
-              "min-h-[2.35rem] text-[14px] font-medium text-white",
-              "bg-brand-primary border border-brand-primary/90",
-              "shadow-[0_2px_10px_rgba(131,176,218,0.32)]",
-              "transition-all duration-150 ease-out",
-              "hover:bg-brand-primary/93 hover:shadow-[0_3px_14px_rgba(131,176,218,0.36)]",
-              "active:scale-[0.98] touch-manipulation",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1",
-            )}
-          >
-            <span aria-hidden>🙏</span>
-            <span>{preset.comments.emptyCta}</span>
-          </button>
-        </div>
-      ) : null}
+            <button
+              type="button"
+              onClick={() => setComposerOpen(true)}
+              className={actionPillPrimary}
+            >
+              <span aria-hidden className="text-[13px] leading-none">
+                🙏
+              </span>
+              <span>{shareLabel}</span>
+            </button>
+          </>
+        ) : null}
+      </div>
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-red-600 pt-0.5">{error}</p> : null}
 
       <CommunityPrayerComposerSheet
         open={composerOpen}

@@ -34,16 +34,16 @@ export function CommunitySpaceWelcomeIntro({ space }: { space: CommunitySpaceDet
         "ring-1 ring-black/[0.05]",
       )}
     >
-      <div className="px-4 sm:px-6 py-4 sm:py-5">
+      <div className="px-4 sm:px-6 py-3.5 sm:py-5">
         {heading ? (
-          <h2 className="font-serif text-lg sm:text-xl text-brand-ink/90 tracking-wide leading-snug">
+          <h2 className="font-serif text-base sm:text-xl text-brand-ink/90 tracking-wide leading-snug">
             {heading}
           </h2>
         ) : null}
         <div
           className={cn(
-            "space-y-3.5 text-[15px] sm:text-[15.5px] leading-[1.72] text-brand-ink/75",
-            heading ? "mt-3" : "",
+            "space-y-2.5 sm:space-y-3.5 text-[13.5px] sm:text-[15.5px] leading-[1.68] sm:leading-[1.72] text-brand-ink/75",
+            heading ? "mt-2 sm:mt-3" : "",
           )}
         >
           {preview.map((para, i) => (
@@ -59,7 +59,7 @@ export function CommunitySpaceWelcomeIntro({ space }: { space: CommunitySpaceDet
               )}
             >
               <div className="overflow-hidden min-h-0">
-                <div className="space-y-3.5">
+                <div className="space-y-2.5 sm:space-y-3.5">
                   {hiddenParagraphs.map((para, i) => (
                     <p key={`more-${i}`} className="whitespace-pre-wrap">
                       {para}
@@ -76,7 +76,7 @@ export function CommunitySpaceWelcomeIntro({ space }: { space: CommunitySpaceDet
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
             className={cn(
-              "mt-4 inline-flex items-center gap-1.5 text-sm font-medium",
+              "mt-3 sm:mt-4 inline-flex items-center gap-1.5 text-[13px] sm:text-sm font-medium",
               "text-brand-primary/90 hover:text-brand-primary transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30 rounded-md px-1 -ml-1",
             )}

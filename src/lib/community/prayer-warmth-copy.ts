@@ -13,7 +13,9 @@ export function prayerParticipationWarmthLabel(
   }
 
   if (prayerResponseCount > 0 && prayingCount === 0) {
-    parts.push("Recently prayed");
+    if (prayerResponseCount >= 2) {
+      parts.push("Recently prayed");
+    }
   } else if (prayerResponseCount > 0 && parts.length > 0) {
     parts.push(
       prayerResponseCount === 1

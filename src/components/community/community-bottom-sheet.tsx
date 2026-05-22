@@ -31,12 +31,14 @@ function BottomSheetContent({
   description,
   onClose,
   onSwipeClose,
+  keyboardInset = 0,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   title: string;
   description?: string;
   onClose?: () => void;
   onSwipeClose?: () => void;
+  keyboardInset?: number;
 }) {
   const dragRef = useRef({ startY: 0, dragging: false });
 
@@ -103,7 +105,12 @@ function BottomSheetContent({
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 transition-[padding] duration-150"
+          style={{
+            paddingBottom: `calc(1rem + ${keyboardInset}px + env(safe-area-inset-bottom, 0px))`,
+          }}
+        >
           {children}
         </div>
       </DialogPrimitive.Content>
@@ -118,6 +125,7 @@ export function CommunityBottomSheet({
   description,
   children,
   className,
+  keyboardInset = 0,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -125,6 +133,8 @@ export function CommunityBottomSheet({
   description?: string;
   children: React.ReactNode;
   className?: string;
+  /** Extra bottom padding when the on-screen keyboard is open (px). */
+  keyboardInset?: number;
 }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -134,6 +144,7 @@ export function CommunityBottomSheet({
         onClose={() => onOpenChange(false)}
         onSwipeClose={() => onOpenChange(false)}
         className={className}
+        keyboardInset={keyboardInset}
       >
         {children}
       </BottomSheetContent>

@@ -66,6 +66,8 @@ export function CommunityVoicePrayerRecorder({
   disabled,
   onReady,
   onClear,
+  autoStartRecording = false,
+  minimal = false,
 }: {
   postId?: string;
   /** When creating a new room post (no postId yet), validates voice is enabled for the space. */
@@ -73,6 +75,10 @@ export function CommunityVoicePrayerRecorder({
   disabled?: boolean;
   onReady: (result: VoicePrayerUploadResult) => void;
   onClear: () => void;
+  /** Open the mic prompt as soon as the composer mounts (room voice flow). */
+  autoStartRecording?: boolean;
+  /** Hide upload divider when room composer is voice-only. */
+  minimal?: boolean;
 }) {
   const canRecord = supportsBrowserVoiceRecording();
   const maxSeconds = COMMUNITY_PRAYER_AUDIO_MAX_DURATION_SECONDS;
@@ -127,6 +133,18 @@ export function CommunityVoicePrayerRecorder({
     stopTracks();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   }, [clearTimer, stopTracks, previewUrl]);
+
+  const autoStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (!autoStartRecording || !canRecord || disabled || autoStartedRef.current) return;
+    if (phase !== "idle") return;
+    autoStartedRef.current = true;
+    const id = window.setTimeout(() => {
+      void startRecording();
+    }, 280);
+    return () => window.clearTimeout(id);
+  }, [autoStartRecording, canRecord, disabled, phase]);
 
   async function uploadBlob(blob: Blob, filename: string, durationSeconds: number) {
     setUploadError(null);
@@ -339,40 +357,67 @@ export function CommunityVoicePrayerRecorder({
         </p>
       )}
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center" aria-hidden>
-          <div className="w-full border-t border-black/[0.06]" />
-        </div>
-        <div className="relative flex justify-center text-[11px] uppercase tracking-wide">
-          <span className="bg-white/90 px-2 text-brand-ink/40">or upload</span>
-        </div>
-      </div>
+      {!minimal ? (
+        <>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center" aria-hidden>
+              <div className="w-full border-t border-black/[0.06]" />
+            </div>
+            <div className="relative flex justify-center text-[11px] uppercase tracking-wide">
+              <span className="bg-white/90 px-2 text-brand-ink/40">or upload</span>
+            </div>
+          </div>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept="audio/mpeg,audio/mp4,audio/webm,audio/wav,audio/aac,audio/x-m4a,audio/*"
-        className="sr-only"
-        disabled={busy}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void handleUploadedFile(f);
-          e.target.value = "";
-        }}
-      />
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => fileRef.current?.click()}
-        className={cn(
-          "w-full rounded-xl border border-dashed border-brand-primary/25",
-          "bg-brand-primary/[0.04] px-4 py-3.5 text-sm text-brand-ink/70 min-h-[3rem]",
-          "hover:bg-brand-primary/[0.07] transition-colors inline-flex items-center justify-center gap-2",
-        )}
-      >
-        <Upload className="h-4 w-4 shrink-0" aria-hidden />
-        Upload audio file (MP3, M4A, WebM, WAV…)
-      </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="audio/mpeg,audio/mp4,audio/webm,audio/wav,audio/aac,audio/x-m4a,audio/*"
+            className="sr-only"
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleUploadedFile(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+            className={cn(
+              "w-full rounded-xl border border-dashed border-brand-primary/25",
+              "bg-brand-primary/[0.04] px-4 py-3.5 text-sm text-brand-ink/70 min-h-[3rem]",
+              "hover:bg-brand-primary/[0.07] transition-colors inline-flex items-center justify-center gap-2",
+            )}
+          >
+            <Upload className="h-4 w-4 shrink-0" aria-hidden />
+            Upload audio file (MP3, M4A, WebM, WAV…)
+          </button>
+        </>
+      ) : (
+        <>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="audio/mpeg,audio/mp4,audio/webm,audio/wav,audio/aac,audio/x-m4a,audio/*"
+            className="sr-only"
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleUploadedFile(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+            className="text-[12px] text-brand-primary/80 font-medium hover:underline"
+          >
+            Upload a file instead
+          </button>
+        </>
+      )}
 
       {micError ? <p className="text-xs text-amber-800">{micError}</p> : null}
       {uploadError ? <p className="text-xs text-red-600">{uploadError}</p> : null}

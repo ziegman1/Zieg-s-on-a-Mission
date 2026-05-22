@@ -53,12 +53,7 @@ export function CommunityAppShell({
           <CommunityFeedToolbar
             spaces={pillSpaces}
             activeSlug={activeSlug}
-            owner={owner}
-            composerSpaces={composerSpaces}
-            defaultSpaceId={defaultSpaceId}
             variant={spiritual ? "ambient" : "default"}
-            spaceType={spaceDetail?.experience.spaceType}
-            spaceSlug={spaceDetail?.slug ?? activeSlug}
           />
 
           <CommunityFeedShell className={spiritual ? "spiritual-feed" : undefined}>

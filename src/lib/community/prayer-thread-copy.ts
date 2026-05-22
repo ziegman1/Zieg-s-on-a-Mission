@@ -9,6 +9,12 @@ export function prayerThreadButtonLabel(
   return copy.threadViewMany.replace("{count}", String(count));
 }
 
+/** Compact pill on post cards: "Prayers · 3" */
+export function prayerThreadPillLabel(count: number): string {
+  if (count <= 0) return "Prayers";
+  return `Prayers · ${count}`;
+}
+
 export function prayerThreadSummaryLabel(
   count: number,
   copy: SpaceInteractionPreset["comments"],
