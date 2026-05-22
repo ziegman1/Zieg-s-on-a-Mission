@@ -49,6 +49,7 @@ export type CommunityPostDbStatus = "draft" | "published" | "archived";
 export type CommunityPostType =
   | "prayer"
   | "praise"
+  | "encouragement"
   | "update"
   | "newsletter"
   | "blog"

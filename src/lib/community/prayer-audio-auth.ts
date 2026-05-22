@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
 import { resolveCommentMember } from "@/lib/community/members";
+import { getPublishedCommunitySpaceDetailBySlug } from "@/lib/community/spaces";
 import { getSpaceInteractionByPostId } from "@/lib/community/spaces";
 import { canUseVoicePrayer } from "@/lib/community/voice-prayer";
 import { getOrSetVisitorKey } from "@/lib/community/visitor-key";
@@ -13,7 +14,10 @@ export type PrayerAudioUploadActor =
  * Owners and active Mission Hub members may upload voice prayer audio.
  * Optional postId enforces prayer space + allow_voice_messages when provided.
  */
-export async function assertCanUploadPrayerAudio(postId?: string | null): Promise<
+export async function assertCanUploadPrayerAudio(
+  postId?: string | null,
+  spaceSlug?: string | null,
+): Promise<
   | { ok: true; actor: PrayerAudioUploadActor }
   | { ok: false; status: number; error: string }
 > {
@@ -40,6 +44,18 @@ export async function assertCanUploadPrayerAudio(postId?: string | null): Promis
       return { ok: false, status: 404, error: "Post not found" };
     }
     if (!canUseVoicePrayer(rules)) {
+      return {
+        ok: false,
+        status: 403,
+        error: "Voice prayers are not enabled in this room.",
+      };
+    }
+  } else if (spaceSlug?.trim()) {
+    const space = await getPublishedCommunitySpaceDetailBySlug(spaceSlug.trim());
+    if (!space) {
+      return { ok: false, status: 404, error: "Room not found" };
+    }
+    if (!canUseVoicePrayer(space.experience)) {
       return {
         ok: false,
         status: 403,

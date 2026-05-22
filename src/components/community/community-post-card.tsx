@@ -6,6 +6,9 @@ import { CommunityPostCoverImage } from "./community-post-cover-image";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
 import { formatCommunityPostDate } from "@/lib/community/format-post-date";
 import { getCommunityPostBodyPreview } from "@/lib/community/post-preview";
+import { parsePrayerResponseBody } from "@/lib/community/prayer-response-body";
+import { CommunityPostBodyClamp } from "./community-post-body-clamp";
+import { CommunityVoicePrayerPlayer } from "./community-voice-prayer-player";
 import { MH } from "@/lib/community/hub-design";
 import { CommunityAvatar } from "./community-avatar";
 import { CommunityComments } from "./community-comments";
@@ -50,18 +53,15 @@ export function CommunityPostCard({
     allowVoiceMessages: post.spaceAllowVoiceMessages,
   });
   const displayTitle = post.title?.trim() || null;
-  const { fullBody, collapsedPreview, canExpand } = getCommunityPostBodyPreview(
-    post.body,
-    post.excerpt,
-  );
+  const { fullBody } = getCommunityPostBodyPreview(post.body, post.excerpt);
 
   const [expanded, setExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
   const returnPath = showSpaceLabel ? "/community" : `/community/${post.spaceSlug}`;
 
-  const displayText = expanded ? fullBody : collapsedPreview;
-  const showReadMoreControl = canExpand;
+  const parsedBody = parsePrayerResponseBody(post.body);
+  const isVoicePost = parsedBody.kind === "voice";
 
   return (
     <article
@@ -69,14 +69,14 @@ export function CommunityPostCard({
       className={cn(
         "scroll-mt-[5.5rem] overflow-hidden",
         spiritual
-          ? "rounded-2xl bg-white/62 shadow-[0_2px_24px_rgba(30,54,68,0.045)] ring-1 ring-black/[0.03]"
+          ? "rounded-2xl bg-white/62 shadow-[0_2px_20px_rgba(30,54,68,0.04)] ring-1 ring-black/[0.03] [--mh-scroll-fade-from:rgba(255,255,255,0.92)]"
           : MH.cardFlat,
       )}
     >
       <header
         className={cn(
           "flex items-start gap-2.5",
-          spiritual ? "px-4 pt-4 sm:px-5 sm:pt-5" : "px-3.5 pt-3.5 sm:px-4 sm:pt-4",
+          spiritual ? "px-3.5 pt-3.5 sm:px-4 sm:pt-4" : "px-3.5 pt-3.5 sm:px-4 sm:pt-4",
         )}
       >
         <CommunityAvatar
@@ -125,11 +125,11 @@ export function CommunityPostCard({
         ) : null}
       </header>
 
-      {(displayTitle || displayText) && (
+      {(displayTitle || fullBody || isVoicePost) && (
         <div
           className={cn(
-            "pt-2 space-y-1.5",
-            spiritual ? "px-4 sm:px-5" : "px-3.5 sm:px-4",
+            "pt-1.5 space-y-1",
+            spiritual ? "px-3.5 sm:px-4" : "px-3.5 sm:px-4",
           )}
         >
           {displayTitle ? (
@@ -144,38 +144,31 @@ export function CommunityPostCard({
               {displayTitle}
             </h3>
           ) : null}
-          {displayText ? (
-            <div className="space-y-1 min-w-0">
-              <p
-                className={cn(
-                  "whitespace-pre-wrap break-words text-brand-ink/88",
-                  spiritual ? "text-[15px] leading-[1.68]" : "text-[15px] leading-[1.55] text-brand-ink/90",
-                )}
-              >
-                {displayText}
-              </p>
-              {showReadMoreControl ? (
-                <button
-                  type="button"
-                  onClick={() => setExpanded((v) => !v)}
-                  className="text-sm font-medium text-brand-primary hover:underline"
-                  aria-expanded={expanded}
-                >
-                  {expanded ? "Show less" : "Read more"}
-                </button>
-              ) : null}
+          {isVoicePost ? (
+            <div className="mt-2">
+              <CommunityVoicePrayerPlayer
+                audioUrl={parsedBody.audioUrl}
+                durationSeconds={parsedBody.durationSeconds}
+                showPlayLabel
+              />
             </div>
+          ) : fullBody ? (
+            <CommunityPostBodyClamp
+              fullBody={fullBody}
+              expanded={expanded}
+              onToggleExpand={() => setExpanded((v) => !v)}
+            />
           ) : null}
         </div>
       )}
 
       {post.coverImageUrl ? (
-        <div className={spiritual ? "px-4 sm:px-5 pt-3" : "px-3.5 sm:px-4 pt-2.5"}>
+        <div className={spiritual ? "px-3.5 sm:px-4 pt-2" : "px-3.5 sm:px-4 pt-2"}>
           <CommunityPostCoverImage src={post.coverImageUrl} variant="feed" />
         </div>
       ) : null}
 
-      <div className={spiritual ? "px-4 sm:px-5 py-3" : "px-3.5 sm:px-4 py-2.5"}>
+      <div className={spiritual ? "px-3.5 sm:px-4 py-2 pb-2.5" : "px-3.5 sm:px-4 py-2"}>
         {prayerSpace ? (
           <CommunityPrayerEngagement
             postId={post.id}
@@ -212,8 +205,8 @@ export function CommunityPostCard({
           className={cn(
             "pt-0 border-t",
             spiritual
-              ? "px-4 sm:px-5 pb-4 sm:pb-5 border-black/[0.03]"
-              : "px-3.5 sm:px-4 pb-3.5 sm:pb-4 border-black/[0.04]",
+              ? "px-3.5 sm:px-4 pb-3.5 border-black/[0.03]"
+              : "px-3.5 sm:px-4 pb-3.5 border-black/[0.04]",
           )}
         >
           <CommunityComments

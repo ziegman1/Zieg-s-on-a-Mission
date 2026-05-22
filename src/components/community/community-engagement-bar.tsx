@@ -7,16 +7,11 @@ import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
 import { getSpaceInteractionPreset } from "@/lib/community/space-interaction";
 import type { CommunityReactionType } from "@/lib/community/types";
 import type { ReactionCounts } from "@/lib/community/types";
+import {
+  CommunityPrayingButton,
+  PRAYING_REACTION_TYPE,
+} from "./community-praying-button";
 import { cn } from "@/lib/utils";
-
-function prayerCountMicrocopy(
-  count: number,
-  copy: SpaceInteractionPreset["comments"],
-): string {
-  if (count === 0) return "Be the first to pray";
-  if (count === 1) return `1 ${copy.countSingular}`;
-  return `${count} ${copy.countPlural}`;
-}
 
 export function CommunityEngagementBar({
   postId,
@@ -55,19 +50,47 @@ export function CommunityEngagementBar({
   const [myReactions, setMyReactions] = useState<Set<CommunityReactionType>>(
     () => new Set(initialMyReactions),
   );
+  const [isPraying, setIsPraying] = useState(
+    () => initialMyReactions.includes(PRAYING_REACTION_TYPE),
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function toggle(type: CommunityReactionType) {
     setError(null);
+    setMyReactions((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
     startTransition(async () => {
       const res = await toggleCommunityPostReactionAction(postId, type);
       if (!res.ok) {
         setError(res.error);
+        setMyReactions(new Set(initialMyReactions));
         return;
       }
       setCounts(res.counts);
       setMyReactions(new Set(res.myReactions));
+    });
+  }
+
+  function togglePraying() {
+    setError(null);
+    setIsPraying((v) => !v);
+    startTransition(async () => {
+      const res = await toggleCommunityPostReactionAction(
+        postId,
+        PRAYING_REACTION_TYPE,
+      );
+      if (!res.ok) {
+        setError(res.error);
+        setIsPraying(initialMyReactions.includes(PRAYING_REACTION_TYPE));
+        return;
+      }
+      setCounts(res.counts);
+      setIsPraying(res.myReactions.includes(PRAYING_REACTION_TYPE));
     });
   }
 
@@ -77,8 +100,6 @@ export function CommunityEngagementBar({
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35",
     "active:scale-[0.97]",
     compact && "min-h-[2rem] px-2.5 text-[11px]",
-    isPrayer &&
-      "bg-white/85 text-brand-ink/72 border-black/[0.05] hover:bg-white hover:border-brand-primary/15 hover:text-brand-ink",
     !isPrayer &&
       "bg-white/80 text-brand-ink/70 border-black/[0.06] hover:bg-white hover:border-brand-primary/20 hover:text-brand-ink",
   );
@@ -86,8 +107,18 @@ export function CommunityEngagementBar({
   const countLabel =
     commentCount === 1 ? `1 ${copy.countSingular}` : `${commentCount} ${copy.countPlural}`;
 
+  const prayingButton = allowReactions && isPrayer && (
+    <CommunityPrayingButton
+      count={counts.prayed ?? 0}
+      active={isPraying}
+      disabled={isPending}
+      onToggle={togglePraying}
+    />
+  );
+
   const reactionButtons =
     allowReactions &&
+    !isPrayer &&
     preset.reactions.map(({ type, label, Icon }) => {
       const active = myReactions.has(type);
       const count = counts[type] ?? 0;
@@ -101,10 +132,7 @@ export function CommunityEngagementBar({
           aria-pressed={active}
           className={cn(
             reactionPillBase,
-            active &&
-              (isPrayer
-                ? "bg-brand-primary/88 text-white border-brand-primary/90 shadow-sm"
-                : "bg-brand-primary text-white border-brand-primary shadow-sm"),
+            active && "bg-brand-primary text-white border-brand-primary shadow-sm",
             isPending && "opacity-60",
           )}
         >
@@ -142,83 +170,34 @@ export function CommunityEngagementBar({
   );
 
   const prayerShareCta = allowComments && isPrayer && (
-    <div
+    <button
+      type="button"
+      onClick={onCommentsToggle}
+      aria-expanded={commentsOpen}
+      aria-controls={commentsOpen ? `post-prayers-${postId}` : undefined}
       className={cn(
-        "flex w-full flex-col gap-1.5 sm:w-auto sm:min-w-[11.5rem] sm:items-end",
-        compact && "sm:min-w-[10rem]",
+        "inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4",
+        "text-[14px] font-medium transition-all duration-150 ease-out touch-manipulation",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-2",
+        "active:scale-[0.98]",
+        compact ? "min-h-[2.35rem] text-[13px]" : "min-h-[2.45rem]",
+        commentsOpen
+          ? "bg-brand-primary/12 text-brand-primary ring-1 ring-brand-primary/30"
+          : "bg-brand-primary text-white shadow-[0_3px_12px_rgba(131,176,218,0.38)] hover:bg-brand-primary/93",
+        "sm:w-auto sm:min-w-[10.5rem]",
       )}
     >
-      <button
-        type="button"
-        onClick={onCommentsToggle}
-        aria-expanded={commentsOpen}
-        aria-controls={commentsOpen ? `post-prayers-${postId}` : undefined}
-        className={cn(
-          "inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5",
-          "text-sm font-semibold tracking-wide transition-all duration-200",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/45 focus-visible:ring-offset-2",
-          "active:scale-[0.98]",
-          compact ? "min-h-[2.5rem] px-4 text-[13px]" : "min-h-[2.875rem] text-[15px]",
-          commentsOpen
-            ? "bg-brand-primary/12 text-brand-primary border-2 border-brand-primary/35 shadow-sm hover:bg-brand-primary/18"
-            : cn(
-                "bg-brand-primary text-white border-2 border-brand-primary/90",
-                "shadow-[0_4px_14px_rgba(131,176,218,0.45)]",
-                "hover:bg-brand-primary/92 hover:border-brand-primary hover:shadow-[0_6px_20px_rgba(131,176,218,0.5)] hover:-translate-y-0.5",
-              ),
-        )}
-      >
-        <span aria-hidden className="text-base leading-none">
-          🙏
-        </span>
-        <span>{commentsOpen ? copy.toggleLabelOpen : copy.emptyCta}</span>
-      </button>
-      <p
-        className={cn(
-          "text-center text-xs leading-snug sm:text-right",
-          commentCount === 0 ? "text-brand-ink/55 font-medium" : "text-brand-ink/45",
-        )}
-      >
-        {prayerCountMicrocopy(commentCount, copy)}
-      </p>
-    </div>
+      <span aria-hidden>🙏</span>
+      <span>{commentsOpen ? copy.toggleLabelOpen : copy.emptyCta}</span>
+    </button>
   );
 
   return (
     <div className={className}>
       {isPrayer ? (
-        <div
-          className={cn(
-            "flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
-          )}
-        >
-          {allowReactions ? (
-            <div
-              className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 sm:gap-2"
-              role="group"
-              aria-label="Prayer reactions"
-            >
-              {reactionButtons}
-            </div>
-          ) : null}
-          {allowReactions && allowComments ? (
-            <div
-              className="hidden h-9 w-px shrink-0 bg-black/[0.08] sm:block"
-              aria-hidden
-            />
-          ) : null}
-          {allowComments ? (
-            <>
-              <div
-                className={cn(
-                  "h-px w-full bg-black/[0.06] sm:hidden",
-                  !allowReactions && "hidden",
-                )}
-                aria-hidden
-              />
-              {prayerShareCta}
-            </>
-          ) : null}
+        <div className="flex flex-col gap-1.5">
+          {prayingButton}
+          {allowComments ? prayerShareCta : null}
         </div>
       ) : (
         <div
@@ -255,36 +234,34 @@ export function CommunityEngagementBarPreview({
 
   if (isPrayer) {
     return (
-      <div
-        className={cn(
-          "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
-          className,
-        )}
-      >
-        <div className="flex flex-wrap items-center gap-1.5" role="group">
-          {preset.reactions.map(({ type, label, Icon }) => (
-            <span key={type} className={pillBase}>
-              <Icon className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")} aria-hidden />
-              <span>{label}</span>
-              <span className="tabular-nums opacity-60">0</span>
-            </span>
-          ))}
-        </div>
-        <div className="hidden h-9 w-px bg-black/[0.08] sm:block" aria-hidden />
-        <div className="flex w-full flex-col gap-1.5 sm:w-auto sm:items-end">
-          <span
-            className={cn(
-              "inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white",
-              compact && "min-h-[2.5rem] text-[13px]",
-            )}
-          >
-            <span aria-hidden>🙏</span>
-            <span>{preset.comments.emptyCta}</span>
-          </span>
-          <span className="text-center text-xs text-brand-ink/55 sm:text-right">
-            Be the first to pray
-          </span>
-        </div>
+      <div className={cn("flex flex-col gap-1.5", className)}>
+        <span
+          className={cn(
+            "inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium",
+            "bg-white/70 text-brand-ink/50 border border-dashed border-black/[0.08]",
+          )}
+        >
+          <span aria-hidden>🙏</span>
+          <span>Praying</span>
+        </span>
+        <span
+          className={cn(
+            "inline-flex w-full items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium",
+            "bg-white/60 text-brand-primary/70 ring-1 ring-brand-primary/12",
+          )}
+        >
+          <span aria-hidden>🙏</span>
+          {preset.comments.threadInvite}
+        </span>
+        <span
+          className={cn(
+            "inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-primary px-4 py-2 text-sm font-medium text-white",
+            compact && "min-h-[2.35rem]",
+          )}
+        >
+          <span aria-hidden>🙏</span>
+          {preset.comments.emptyCta}
+        </span>
       </div>
     );
   }

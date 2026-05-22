@@ -4,6 +4,7 @@ import { LayoutGrid } from "lucide-react";
 import type { CommunitySpace } from "@/lib/community/types";
 import { filterSpacesForFeedPills } from "@/lib/community/spiritual-room";
 import { useCommunityNavPending } from "./community-nav-pending-context";
+import { CommunityHorizontalFadeScroll } from "./community-horizontal-fade-scroll";
 import { MissionHubNavLink } from "./mission-hub-nav-link";
 import { navTapActive } from "./mission-hub-nav-styles";
 import { CommunitySpacePill } from "./community-space-pill";
@@ -27,27 +28,22 @@ export function CommunitySpaceFilterRow({
 
   return (
     <nav aria-label="Filter by space" className={cn("w-full min-w-0", className)}>
-      <div
-        className={cn(
-          "flex gap-1.5 overflow-x-auto scrollbar-thin",
-          "snap-x snap-mandatory [-webkit-overflow-scrolling:touch]",
-          "lg:flex-wrap lg:overflow-visible lg:snap-none",
-        )}
-      >
+      <CommunityHorizontalFadeScroll innerClassName="gap-1.5 py-0.5">
         <MissionHubNavLink
           href={allHref}
           prefetch
           activeFromPath={isAll}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium shrink-0 snap-start",
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium shrink-0 snap-start",
+            "transition-all duration-150 ease-out touch-manipulation active:scale-[0.98]",
             allSelected
-              ? "bg-brand-ink/90 text-white"
-              : "bg-white/50 text-brand-ink/65 hover:bg-white/75",
+              ? "bg-brand-ink/88 text-white shadow-[0_2px_10px_rgba(30,54,68,0.12)] -translate-y-px"
+              : "bg-white/45 text-brand-ink/55 ring-1 ring-black/[0.04] hover:bg-white/72",
             navTapActive(allSelected, allPending),
-            allSelected && "!bg-brand-ink/90 !text-white",
+            allSelected && "!bg-brand-ink/88 !text-white",
           )}
         >
-          <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <LayoutGrid className="h-3 w-3 shrink-0" aria-hidden />
           All
         </MissionHubNavLink>
         {visibleSpaces.map((space) => (
@@ -57,10 +53,9 @@ export function CommunitySpaceFilterRow({
             active={activeSlug === space.slug}
             linked
             variant="filter"
-            className="snap-start"
           />
         ))}
-      </div>
+      </CommunityHorizontalFadeScroll>
     </nav>
   );
 }

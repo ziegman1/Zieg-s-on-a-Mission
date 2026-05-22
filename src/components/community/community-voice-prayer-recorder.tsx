@@ -62,11 +62,14 @@ export function supportsBrowserVoiceRecording(): boolean {
 
 export function CommunityVoicePrayerRecorder({
   postId,
+  spaceSlug,
   disabled,
   onReady,
   onClear,
 }: {
   postId?: string;
+  /** When creating a new room post (no postId yet), validates voice is enabled for the space. */
+  spaceSlug?: string;
   disabled?: boolean;
   onReady: (result: VoicePrayerUploadResult) => void;
   onClear: () => void;
@@ -139,6 +142,7 @@ export function CommunityVoicePrayerRecorder({
       const fd = new FormData();
       fd.append("file", file);
       if (postId) fd.append("postId", postId);
+      else if (spaceSlug) fd.append("spaceSlug", spaceSlug);
       const res = await fetch(UPLOAD_ENDPOINT, { method: "POST", body: fd });
       const data = (await res.json()) as UploadApiResponse;
       if (!res.ok || !data.url) {

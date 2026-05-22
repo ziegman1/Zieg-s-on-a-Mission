@@ -19,8 +19,10 @@ export async function POST(request: Request) {
   }
 
   const postId = formData.get("postId");
+  const spaceSlug = formData.get("spaceSlug");
   const authResult = await assertCanUploadPrayerAudio(
     typeof postId === "string" ? postId : null,
+    typeof spaceSlug === "string" ? spaceSlug : null,
   );
   if (!authResult.ok) {
     return NextResponse.json({ error: authResult.error }, { status: authResult.status });

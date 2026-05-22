@@ -1,7 +1,7 @@
 "use client";
 
 import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
-import { prayerThreadSummaryLabel } from "@/lib/community/prayer-thread-copy";
+import { prayerThreadButtonLabel } from "@/lib/community/prayer-thread-copy";
 import { CommunityBottomSheet } from "./community-bottom-sheet";
 import { CommunityPrayerThreadContent } from "./community-prayer-thread-content";
 
@@ -32,14 +32,17 @@ export function CommunityPrayerThreadSheet({
   spaceType?: string;
   spaceSlug?: string;
 }) {
-  const summary = prayerThreadSummaryLabel(prayerCount, preset.comments);
+  const description =
+    prayerCount === 0
+      ? preset.comments.threadEmptyHint
+      : "A living conversation of prayer for this request.";
 
   return (
     <CommunityBottomSheet
       open={open}
       onOpenChange={onOpenChange}
       title={preset.comments.sectionLabel}
-      description={summary}
+      description={description}
       className="max-h-[min(92dvh,720px)]"
     >
       <CommunityPrayerThreadContent

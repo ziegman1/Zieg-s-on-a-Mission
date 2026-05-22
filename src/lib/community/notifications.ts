@@ -305,6 +305,47 @@ export async function notifyReactionAdded(input: {
   }
 }
 
+/** Owners notified when someone shares from the Prayer & Praise Room welcome CTAs. */
+export async function notifyPrayerRoomPostCreated(input: {
+  postId: string;
+  kind:
+    | "prayer_request"
+    | "praise_report"
+    | "encouragement"
+    | "voice_prayer";
+  actorUserId: string;
+  actorMemberId: string | null;
+  actorDisplayName: string;
+  actorIsOwner: boolean;
+}): Promise<void> {
+  if (input.actorIsOwner) return;
+
+  const ctx = await getPostContext(input.postId);
+  if (!ctx) return;
+
+  const titleByKind: Record<typeof input.kind, string> = {
+    prayer_request: `${input.actorDisplayName} shared a prayer request`,
+    praise_report: `${input.actorDisplayName} shared a praise report`,
+    encouragement: `${input.actorDisplayName} left encouragement`,
+    voice_prayer: `${input.actorDisplayName} shared a voice prayer`,
+  };
+
+  const exclude = [input.actorUserId];
+  await createNotificationsForOwners(
+    [
+      {
+        type: "new_post",
+        title: titleByKind[input.kind],
+        body: ctx.postTitle?.trim() || ctx.spaceTitle,
+        actorUserId: input.actorUserId,
+        actorMemberId: input.actorMemberId,
+        postId: input.postId,
+      },
+    ],
+    exclude,
+  );
+}
+
 /** Owners notified when a new member joins Mission Hub. */
 export async function notifyMemberJoined(input: {
   memberId: string;

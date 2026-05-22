@@ -34,7 +34,7 @@ export function CommunitySpaceWelcomeIntro({ space }: { space: CommunitySpaceDet
         "ring-1 ring-black/[0.05]",
       )}
     >
-      <div className="px-5 sm:px-7 py-5 sm:py-6">
+      <div className="px-4 sm:px-6 py-4 sm:py-5">
         {heading ? (
           <h2 className="font-serif text-lg sm:text-xl text-brand-ink/90 tracking-wide leading-snug">
             {heading}

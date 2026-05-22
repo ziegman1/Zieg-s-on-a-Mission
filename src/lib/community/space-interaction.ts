@@ -7,6 +7,8 @@ import {
   ThumbsUp,
   Users,
 } from "lucide-react";
+import type { PrayerRoomComposerKind } from "@/lib/community/prayer-room-composer";
+import { PRAYER_ROOM_COMPOSER_PRESETS } from "@/lib/community/prayer-room-composer";
 import type { CommunityReactionType } from "@/lib/community/types";
 import type { CommunitySpaceType } from "@/lib/community/space-experience";
 import { COMMUNITY_REACTION_TYPES } from "@/lib/community/types";
@@ -78,13 +80,12 @@ const DEFAULT_REACTIONS: PrayerReactionConfig[] = [
   { type: "encouraged", label: "Encourage", Icon: Sparkles },
 ];
 
-/** Prayer spaces — UI labels map to existing reaction types in the DB. */
+/**
+ * Prayer spaces — one lightweight acknowledgment (maps to `prayed` in the DB).
+ * Other reaction types are not shown in prayer-room UI.
+ */
 const PRAYER_REACTIONS: PrayerReactionConfig[] = [
-  { type: "prayed", label: "Amen", Icon: HandHeart },
-  { type: "love", label: "Praying", Icon: Heart },
-  { type: "celebrating", label: "Rejoicing", Icon: PartyPopper },
-  { type: "like", label: "Standing With You", Icon: Users },
-  { type: "encouraged", label: "Encouraged", Icon: Sparkles },
+  { type: "prayed", label: "Praying", Icon: HandHeart },
 ];
 
 const PRAYER_PRESET: SpaceInteractionPreset = {
@@ -240,13 +241,16 @@ export function allReactionTypesForMode(mode: SpaceInteractionMode): CommunityRe
   return [...COMMUNITY_REACTION_TYPES];
 }
 
-export function prayerParticipationHints(): { label: string; postType: "prayer" | "praise" | "update" }[] {
+export function prayerParticipationHints(): {
+  label: string;
+  kind: PrayerRoomComposerKind;
+}[] {
   return [
-    { label: "Pray With Us", postType: "prayer" },
-    { label: "Leave Encouragement", postType: "prayer" },
-    { label: "Share Testimony", postType: "praise" },
-    { label: "Send Voice Prayer", postType: "prayer" },
-  ];
+    PRAYER_ROOM_COMPOSER_PRESETS.prayer_request,
+    PRAYER_ROOM_COMPOSER_PRESETS.praise_report,
+    PRAYER_ROOM_COMPOSER_PRESETS.encouragement,
+    PRAYER_ROOM_COMPOSER_PRESETS.voice_prayer,
+  ].map((p) => ({ label: p.ctaLabel, kind: p.kind }));
 }
 
 /** Normalize legacy DB values for admin display */

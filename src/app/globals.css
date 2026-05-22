@@ -151,3 +151,33 @@ html.mission-hub-standalone .mission-hub-root {
     background-position: -200% 0;
   }
 }
+
+@keyframes mh-sheet-up {
+  from {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.6;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.mh-scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mh-scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.mission-hub-root {
+  --mh-scroll-fade-from: rgba(250, 248, 246, 0.98);
+}
+
+.mh-sheet-content[data-state="open"] {
+  animation: mh-sheet-up 0.42s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.mh-sheet-content[data-state="closed"] {
+  animation: mh-sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) reverse forwards;
+}

@@ -1,5 +1,20 @@
+import {
+  isVoicePrayerBody,
+  parsePrayerResponseBody,
+} from "@/lib/community/prayer-response-body";
+
 /** ~4–5 lines of `text-sm` in a typical feed column. */
 export const FEED_BODY_PREVIEW_MAX_CHARS = 320;
+
+function displayBodyForPreview(body: string): string {
+  const trimmed = body.trim();
+  if (!trimmed) return "";
+  if (isVoicePrayerBody(trimmed)) return "Voice prayer shared";
+  const parsed = parsePrayerResponseBody(trimmed);
+  if (parsed.kind === "written") return parsed.text;
+  if (parsed.kind === "voice") return "Voice prayer shared";
+  return trimmed;
+}
 
 /**
  * Word-safe truncation for feed preview when no excerpt is stored.
@@ -33,7 +48,7 @@ export function getCommunityPostBodyPreview(
   body: string,
   excerpt: string | null | undefined,
 ): CommunityPostBodyPreview {
-  const fullBody = body.trim();
+  const fullBody = displayBodyForPreview(body);
   const excerptTrimmed = excerpt?.trim() || null;
 
   if (excerptTrimmed) {

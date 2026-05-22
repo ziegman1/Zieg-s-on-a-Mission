@@ -1,14 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { CommunityComposerSpace } from "@/lib/community/composer-types";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import type { CommunitySpaceDetail } from "@/lib/community/space-experience";
-import type { CommunityPostFeedItem, CommunityPostType } from "@/lib/community/types";
+import type { CommunityPostFeedItem } from "@/lib/community/types";
 import { getSpaceInteractionPreset } from "@/lib/community/space-interaction";
-import { CommunityCreatePostDialog } from "./community-create-post-dialog";
-import { CommunityPrayerParticipationBar } from "./community-prayer-participation-bar";
+import {
+  buildPrayerRoomComposeCallbackUrl,
+  parsePrayerRoomComposerKind,
+  type PrayerRoomComposerKind,
+} from "@/lib/community/prayer-room-composer";
+import { canUseVoicePrayer } from "@/lib/community/voice-prayer";
 import { CommunityPostFeed } from "./community-post-feed";
+import { CommunityPrayerParticipationBar } from "./community-prayer-participation-bar";
+import { CommunityPrayerRoomComposer } from "./community-prayer-room-composer";
+import { CommunityPrayerRoomWelcomeActions } from "./community-prayer-room-welcome-actions";
+import { CommunityPrayerToast } from "./community-prayer-toast";
 import { CommunitySpiritualEmptyState } from "./community-spiritual-empty-state";
 import { CommunitySpaceHero } from "./community-space-hero";
 import { CommunitySpaceWelcomeIntro } from "./community-space-welcome-intro";
@@ -24,15 +33,57 @@ export function CommunitySpiritualSpaceView({
   owner: CommunityOwner | null;
   composerSpaces: CommunityComposerSpace[];
 }) {
-  const [postOpen, setPostOpen] = useState(false);
-  const [defaultPostType, setDefaultPostType] = useState<CommunityPostType>("prayer");
-  const canCompose = Boolean(owner && composerSpaces.length > 0);
-  const prayerRoom =
-    getSpaceInteractionPreset(space.experience.spaceType, space.slug).mode === "prayer";
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const feedRef = useRef<HTMLDivElement>(null);
 
-  function openCompose(postType: CommunityPostType = "prayer") {
-    setDefaultPostType(postType);
-    setPostOpen(true);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerKind, setComposerKind] = useState<PrayerRoomComposerKind | null>(
+    null,
+  );
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const prayerRoom =
+    getSpaceInteractionPreset(space.experience.spaceType, space.slug).mode ===
+    "prayer";
+  const allowVoice = canUseVoicePrayer(space.experience);
+  const openComposer = useCallback((kind: PrayerRoomComposerKind) => {
+    setComposerKind(kind);
+    setComposerOpen(true);
+  }, []);
+
+  const scrollToFeed = useCallback(() => {
+    feedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  useEffect(() => {
+    const kind = parsePrayerRoomComposerKind(searchParams.get("compose"));
+    if (!kind) return;
+    if (kind === "voice_prayer" && !allowVoice) {
+      openComposer("prayer_request");
+    } else {
+      openComposer(kind);
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("compose");
+    const q = next.toString();
+    router.replace(q ? `/community/${space.slug}?${q}` : `/community/${space.slug}`, {
+      scroll: false,
+    });
+  }, [searchParams, allowVoice, openComposer, router, space.slug]);
+
+  function handleComposeClick(kind: PrayerRoomComposerKind) {
+    if (kind === "voice_prayer" && !allowVoice) {
+      openComposer("prayer_request");
+      return;
+    }
+    openComposer(kind);
+  }
+
+  function handleShared(message: string) {
+    setToastMessage(message);
+    window.setTimeout(() => setToastMessage(null), 3200);
+    scrollToFeed();
   }
 
   return (
@@ -40,40 +91,56 @@ export function CommunitySpiritualSpaceView({
       <div className="space-y-4 sm:space-y-5">
         <CommunitySpaceHero space={space} />
         <CommunitySpaceWelcomeIntro space={space} />
-        {prayerRoom && canCompose ? (
-          <CommunityPrayerParticipationBar onAction={(type) => openCompose(type)} />
-        ) : null}
-        {posts.length > 0 ? (
-          <CommunityPostFeed
+        {prayerRoom ? (
+          <CommunityPrayerRoomWelcomeActions
             posts={posts}
-            showSpaceLabel={false}
-            variant="spiritual"
-            owner={owner}
-            composerSpaces={composerSpaces}
+            allowVoice={allowVoice}
+            onCompose={handleComposeClick}
+            onScrollToFeed={scrollToFeed}
           />
-        ) : (
-          <CommunitySpiritualEmptyState
-            showOwnerCta={canCompose}
-            onShareRequest={canCompose ? () => openCompose("prayer") : undefined}
-            variant={prayerRoom ? "prayer" : "default"}
-          />
-        )}
+        ) : null}
+        <div ref={feedRef} id="prayer-room-feed" className="scroll-mt-24">
+          {posts.length > 0 ? (
+            <CommunityPostFeed
+              posts={posts}
+              showSpaceLabel={false}
+              variant="spiritual"
+              owner={owner}
+              composerSpaces={composerSpaces}
+            />
+          ) : (
+            <CommunitySpiritualEmptyState
+              showOwnerCta={prayerRoom}
+              onShareRequest={
+                prayerRoom ? () => handleComposeClick("prayer_request") : undefined
+              }
+              variant={prayerRoom ? "prayer" : "default"}
+            />
+          )}
+        </div>
         {space.experience.engagementPrompt && posts.length > 0 ? (
           <p className="text-center text-[13px] text-brand-ink/38 italic font-light px-4 pb-1">
             {space.experience.engagementPrompt}
           </p>
         ) : null}
       </div>
-      {canCompose ? (
-        <CommunityCreatePostDialog
-          open={postOpen}
-          onOpenChange={setPostOpen}
-          spaces={composerSpaces}
-          defaultSpaceId={space.id}
-          defaultPostType={defaultPostType}
-          owner={owner}
-        />
-      ) : null}
+
+      <CommunityPrayerRoomComposer
+        open={composerOpen}
+        onOpenChange={setComposerOpen}
+        kind={composerKind}
+        spaceId={space.id}
+        spaceSlug={space.slug}
+        returnPath={
+          composerKind
+            ? buildPrayerRoomComposeCallbackUrl(space.slug, composerKind)
+            : `/community/${space.slug}`
+        }
+        allowVoice={allowVoice}
+        onShared={handleShared}
+      />
+
+      <CommunityPrayerToast message={toastMessage ?? ""} visible={Boolean(toastMessage)} />
     </>
   );
 }

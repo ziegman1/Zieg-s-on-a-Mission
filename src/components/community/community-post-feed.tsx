@@ -23,7 +23,7 @@ export function CommunityPostFeed({
 
   return (
     <ul
-      className={spiritual ? "space-y-4 sm:space-y-5" : "space-y-2.5 sm:space-y-3"}
+      className={spiritual ? "space-y-3 sm:space-y-3.5" : "space-y-2.5 sm:space-y-3"}
       aria-label="Posts"
     >
       {posts.map((post) => (

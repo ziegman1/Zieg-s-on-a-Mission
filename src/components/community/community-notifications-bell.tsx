@@ -13,6 +13,25 @@ import type { CommunityNotificationItem } from "@/lib/community/notification-typ
 import { formatCommunityPostDate } from "@/lib/community/format-post-date";
 import { cn } from "@/lib/utils";
 
+function groupNotificationsByRecency(
+  items: CommunityNotificationItem[],
+): { label: string; items: CommunityNotificationItem[] }[] {
+  const now = Date.now();
+  const today: CommunityNotificationItem[] = [];
+  const earlier: CommunityNotificationItem[] = [];
+
+  for (const item of items) {
+    const age = now - new Date(item.createdAt).getTime();
+    if (age < 86_400_000) today.push(item);
+    else earlier.push(item);
+  }
+
+  const groups: { label: string; items: CommunityNotificationItem[] }[] = [];
+  if (today.length > 0) groups.push({ label: "Today", items: today });
+  if (earlier.length > 0) groups.push({ label: "Earlier", items: earlier });
+  return groups;
+}
+
 function formatNotificationTime(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
@@ -141,7 +160,7 @@ export function CommunityNotificationsBell({
       >
         <Bell className="h-5 w-5" aria-hidden />
         {unreadCount > 0 ? (
-          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-primary px-1 text-[10px] font-bold text-white leading-none">
+          <span className="absolute top-0.5 right-0.5 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white leading-none shadow-[0_0_0_2px_white] ring-2 ring-brand-primary/25 animate-in zoom-in duration-200">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         ) : null}
@@ -151,8 +170,9 @@ export function CommunityNotificationsBell({
         <div
           className={cn(
             "absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))]",
-            "rounded-2xl border border-black/[0.06] bg-white shadow-[0_8px_32px_rgba(28,42,68,0.12)]",
-            "overflow-hidden",
+            "rounded-2xl border border-black/[0.05] bg-white/98 backdrop-blur-xl",
+            "shadow-[0_12px_40px_rgba(28,42,68,0.14)]",
+            "overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200",
           )}
           role="dialog"
           aria-label="Notifications"
@@ -185,35 +205,50 @@ export function CommunityNotificationsBell({
                 here.
               </p>
             ) : (
-              <ul className="divide-y divide-black/[0.04]">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <Link
-                      href={item.href}
-                      prefetch
-                      onClick={() => handleItemClick(item)}
-                      className={cn(
-                        "block px-3 py-2.5 hover:bg-brand-surface/60",
-                        "transition-[transform,background-color] duration-75 touch-manipulation",
-                        "active:scale-[0.99] active:bg-black/[0.04]",
-                        !item.readAt && "bg-brand-primary/[0.04]",
-                      )}
-                    >
-                      <p className="text-xs font-semibold text-brand-ink leading-snug pr-1">
-                        {item.title}
-                      </p>
-                      {item.body ? (
-                        <p className="mt-0.5 text-[11px] text-brand-ink/60 line-clamp-2">
-                          {item.body}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-[10px] text-brand-ink/40">
-                        {formatNotificationTime(item.createdAt)}
-                      </p>
-                    </Link>
-                  </li>
+              <div className="py-1">
+                {groupNotificationsByRecency(items).map((group) => (
+                  <div key={group.label}>
+                    <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-brand-ink/38">
+                      {group.label}
+                    </p>
+                    <ul className="divide-y divide-black/[0.04]">
+                      {group.items.map((item) => (
+                        <li key={item.id}>
+                          <Link
+                            href={item.href}
+                            prefetch
+                            onClick={() => handleItemClick(item)}
+                            className={cn(
+                              "block px-3 py-2.5 hover:bg-brand-surface/50",
+                              "transition-[transform,background-color] duration-100 touch-manipulation",
+                              "active:scale-[0.99] active:bg-black/[0.03]",
+                              !item.readAt && "bg-brand-primary/[0.05]",
+                            )}
+                          >
+                            <p className="text-xs font-medium text-brand-ink leading-snug pr-1">
+                              {!item.readAt ? (
+                                <span
+                                  className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary mr-1.5 align-middle"
+                                  aria-hidden
+                                />
+                              ) : null}
+                              {item.title}
+                            </p>
+                            {item.body ? (
+                              <p className="mt-0.5 text-[11px] text-brand-ink/55 line-clamp-2 pl-3.5">
+                                {item.body}
+                              </p>
+                            ) : null}
+                            <p className="mt-1 text-[10px] text-brand-ink/38 pl-3.5">
+                              {formatNotificationTime(item.createdAt)}
+                            </p>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         </div>

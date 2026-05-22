@@ -4,6 +4,7 @@ import { DEFAULT_COMMUNITY_POST_TYPE } from "@/lib/community/post-constants";
 const postTypeSchema = z.enum([
   "prayer",
   "praise",
+  "encouragement",
   "update",
   "newsletter",
   "blog",

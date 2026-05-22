@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { CommunityAppShell } from "@/components/community/community-app-shell";
 import { CommunitySpiritualSpaceView } from "@/components/community/community-spiritual-space-view";
@@ -106,12 +107,14 @@ export default async function CommunitySpacePage({ params }: PageProps) {
       spaceDetail={spiritual ? space : null}
     >
       {spiritual ? (
-        <CommunitySpiritualSpaceView
-          space={space}
-          posts={posts}
-          owner={owner}
-          composerSpaces={composerSpaces}
-        />
+        <Suspense fallback={null}>
+          <CommunitySpiritualSpaceView
+            space={space}
+            posts={posts}
+            owner={owner}
+            composerSpaces={composerSpaces}
+          />
+        </Suspense>
       ) : (
         <CommunitySpaceFeed
           space={space}

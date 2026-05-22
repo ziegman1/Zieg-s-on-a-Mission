@@ -26,8 +26,8 @@ export function CommunitySpacePill({
 
   const inner = isFilter ? (
     <>
-      <CommunitySpaceIcon icon={space.icon} className="h-3.5 w-3.5 shrink-0 opacity-90" />
-      <span className="truncate max-w-[8.5rem]">{space.title}</span>
+      <CommunitySpaceIcon icon={space.icon} className="h-3 w-3 shrink-0 opacity-85" />
+      <span className="truncate max-w-[8rem]">{space.title}</span>
     </>
   ) : (
     <>
@@ -44,8 +44,11 @@ export function CommunitySpacePill({
   );
 
   const pillClass = cn(
-    "inline-flex items-center gap-1.5 font-medium shrink-0",
-    isFilter ? "rounded-full px-3 py-1 text-[13px]" : "rounded-full px-3 py-1.5 text-sm gap-2",
+    "inline-flex items-center gap-1.5 font-medium shrink-0 snap-start",
+    "transition-all duration-150 ease-out touch-manipulation active:scale-[0.98]",
+    isFilter
+      ? "rounded-full px-2.5 py-1 text-[12px]"
+      : "rounded-full px-3 py-1.5 text-sm gap-2",
     className,
     !linked && space.status === "coming_soon" && "opacity-60 cursor-default",
   );
@@ -61,8 +64,8 @@ export function CommunitySpacePill({
         className={cn(
           pillClass,
           selected
-            ? "bg-brand-ink/88 text-white"
-            : "bg-white/50 text-brand-ink/62 hover:bg-white/72 hover:text-brand-ink/85",
+            ? "bg-brand-ink/88 text-white shadow-[0_2px_10px_rgba(30,54,68,0.12)] -translate-y-px"
+            : "bg-white/45 text-brand-ink/55 ring-1 ring-black/[0.04] hover:bg-white/72 hover:text-brand-ink/78",
           !selected && navTapActive(false, pending),
           selected && "!bg-brand-ink/88 !text-white",
         )}
@@ -76,7 +79,7 @@ export function CommunitySpacePill({
     <span
       className={cn(
         pillClass,
-        active ? "bg-brand-ink/88 text-white" : "bg-white/50 text-brand-ink/62",
+        active ? "bg-brand-ink/88 text-white" : "bg-white/45 text-brand-ink/55",
       )}
     >
       {inner}

@@ -45,14 +45,19 @@ export function CommunityCommentList({
   return (
     <ul
       className={cn(
-        "space-y-3",
-        isPrayer && !prayerThreadLayout && "space-y-4",
-        prayerThreadLayout && "space-y-3.5",
+        "divide-y divide-black/[0.04]",
+        prayerThreadLayout && "rounded-2xl bg-brand-surface/30 ring-1 ring-black/[0.04] overflow-clip",
       )}
       aria-label={preset.comments.sectionLabel}
     >
-      {threads.map(({ comment, replies }) => (
-        <li key={comment.id} className="space-y-1">
+      {threads.map(({ comment, replies }, index) => (
+        <li
+          key={comment.id}
+          className={cn(
+            prayerThreadLayout ? "px-3.5 py-3.5 first:pt-4 last:pb-4" : "py-3 first:pt-0",
+            !prayerThreadLayout && index > 0 && "border-t border-black/[0.04]",
+          )}
+        >
           <CommunityCommentItem
             comment={comment}
             canReply={canComment}
@@ -63,9 +68,9 @@ export function CommunityCommentList({
             onModerated={onModerated}
           />
           {replies.length > 0 ? (
-            <ul className="space-y-1">
+            <ul className="mt-2.5 space-y-2 border-l-2 border-brand-primary/15 pl-3 ml-1">
               {replies.map((reply) => (
-                <li key={reply.id}>
+                <li key={reply.id} className="pt-0.5">
                   <CommunityCommentItem
                     comment={reply}
                     isReply

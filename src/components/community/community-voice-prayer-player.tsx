@@ -13,7 +13,6 @@ export function CommunityVoicePrayerPlayer({
   audioUrl: string;
   durationSeconds?: number | null;
   className?: string;
-  /** Thread layout: show “Voice Prayer” heading */
   showPlayLabel?: boolean;
 }) {
   const durationLabel = formatPrayerDuration(durationSeconds);
@@ -21,30 +20,34 @@ export function CommunityVoicePrayerPlayer({
   return (
     <div
       className={cn(
-        "rounded-xl bg-brand-primary/[0.05] ring-1 ring-brand-primary/12 px-3 py-2.5",
+        "rounded-xl bg-gradient-to-br from-brand-primary/[0.06] to-white",
+        "ring-1 ring-brand-primary/10 px-3 py-2.5",
+        "shadow-[0_1px_8px_rgba(131,176,218,0.08)]",
         className,
       )}
     >
       <div className="flex items-center gap-2 mb-2">
         <span
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary/12 text-brand-primary shadow-sm"
           aria-hidden
         >
-          <Mic className="h-3.5 w-3.5" />
+          <Mic className="h-4 w-4" />
         </span>
-        {showPlayLabel ? (
-          <span className="text-sm font-medium text-brand-ink">Voice Prayer</span>
-        ) : null}
-        {durationLabel ? (
-          <span className="text-[11px] font-medium text-brand-ink/50 tabular-nums">
-            {durationLabel}
-          </span>
-        ) : null}
+        <div className="min-w-0 flex-1">
+          {showPlayLabel ? (
+            <span className="text-sm font-medium text-brand-ink block">Voice Prayer</span>
+          ) : null}
+          {durationLabel ? (
+            <span className="text-[11px] font-medium text-brand-ink/48 tabular-nums">
+              {durationLabel}
+            </span>
+          ) : null}
+        </div>
       </div>
       <audio
         controls
         src={audioUrl}
-        className="w-full h-11 min-h-[2.75rem] rounded-lg"
+        className="w-full h-10 min-h-[2.5rem] rounded-lg accent-brand-primary"
         preload="metadata"
         controlsList="nodownload"
       />

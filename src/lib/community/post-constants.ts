@@ -5,6 +5,7 @@ export const COMMUNITY_POST_STATUSES: CommunityPostDbStatus[] = ["draft", "publi
 export const COMMUNITY_POST_TYPES: { value: CommunityPostType; label: string }[] = [
   { value: "prayer", label: "Prayer" },
   { value: "praise", label: "Praise" },
+  { value: "encouragement", label: "Encouragement" },
   { value: "update", label: "Update" },
   { value: "newsletter", label: "Newsletter" },
   { value: "blog", label: "Blog" },
