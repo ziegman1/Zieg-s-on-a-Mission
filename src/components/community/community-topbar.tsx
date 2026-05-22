@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
 import type { CommunityMemberProfile } from "@/lib/community/members";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import { MH } from "@/lib/community/hub-design";
@@ -48,14 +48,6 @@ export function CommunityTopbar({
         )}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Link
-            href="/"
-            className="hidden sm:inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full text-brand-ink/45 hover:text-brand-primary hover:bg-brand-surface/80 transition-colors"
-            aria-label="Back to main site"
-            title="Back to site"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-          </Link>
           <Link href="/community" className="min-w-0 group">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-primary/80 leading-none">
               Mission Hub
@@ -67,13 +59,6 @@ export function CommunityTopbar({
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          <Link
-            href="/"
-            className="sm:hidden inline-flex items-center justify-center h-10 w-10 rounded-full text-brand-ink/50 hover:bg-brand-surface/80"
-            aria-label="Back to site"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-          </Link>
           {notificationUserId ? (
             <CommunityNotificationsBell
               recipientUserId={notificationUserId}

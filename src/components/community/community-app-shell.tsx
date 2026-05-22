@@ -5,7 +5,6 @@ import type { CommunitySpaceDetail } from "@/lib/community/space-experience";
 import { isSpiritualRoom, filterSpacesForFeedPills } from "@/lib/community/spiritual-room";
 import type { CommunitySpace } from "@/lib/community/types";
 import { MH } from "@/lib/community/hub-design";
-import { CommunityEngageRail } from "./community-engage-rail";
 import { CommunityFeedShell } from "./community-feed-shell";
 import { CommunityFeedToolbar } from "./community-feed-toolbar";
 import { CommunityLeftNav } from "./community-left-nav";
@@ -59,17 +58,6 @@ export function CommunityAppShell({
           <CommunityFeedShell className={spiritual ? "spiritual-feed" : undefined}>
             {children}
           </CommunityFeedShell>
-
-          <CommunityEngageRail
-            variant={spiritual ? "subtle" : "default"}
-            className="xl:hidden mt-10 mb-2 mx-auto w-full max-w-[52rem]"
-          />
-        </div>
-
-        <div className="hidden xl:block w-[12rem] shrink-0 pt-2">
-          <div className="sticky top-[4.5rem]">
-            <CommunityEngageRail variant={spiritual ? "subtle" : "default"} />
-          </div>
         </div>
       </div>
     </div>
