@@ -18,7 +18,7 @@ export default async function StorefrontLayout({
   children: React.ReactNode;
 }) {
   const copy = await getSiteCopy();
-  const navMain = copy.navLinks.filter((l) => l.href !== "/");
+  const navMain = copy.navLinks.filter((l) => l.href !== "/" && l.label.trim());
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const isMissionHub =
@@ -54,7 +54,7 @@ export default async function StorefrontLayout({
             />
           </Link>
           <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-5 justify-start sm:justify-end">
-            {copy.navLinks.map(({ href, label }) => {
+            {copy.navLinks.filter((l) => l.label.trim()).map(({ href, label }) => {
               const isMerch = href === "/merch";
               return (
                 <Link
@@ -79,7 +79,9 @@ export default async function StorefrontLayout({
       <footer className="border-t border-brand-primary/25 bg-white/40 py-12 px-4">
         <div className="max-w-7xl mx-auto text-center text-sm text-brand-ink/80">
           <p className="font-serif text-lg text-brand-primary tracking-wide">{copy.site.name}</p>
-          <p className="mt-2 max-w-lg mx-auto leading-relaxed">{copy.footer.blurb}</p>
+          {copy.footer.blurb.trim() ? (
+            <p className="mt-2 max-w-lg mx-auto leading-relaxed">{copy.footer.blurb}</p>
+          ) : null}
           <nav className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-brand-ink/90">
             {navMain.map(({ href, label }) => (
               <Link key={href} href={href} className="hover:text-brand-primary transition-colors">

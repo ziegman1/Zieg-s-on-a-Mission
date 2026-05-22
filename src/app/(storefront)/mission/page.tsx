@@ -17,18 +17,24 @@ export default async function MissionPage() {
 
   return (
     <MinistryPageShell title={title} lede={lede}>
-      <section>
-        <h2>{focusHeading}</h2>
-        <ul>
-          {bullets.map((b) => (
-            <li key={b}>{b}</li>
-          ))}
-        </ul>
-      </section>
-      <section>
-        <h2>{merchHeading}</h2>
-        <p>{merchBody}</p>
-      </section>
+      {focusHeading.trim() || bullets.length > 0 ? (
+        <section>
+          {focusHeading.trim() ? <h2>{focusHeading}</h2> : null}
+          {bullets.length > 0 ? (
+            <ul>
+              {bullets.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
+      {merchHeading.trim() || merchBody.trim() ? (
+        <section>
+          {merchHeading.trim() ? <h2>{merchHeading}</h2> : null}
+          {merchBody.trim() ? <p>{merchBody}</p> : null}
+        </section>
+      ) : null}
       <div className="!mt-10 flex flex-wrap gap-3 not-prose">
         <Link
           href="/partner"

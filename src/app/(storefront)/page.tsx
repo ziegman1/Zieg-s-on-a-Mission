@@ -71,7 +71,9 @@ export default async function HomePage() {
       </section>
 
       <div className="bg-brand-surface text-brand-ink">
-        {guided.sections.map((section, i) => {
+        {guided.sections
+          .filter((section) => section.title.trim() || section.body.trim())
+          .map((section, i) => {
           const isTextLeft = i % 2 === 0;
           const sectionBg = i % 2 === 0 ? "bg-white" : "bg-neutral-50";
           const imgUrl = section.imageUrl?.trim();
@@ -130,7 +132,7 @@ export default async function HomePage() {
                 </div>
               </section>
 
-              {section.id === "mission" ? (
+              {section.id === "mission" && guided.scrollBreakBody.trim() ? (
                 <section className="py-16 sm:py-20 bg-blue-50">
                   <div className="max-w-3xl mx-auto px-6 text-center text-lg text-gray-700 leading-relaxed">
                     {guided.scrollBreakBody}
@@ -145,7 +147,9 @@ export default async function HomePage() {
           <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
             <div className="border-t border-gray-200 w-full mb-8 sm:mb-10" />
             <div className="max-w-xl mx-auto text-center">
-              <p className="text-brand-ink/88 leading-relaxed">{guided.closingBody}</p>
+              {guided.closingBody.trim() ? (
+                <p className="text-brand-ink/88 leading-relaxed">{guided.closingBody}</p>
+              ) : null}
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
                 <Link href="/mission" className="text-blue-600 hover:underline font-medium">
                   Learn more

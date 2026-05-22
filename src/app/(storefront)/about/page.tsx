@@ -17,12 +17,14 @@ export default async function AboutPage() {
 
   return (
     <MinistryPageShell title={title} lede={lede}>
-      {sections.map((s) => (
-        <section key={s.heading}>
-          <h2>{s.heading}</h2>
-          <p>{s.body}</p>
-        </section>
-      ))}
+      {sections
+        .filter((s) => s.heading.trim() || s.body.trim())
+        .map((s) => (
+          <section key={s.heading}>
+            {s.heading.trim() ? <h2>{s.heading}</h2> : null}
+            {s.body.trim() ? <p>{s.body}</p> : null}
+          </section>
+        ))}
       <nav className="!mt-12 pt-8 border-t border-brand-primary/25 flex flex-wrap gap-4 not-prose">
         <Link href="/partner" className="text-brand-primary font-medium hover:underline">
           Become a partner →

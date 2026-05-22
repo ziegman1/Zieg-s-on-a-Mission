@@ -47,7 +47,10 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
 
   async function handleResetLocal() {
     const res = await resetSiteCopyToDefaultsAction();
-    if (res.ok) setCopy(res.data);
+    if (res.ok) {
+      const { blocksToSiteCopy } = await import("@/lib/site-copy-blocks/resolve");
+      setCopy(blocksToSiteCopy(res.blocks));
+    }
     else setErrorMsg(res.error);
   }
 
