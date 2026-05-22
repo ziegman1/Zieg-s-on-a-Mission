@@ -1,4 +1,4 @@
-export { dynamic } from "@/lib/site-builder/storefront-dynamic";
+export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { Fragment } from "react";

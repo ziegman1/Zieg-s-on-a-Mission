@@ -1,4 +1,4 @@
-export { dynamic } from "@/lib/site-builder/storefront-dynamic";
+export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";

@@ -48,6 +48,13 @@ function warnMissingRuntimeEnv(): void {
   }
 }
 
+function printCapturedOutput(label: string, text: string | undefined): void {
+  if (!text?.trim()) return;
+  console.error(`[build] ----- ${label} (full) -----`);
+  console.error(text);
+  console.error(`[build] ----- end ${label} -----`);
+}
+
 function runStep(name: string, command: string, args: string[]): void {
   const label = `${name}`;
   const cmdLine = [command, ...args].join(" ");
@@ -59,38 +66,42 @@ function runStep(name: string, command: string, args: string[]): void {
     cwd: process.cwd(),
     env: process.env,
     shell: false,
-    stdio: ["inherit", "pipe", "pipe"],
+    stdio: "inherit",
     encoding: "utf-8",
   });
 
   const elapsed = Date.now() - started;
 
   if (result.status !== 0) {
-    if (result.stdout?.trim()) {
-      console.error("[build] stdout (tail):");
-      console.error(tailLines(result.stdout, 120));
-    }
-    if (result.stderr?.trim()) {
-      console.error("[build] stderr (tail):");
-      console.error(tailLines(result.stderr, 200));
-    }
+    const err = result.error;
+    const stdout =
+      typeof result.stdout === "string"
+        ? result.stdout
+        : result.stdout
+          ? Buffer.from(result.stdout).toString("utf-8")
+          : undefined;
+    const stderr =
+      typeof result.stderr === "string"
+        ? result.stderr
+        : result.stderr
+          ? Buffer.from(result.stderr).toString("utf-8")
+          : undefined;
+
     console.error(`\n[build] FAILED step: ${label}`);
     console.error(`[build]   exit code: ${result.status ?? "unknown"}`);
-    if (result.error) {
-      console.error(`[build]   spawn error: ${result.error.message}`);
+    if (err) {
+      console.error(`[build]   spawn error: ${err.message}`);
     }
     console.error(`[build]   elapsed: ${elapsed}ms`);
+
+    printCapturedOutput("stdout", stdout);
+    printCapturedOutput("stderr", stderr);
+
     console.error("[build] Fix the errors above, then re-run: npm run build");
     process.exit(result.status === null ? 1 : result.status);
   }
 
   console.log(`[build] OK ${label} (${elapsed}ms)`);
-}
-
-function tailLines(text: string, maxLines: number): string {
-  const lines = text.split("\n");
-  if (lines.length <= maxLines) return text;
-  return lines.slice(-maxLines).join("\n");
 }
 
 function main(): void {
