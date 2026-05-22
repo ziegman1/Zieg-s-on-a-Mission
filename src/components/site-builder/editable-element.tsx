@@ -1,10 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from "react";
 import { useBuilderPreview } from "./builder-preview-context";
 import { elementStyleProps, isElementVisible } from "@/lib/site-builder/element-style-utils";
 import type { ElementStyle } from "@/lib/site-builder/element-types";
 import { cn } from "@/lib/utils";
+import "./builder-preview.css";
+
+export type EditableLayout = "inline" | "block" | "fill" | "absolute";
 
 export function EditableElement({
   sectionId,
@@ -12,6 +15,8 @@ export function EditableElement({
   style,
   visible = true,
   className,
+  layout = "block",
+  styleOnWrapper = true,
   children,
   onClickCapture,
 }: {
@@ -20,13 +25,28 @@ export function EditableElement({
   style?: ElementStyle;
   visible?: boolean;
   className?: string;
+  /** How the edit wrapper participates in layout (default: block). Use inline for CTAs in flex rows. */
+  layout?: EditableLayout;
+  /** When false, visual styles apply only to children (avoids full-width button chrome). */
+  styleOnWrapper?: boolean;
   children: ReactNode;
   onClickCapture?: () => void;
 }) {
   const ctx = useBuilderPreview();
   const mergedStyle = style;
   const show = isElementVisible(mergedStyle, visible);
-  const { className: styleCls, style: inline } = elementStyleProps(mergedStyle);
+  const { className: styleCls, style: inline } = elementStyleProps(
+    styleOnWrapper ? mergedStyle : undefined,
+  );
+
+  const layoutClass =
+    layout === "inline"
+      ? "builder-el--inline"
+      : layout === "fill"
+        ? "builder-el--fill"
+        : layout === "absolute"
+          ? "builder-el--absolute"
+          : "builder-el--block";
 
   if (!ctx?.editMode) {
     if (!show) return null;
@@ -39,30 +59,38 @@ export function EditableElement({
 
   const selected =
     ctx.selectedSectionId === sectionId && ctx.selectedElementId === elementId;
-  const sectionSelected = ctx.selectedSectionId === sectionId && !ctx.selectedElementId;
+
+  const select = () => {
+    ctx.onSelectElement(sectionId, elementId);
+    onClickCapture?.();
+  };
+
+  const interactionProps = {
+    role: "button" as const,
+    tabIndex: 0,
+    "data-builder-element": elementId,
+    "data-builder-section": sectionId,
+    "data-builder-selected": selected ? "" : undefined,
+    onPointerDown: (e: PointerEvent) => {
+      e.stopPropagation();
+      select();
+    },
+    onClick: (e: MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+    },
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key === "Enter") select();
+    },
+  };
 
   if (!show) {
     return (
       <div
-        role="button"
-        tabIndex={0}
-        data-builder-element={elementId}
-        data-builder-section={sectionId}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          ctx.onSelectElement(sectionId, elementId);
-          onClickCapture?.();
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") ctx.onSelectElement(sectionId, elementId);
-        }}
+        {...interactionProps}
         className={cn(
-          "relative block h-full w-full cursor-pointer rounded-md border border-dashed border-zinc-400/80 bg-zinc-100/50 opacity-50 min-h-[2rem] flex items-center justify-center text-[10px] text-zinc-500 uppercase tracking-wide",
-          selected && "ring-2 ring-brand-primary ring-offset-2",
+          layoutClass,
+          "rounded-md border border-dashed border-zinc-400/80 bg-zinc-100/50 opacity-50 min-h-[2rem] flex items-center justify-center text-[10px] text-zinc-500 uppercase tracking-wide",
           className,
         )}
       >
@@ -71,38 +99,11 @@ export function EditableElement({
     );
   }
 
-  const select = () => {
-    ctx.onSelectElement(sectionId, elementId);
-    onClickCapture?.();
-  };
-
   return (
     <div
-      role="button"
-      tabIndex={0}
-      data-builder-element={elementId}
-      data-builder-section={sectionId}
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        select();
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") select();
-      }}
-      className={cn(
-        "relative block h-full w-full cursor-pointer rounded-sm transition-shadow [&_a]:pointer-events-none",
-        selected
-          ? "ring-2 ring-brand-primary ring-offset-2 z-[1]"
-          : "hover:ring-1 hover:ring-brand-primary/50",
-        sectionSelected && !selected && "outline outline-1 outline-brand-primary/20",
-        styleCls,
-        className,
-      )}
-      style={inline}
+      {...interactionProps}
+      className={cn(layoutClass, className, !styleOnWrapper ? undefined : styleCls)}
+      style={styleOnWrapper ? inline : undefined}
     >
       {children}
     </div>
@@ -136,24 +137,15 @@ export function EditableSectionShell({
       role="button"
       tabIndex={0}
       data-builder-section={sectionId}
+      data-builder-section-selected={selected ? "" : undefined}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("[data-builder-element]")) return;
         e.stopPropagation();
         ctx.onSelectSection(sectionId);
       }}
-      className={cn(
-        "relative",
-        !visible && "opacity-40",
-        selected && "ring-2 ring-violet-500/80 ring-offset-4 rounded-lg",
-        !selected && "hover:ring-1 hover:ring-violet-400/40 rounded-lg",
-        className,
-      )}
+      className={cn("relative", !visible && "opacity-40", className)}
     >
-      {selected ? (
-        <span className="absolute -top-3 left-2 z-10 text-[10px] font-medium uppercase tracking-wide bg-violet-600 text-white px-2 py-0.5 rounded">
-          {label}
-        </span>
-      ) : null}
+      {selected ? <span className="builder-section-label">{label}</span> : null}
       {children}
     </div>
   );

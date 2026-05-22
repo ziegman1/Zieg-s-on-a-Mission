@@ -425,7 +425,7 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
             }}
           >
             <BuilderPreviewProvider value={previewContext}>
-              <div className="bg-brand-surface text-brand-ink origin-top scale-[0.72] w-[139%] -ml-[19.5%]">
+              <div className="builder-preview-root bg-brand-surface text-brand-ink origin-top scale-[0.72] w-[139%] -ml-[19.5%]">
                 <PageSectionsRenderer
                   pageKey={activePage}
                   sections={sections}

@@ -50,7 +50,13 @@ export function ImageTextSplitSection({
         </EditableElement>
       ) : null}
       {ctaLabel.trim() ? (
-        <EditableElement sectionId={section.id} elementId="cta:primary" style={btnStyle}>
+        <EditableElement
+          sectionId={section.id}
+          elementId="cta:primary"
+          style={btnStyle}
+          layout="inline"
+          styleOnWrapper={false}
+        >
           <Link href={ctaUrl} className={cn(buttonClassesFromStyle(btnStyle), "hover:underline")}>
             {ctaLabel}
           </Link>

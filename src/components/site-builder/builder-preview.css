@@ -1,0 +1,79 @@
+/**
+ * Site builder preview — selection/hover chrome only.
+ * Must not affect document flow (no rings with offset, no forced block sizing).
+ */
+
+.builder-preview-root [data-builder-element] {
+  position: relative;
+  max-width: 100%;
+  cursor: pointer;
+  vertical-align: top;
+}
+
+.builder-preview-root [data-builder-element].builder-el--inline {
+  display: inline-block;
+  width: fit-content;
+}
+
+.builder-preview-root [data-builder-element].builder-el--block {
+  display: block;
+  width: 100%;
+}
+
+.builder-preview-root [data-builder-element].builder-el--fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.builder-preview-root [data-builder-element].builder-el--absolute {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.builder-preview-root [data-builder-element]:not([data-builder-selected]):hover {
+  outline: 1px solid rgb(59 130 246 / 0.45);
+  outline-offset: 2px;
+}
+
+.builder-preview-root [data-builder-element][data-builder-selected] {
+  outline: 2px solid var(--brand-primary, #1e3a5f);
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+.builder-preview-root
+  [data-builder-section]:not([data-builder-section-selected])
+  [data-builder-element]:not([data-builder-selected]) {
+  outline: 1px solid rgb(59 130 246 / 0.12);
+  outline-offset: 1px;
+}
+
+.builder-preview-root [data-builder-section][data-builder-section-selected] {
+  outline: 2px solid rgb(139 92 246 / 0.75);
+  outline-offset: 4px;
+  border-radius: 0.5rem;
+}
+
+.builder-preview-root [data-builder-section] > .builder-section-label {
+  position: absolute;
+  top: -0.75rem;
+  left: 0.5rem;
+  z-index: 20;
+  pointer-events: none;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  background: rgb(124 58 237);
+  color: white;
+}
+
+.builder-preview-root [data-builder-element] a,
+.builder-preview-root [data-builder-element] button {
+  pointer-events: none;
+}

@@ -117,7 +117,9 @@ export function CardGridSection({ section }: { section: PageSection }) {
         elementId={`card:${card.id}`}
         style={card.style}
         visible={card.visible}
-        className={cn("h-full", !card.visible && ctx?.editMode && "opacity-50")}
+        layout="fill"
+        styleOnWrapper={false}
+        className={cn(!card.visible && ctx?.editMode && "opacity-50")}
       >
         {inner}
       </EditableElement>

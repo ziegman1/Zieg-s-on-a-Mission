@@ -40,7 +40,13 @@ function CtaButton({
   );
 
   return (
-    <EditableElement sectionId={section.id} elementId={elementId} style={style}>
+    <EditableElement
+      sectionId={section.id}
+      elementId={elementId}
+      style={style}
+      layout="inline"
+      styleOnWrapper={false}
+    >
       {inner}
     </EditableElement>
   );

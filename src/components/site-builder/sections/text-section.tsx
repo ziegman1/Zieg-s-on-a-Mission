@@ -80,16 +80,20 @@ export function TextSectionBlock({
           {bullets.map((b) => {
             if (!ctx?.editMode && (!b.visible || !isElementVisible(b.style, true))) return null;
             return (
-              <EditableElement
+              <li
                 key={b.id}
-                sectionId={section.id}
-                elementId={`bullet:${b.id}`}
-                style={b.style}
-                visible={b.visible}
                 className={cn(!b.visible && ctx?.editMode && "opacity-50 list-none")}
               >
-                <li className={ctx?.editMode ? "list-none" : undefined}>{b.text}</li>
-              </EditableElement>
+                <EditableElement
+                  sectionId={section.id}
+                  elementId={`bullet:${b.id}`}
+                  style={b.style}
+                  visible={b.visible}
+                  layout="inline"
+                >
+                  {b.text}
+                </EditableElement>
+              </li>
             );
           })}
         </ul>

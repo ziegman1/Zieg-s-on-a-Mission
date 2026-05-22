@@ -36,7 +36,13 @@ function HeroButton({
   const { className: wrapCls, style: wrapStyle } = elementStyleProps(style);
 
   return (
-    <EditableElement sectionId={section.id} elementId={elementId} style={style}>
+    <EditableElement
+      sectionId={section.id}
+      elementId={elementId}
+      style={style}
+      layout="inline"
+      styleOnWrapper={false}
+    >
       <div className={cn("inline-block", wrapCls)} style={wrapStyle}>
         <Link href={url} className={btnCls}>
           {label}
@@ -87,7 +93,8 @@ export function HeroSection({
           sectionId={section.id}
           elementId="image"
           style={imgStyle}
-          className="absolute inset-0"
+          layout="absolute"
+          styleOnWrapper={false}
         >
           <div className="absolute inset-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
