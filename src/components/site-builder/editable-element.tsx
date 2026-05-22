@@ -48,16 +48,20 @@ export function EditableElement({
         tabIndex={0}
         data-builder-element={elementId}
         data-builder-section={sectionId}
-        onClick={(e) => {
+        onPointerDown={(e) => {
           e.stopPropagation();
           ctx.onSelectElement(sectionId, elementId);
           onClickCapture?.();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") ctx.onSelectElement(sectionId, elementId);
         }}
         className={cn(
-          "relative rounded-md border border-dashed border-zinc-400/80 bg-zinc-100/50 opacity-50 min-h-[2rem] flex items-center justify-center text-[10px] text-zinc-500 uppercase tracking-wide",
+          "relative block h-full w-full cursor-pointer rounded-md border border-dashed border-zinc-400/80 bg-zinc-100/50 opacity-50 min-h-[2rem] flex items-center justify-center text-[10px] text-zinc-500 uppercase tracking-wide",
           selected && "ring-2 ring-brand-primary ring-offset-2",
           className,
         )}
@@ -67,22 +71,30 @@ export function EditableElement({
     );
   }
 
+  const select = () => {
+    ctx.onSelectElement(sectionId, elementId);
+    onClickCapture?.();
+  };
+
   return (
     <div
       role="button"
       tabIndex={0}
       data-builder-element={elementId}
       data-builder-section={sectionId}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        select();
+      }}
       onClick={(e) => {
         e.stopPropagation();
-        ctx.onSelectElement(sectionId, elementId);
-        onClickCapture?.();
+        e.preventDefault();
       }}
       onKeyDown={(e) => {
-        if (e.key === "Enter") ctx.onSelectElement(sectionId, elementId);
+        if (e.key === "Enter") select();
       }}
       className={cn(
-        "relative rounded-sm transition-shadow",
+        "relative block h-full w-full cursor-pointer rounded-sm transition-shadow [&_a]:pointer-events-none",
         selected
           ? "ring-2 ring-brand-primary ring-offset-2 z-[1]"
           : "hover:ring-1 hover:ring-brand-primary/50",
@@ -125,6 +137,7 @@ export function EditableSectionShell({
       tabIndex={0}
       data-builder-section={sectionId}
       onClick={(e) => {
+        if ((e.target as HTMLElement).closest("[data-builder-element]")) return;
         e.stopPropagation();
         ctx.onSelectSection(sectionId);
       }}

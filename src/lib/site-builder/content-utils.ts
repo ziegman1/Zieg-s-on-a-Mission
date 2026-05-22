@@ -13,20 +13,44 @@ export function getFieldStyle(content: Record<string, unknown>, elementId: strin
   return getElementStyles(content)[elementId];
 }
 
+/** Coerce persisted JSON list rows into editable list items (cards, bullets, etc.). */
+export function normalizeListItem(raw: unknown, index: number): ListItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const id =
+    typeof o.id === "string" && o.id.trim().length > 0 ? o.id : `card-${index}`;
+  const text =
+    typeof o.text === "string"
+      ? o.text
+      : typeof o.title === "string"
+        ? o.title
+        : "";
+  const visible = typeof o.visible === "boolean" ? o.visible : true;
+  const sortOrder = typeof o.sortOrder === "number" ? o.sortOrder : index;
+  const metadata =
+    o.metadata && typeof o.metadata === "object" && !Array.isArray(o.metadata)
+      ? (o.metadata as Record<string, unknown>)
+      : undefined;
+  const style =
+    o.style && typeof o.style === "object" && !Array.isArray(o.style)
+      ? (o.style as ElementStyle)
+      : undefined;
+  return { id, text, visible, sortOrder, metadata, style };
+}
+
+export function normalizeListItems(raw: unknown): ListItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item, i) => normalizeListItem(item, i))
+    .filter((x): x is ListItem => x !== null)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
 export function sortedListItems(
   raw: unknown,
   opts?: { includeHidden?: boolean },
 ): ListItem[] {
-  if (!Array.isArray(raw)) return [];
-  const items = raw
-    .filter(
-      (x): x is ListItem =>
-        Boolean(x) &&
-        typeof x === "object" &&
-        typeof (x as ListItem).text === "string" &&
-        typeof (x as ListItem).visible === "boolean",
-    )
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const items = normalizeListItems(raw);
   if (opts?.includeHidden) return items;
   return items.filter((x) => x.visible);
 }

@@ -9,7 +9,7 @@ import type { PageSection, SectionType } from "@/lib/site-builder/types";
 import { registryFor } from "@/lib/site-builder/registry";
 import { newBlockId } from "@/lib/site-copy-blocks/utils";
 import { selectionFromElement } from "@/lib/site-builder/section-elements";
-import { replaceSectionInList } from "@/lib/site-builder/patch-section";
+import { replaceSectionInList, updateSectionInList } from "@/lib/site-builder/patch-section";
 import {
   loadBuilderPageAction,
   publishAllBuilderPagesAction,
@@ -86,13 +86,15 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
   );
 
   const patchSection = useCallback(
-    (id: string, next: PageSection) => {
+    (id: string, next: PageSection | ((prev: PageSection) => PageSection)) => {
       setPages((p) => {
         const current = p[activePage]?.sections ?? [];
         return {
           ...p,
           [activePage]: {
-            sections: replaceSectionInList(current, id, next),
+            sections: updateSectionInList(current, id, (s) =>
+              typeof next === "function" ? next(s) : next,
+            ),
             hasCustom: p[activePage]?.hasCustom ?? false,
           },
         };
@@ -413,7 +415,14 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
           </p>
           <div
             className="rounded-lg border border-zinc-700 overflow-hidden shadow-xl bg-white max-w-4xl mx-auto"
-            onClick={() => setSelectedElementId(null)}
+            onClick={(e) => {
+              const el = e.target as HTMLElement;
+              if (el.closest("[data-builder-element]") || el.closest("[data-builder-section]")) {
+                return;
+              }
+              setSelectedSectionId(null);
+              setSelectedElementId(null);
+            }}
           >
             <BuilderPreviewProvider value={previewContext}>
               <div className="bg-brand-surface text-brand-ink origin-top scale-[0.72] w-[139%] -ml-[19.5%]">
@@ -434,7 +443,7 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
               pageKey={activePage}
               section={selectedSection}
               selection={elementSelection}
-              onChange={(next) => patchSection(selectedSection.id, next)}
+              onChange={(updater) => patchSection(selectedSection.id, updater)}
               onDeleted={() => setSelectedElementId(null)}
             />
           ) : selectedSection ? (

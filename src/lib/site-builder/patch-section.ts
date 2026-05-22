@@ -22,3 +22,11 @@ export function replaceSectionInList(
 ): PageSection[] {
   return sections.map((s) => (s.id === sectionId ? next : s));
 }
+
+export function updateSectionInList(
+  sections: PageSection[],
+  sectionId: string,
+  updater: (section: PageSection) => PageSection,
+): PageSection[] {
+  return sections.map((s) => (s.id === sectionId ? updater(s) : s));
+}

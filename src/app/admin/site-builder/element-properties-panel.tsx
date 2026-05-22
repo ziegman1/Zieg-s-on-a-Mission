@@ -296,18 +296,20 @@ export function ElementPropertiesPanel({
   pageKey: string;
   section: PageSection;
   selection: BuilderSelection;
-  onChange: (next: PageSection) => void;
+  onChange: (updater: (prev: PageSection) => PageSection) => void;
   onDeleted?: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { elementId, elementType, label } = selection;
   const c = section.content;
 
+  const applySection = (updater: (prev: PageSection) => PageSection) => onChange(updater);
+
   function patchStyle(p: Partial<ElementStyle>) {
     if (elementId.startsWith("card:") || elementId.startsWith("bullet:") || elementId.startsWith("el:")) {
-      onChange(updateSectionElement(section, elementId, { stylePatch: p }));
+      applySection((s) => updateSectionElement(s, elementId, { stylePatch: p }));
     } else {
-      onChange(patchFieldStyle(section, elementId, p));
+      applySection((s) => patchFieldStyle(s, elementId, p));
     }
   }
 
@@ -396,7 +398,7 @@ export function ElementPropertiesPanel({
           onPatch={patchStyle}
           showButton={isButton}
           showLayout={isCard}
-          onResetStyle={() => onChange(clearElementStyle(section, elementId))}
+          onResetStyle={() => applySection((s) => clearElementStyle(s, elementId))}
         />
       </Collapse>
 
@@ -407,7 +409,7 @@ export function ElementPropertiesPanel({
             variant="outline"
             size="sm"
             className="text-xs"
-            onClick={() => onChange(toggleElementVisible(section, elementId))}
+            onClick={() => applySection((s) => toggleElementVisible(s, elementId))}
           >
             <EyeOff className="h-3.5 w-3.5 mr-1" />
             Toggle visibility
@@ -417,7 +419,7 @@ export function ElementPropertiesPanel({
             variant="outline"
             size="sm"
             className="text-xs"
-            onClick={() => onChange(duplicateSectionElement(section, elementId))}
+            onClick={() => applySection((s) => duplicateSectionElement(s, elementId))}
           >
             <Copy className="h-3.5 w-3.5 mr-1" />
             Duplicate
@@ -431,7 +433,7 @@ export function ElementPropertiesPanel({
               size="sm"
               onClick={() => {
                 const id = elementId.slice(5);
-                onChange(reorderCards(section, id, -1));
+                applySection((s) => reorderCards(s, id, -1));
               }}
             >
               <ChevronUp className="h-4 w-4" />
@@ -442,7 +444,7 @@ export function ElementPropertiesPanel({
               size="sm"
               onClick={() => {
                 const id = elementId.slice(5);
-                onChange(reorderCards(section, id, 1));
+                applySection((s) => reorderCards(s, id, 1));
               }}
             >
               <ChevronDown className="h-4 w-4" />
@@ -455,7 +457,7 @@ export function ElementPropertiesPanel({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => onChange(reorderContentElements(section, elementId, -1))}
+              onClick={() => applySection((s) => reorderContentElements(s, elementId, -1))}
             >
               <ChevronUp className="h-4 w-4" />
             </Button>
@@ -463,7 +465,7 @@ export function ElementPropertiesPanel({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => onChange(reorderContentElements(section, elementId, 1))}
+              onClick={() => applySection((s) => reorderContentElements(s, elementId, 1))}
             >
               <ChevronDown className="h-4 w-4" />
             </Button>
@@ -474,7 +476,7 @@ export function ElementPropertiesPanel({
           variant="outline"
           size="sm"
           className="w-full mt-2 text-xs"
-          onClick={() => onChange(restoreElementFromDefaults(pageKey, section, elementId))}
+          onClick={() => applySection((s) => restoreElementFromDefaults(pageKey, s, elementId))}
         >
           <RotateCcw className="h-3.5 w-3.5 mr-1" />
           Restore element default
@@ -486,7 +488,7 @@ export function ElementPropertiesPanel({
             size="sm"
             className="w-full mt-2"
             onClick={() => {
-              onChange(deleteSectionElement(section, elementId));
+              applySection((s) => deleteSectionElement(s, elementId));
               setConfirmDelete(false);
               onDeleted?.();
             }}
@@ -517,8 +519,11 @@ export function ElementPropertiesPanel({
               const v = e.target.value;
               if (!v) return;
               e.target.value = "";
-              if (v === "card") onChange(addCardToSection(section));
-              else onChange(addContentElementToSection(section, v as "heading" | "paragraph" | "quote" | "note"));
+              if (v === "card") applySection((s) => addCardToSection(s));
+              else
+                applySection((s) =>
+                  addContentElementToSection(s, v as "heading" | "paragraph" | "quote" | "note"),
+                );
             }}
           >
             <option value="">Add element…</option>
@@ -539,37 +544,37 @@ export function ElementPropertiesPanel({
       if (!card) return <p className="text-xs text-zinc-500">Card not found</p>;
       return (
         <>
-          <Field label="Title" value={card.text} onChange={(v) => onChange(updateSectionElement(section, elementId, { text: v }))} />
+          <Field label="Title" value={card.text} onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))} />
           <Field
             label="Subtitle / amount"
             value={String(card.metadata?.amountLabel ?? "")}
             onChange={(v) =>
-              onChange(updateSectionElement(section, elementId, { metadata: { amountLabel: v } }))
+              applySection((s) => updateSectionElement(s, elementId, { metadata: { amountLabel: v } }))
             }
           />
           <Field
             label="Body"
             value={String(card.metadata?.body ?? "")}
             multiline
-            onChange={(v) => onChange(updateSectionElement(section, elementId, { metadata: { body: v } }))}
+            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { body: v } }))}
           />
           <Field
             label="Footnote"
             value={String(card.metadata?.giftNote ?? "")}
             multiline
             onChange={(v) =>
-              onChange(updateSectionElement(section, elementId, { metadata: { giftNote: v } }))
+              applySection((s) => updateSectionElement(s, elementId, { metadata: { giftNote: v } }))
             }
           />
           <Field
             label="Button label"
             value={String(card.metadata?.cta ?? "")}
-            onChange={(v) => onChange(updateSectionElement(section, elementId, { metadata: { cta: v } }))}
+            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { cta: v } }))}
           />
           <Field
             label="Button URL"
             value={String(card.metadata?.href ?? "")}
-            onChange={(v) => onChange(updateSectionElement(section, elementId, { metadata: { href: v } }))}
+            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { href: v } }))}
           />
         </>
       );
@@ -586,12 +591,12 @@ export function ElementPropertiesPanel({
           <Field
             label="Label"
             value={contentStr(c, labelKey)}
-            onChange={(v) => onChange(updateSectionElement(section, elementId, { text: v }))}
+            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
           />
           <Field
             label="URL"
             value={contentStr(c, urlKey)}
-            onChange={(v) => onChange(updateSectionElement(section, elementId, { metadata: { url: v } }))}
+            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { url: v } }))}
           />
         </>
       );
@@ -603,12 +608,12 @@ export function ElementPropertiesPanel({
           <AdminImageUrlField
             label="Image URL"
             value={contentStr(c, "imageUrl")}
-            onChange={(v) => onChange(updateSectionElement(section, elementId, { text: v }))}
+            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
           />
           <Field
             label="Alt text"
             value={contentStr(c, "imageAlt")}
-            onChange={(v) => onChange(updateSectionElement(section, elementId, { metadata: { alt: v } }))}
+            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { alt: v } }))}
           />
         </>
       );
@@ -622,7 +627,7 @@ export function ElementPropertiesPanel({
           label="Text"
           value={el.text}
           multiline
-          onChange={(v) => onChange(updateSectionElement(section, elementId, { text: v }))}
+          onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
         />
       );
     }
@@ -634,7 +639,7 @@ export function ElementPropertiesPanel({
         <Field
           label="Line text"
           value={item.text}
-          onChange={(v) => onChange(updateSectionElement(section, elementId, { text: v }))}
+          onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
         />
       );
     }
@@ -646,7 +651,7 @@ export function ElementPropertiesPanel({
         label="Text"
         value={contentStr(c, textKey)}
         multiline={["body", "intro", "quote"].includes(textKey)}
-        onChange={(v) => onChange(updateSectionElement(section, elementId, { text: v }))}
+        onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
       />
     );
   }
