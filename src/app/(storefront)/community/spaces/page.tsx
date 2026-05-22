@@ -26,7 +26,7 @@ export default async function CommunitySpacesPage() {
 
   return (
     <CommunityAppShell publishedSpaces={publishedSpaces} activeSlug={null} owner={owner}>
-      <CommunitySpacesPageClient spaces={publishedSpaces} owner={owner} />
+      <CommunitySpacesPageClient spaces={publishedSpaces} />
     </CommunityAppShell>
   );
 }

@@ -1,17 +1,50 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { MessageCircle } from "lucide-react";
-import { toggleCommunityPostReactionAction } from "@/app/(storefront)/community/reaction-actions";
+import {
+  setCommunityPostReactionAction,
+  toggleCommunityPostReactionAction,
+} from "@/app/(storefront)/community/reaction-actions";
 import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
 import { getSpaceInteractionPreset } from "@/lib/community/space-interaction";
+import {
+  STANDARD_REACTION_ORDER,
+} from "@/lib/community/reaction-display";
 import type { CommunityReactionType } from "@/lib/community/types";
 import type { ReactionCounts } from "@/lib/community/types";
 import {
   CommunityPrayingButton,
   PRAYING_REACTION_TYPE,
 } from "./community-praying-button";
+import { CommunityReactionPicker } from "./community-reaction-picker";
+import { CommunityReactionSummary } from "./community-reaction-summary";
 import { cn } from "@/lib/utils";
+
+function activeStandardReaction(
+  myReactions: Set<CommunityReactionType>,
+): CommunityReactionType | null {
+  for (const type of STANDARD_REACTION_ORDER) {
+    if (myReactions.has(type)) return type;
+  }
+  return null;
+}
+
+function applyOptimisticStandardReaction(
+  counts: ReactionCounts,
+  prev: CommunityReactionType | null,
+  next: CommunityReactionType,
+): { counts: ReactionCounts; active: CommunityReactionType | null } {
+  const nextCounts = { ...counts };
+  if (prev) {
+    nextCounts[prev] = Math.max(0, (nextCounts[prev] ?? 0) - 1);
+  }
+  if (prev === next) {
+    return { counts: nextCounts, active: null };
+  }
+  nextCounts[next] = (nextCounts[next] ?? 0) + 1;
+  return { counts: nextCounts, active: next };
+}
 
 export function CommunityEngagementBar({
   postId,
@@ -50,25 +83,40 @@ export function CommunityEngagementBar({
   const [myReactions, setMyReactions] = useState<Set<CommunityReactionType>>(
     () => new Set(initialMyReactions),
   );
+  const activeReaction = useMemo(
+    () => activeStandardReaction(myReactions),
+    [myReactions],
+  );
   const [isPraying, setIsPraying] = useState(
     () => initialMyReactions.includes(PRAYING_REACTION_TYPE),
   );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function toggle(type: CommunityReactionType) {
+  const snapshot = useMemo(
+    () => ({ counts: initialCounts, my: new Set(initialMyReactions) }),
+    [initialCounts, initialMyReactions],
+  );
+
+  useEffect(() => {
+    setCounts(initialCounts);
+    setMyReactions(new Set(initialMyReactions));
+    setIsPraying(initialMyReactions.includes(PRAYING_REACTION_TYPE));
+  }, [initialCounts, initialMyReactions]);
+
+  function setStandardReaction(type: CommunityReactionType) {
     setError(null);
-    setMyReactions((prev) => {
-      const next = new Set(prev);
-      if (next.has(type)) next.delete(type);
-      else next.add(type);
-      return next;
-    });
+    const prev = activeStandardReaction(myReactions);
+    const optimistic = applyOptimisticStandardReaction(counts, prev, type);
+    setCounts(optimistic.counts);
+    setMyReactions(optimistic.active ? new Set([optimistic.active]) : new Set());
+
     startTransition(async () => {
-      const res = await toggleCommunityPostReactionAction(postId, type);
+      const res = await setCommunityPostReactionAction(postId, type);
       if (!res.ok) {
         setError(res.error);
-        setMyReactions(new Set(initialMyReactions));
+        setCounts(snapshot.counts);
+        setMyReactions(snapshot.my);
         return;
       }
       setCounts(res.counts);
@@ -100,8 +148,7 @@ export function CommunityEngagementBar({
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35",
     "active:scale-[0.97]",
     compact && "min-h-[2rem] px-2.5 text-[11px]",
-    !isPrayer &&
-      "bg-white/80 text-brand-ink/70 border-black/[0.06] hover:bg-white hover:border-brand-primary/20 hover:text-brand-ink",
+    "bg-white/80 text-brand-ink/70 border-black/[0.06] hover:bg-white hover:border-brand-primary/20 hover:text-brand-ink",
   );
 
   const countLabel =
@@ -115,42 +162,6 @@ export function CommunityEngagementBar({
       onToggle={togglePraying}
     />
   );
-
-  const reactionButtons =
-    allowReactions &&
-    !isPrayer &&
-    preset.reactions.map(({ type, label, Icon }) => {
-      const active = myReactions.has(type);
-      const count = counts[type] ?? 0;
-      return (
-        <button
-          key={type}
-          type="button"
-          disabled={isPending}
-          onClick={() => toggle(type)}
-          title={active ? `Remove ${label}` : label}
-          aria-pressed={active}
-          className={cn(
-            reactionPillBase,
-            active && "bg-brand-primary text-white border-brand-primary shadow-sm",
-            isPending && "opacity-60",
-          )}
-        >
-          <Icon className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")} aria-hidden />
-          <span>{label}</span>
-          {count > 0 ? (
-            <span
-              className={cn(
-                "tabular-nums text-[11px]",
-                active ? "text-white/90" : "text-brand-ink/45",
-              )}
-            >
-              {count}
-            </span>
-          ) : null}
-        </button>
-      );
-    });
 
   const defaultCommentPill = allowComments && !isPrayer && (
     <button
@@ -200,13 +211,24 @@ export function CommunityEngagementBar({
           {allowComments ? prayerShareCta : null}
         </div>
       ) : (
-        <div
-          className="flex flex-wrap items-center gap-1.5"
-          role="group"
-          aria-label="Post reactions"
-        >
-          {reactionButtons}
-          {defaultCommentPill}
+        <div className="space-y-1.5">
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Post reactions"
+          >
+            {allowReactions ? (
+              <CommunityReactionPicker
+                activeReaction={activeReaction}
+                disabled={isPending}
+                onSelect={setStandardReaction}
+              />
+            ) : null}
+            {defaultCommentPill}
+          </div>
+          {allowReactions ? (
+            <CommunityReactionSummary postId={postId} counts={counts} />
+          ) : null}
         </div>
       )}
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
@@ -267,14 +289,17 @@ export function CommunityEngagementBarPreview({
   }
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-1.5", className)} role="group">
-      {preset.reactions.map(({ type, label, Icon }) => (
-        <span key={type} className={pillBase}>
-          <Icon className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")} aria-hidden />
-          <span>{label}</span>
-          <span className="tabular-nums opacity-60">0</span>
+    <div className={cn("space-y-1.5", className)} role="group">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className={pillBase}>
+          <span>React</span>
         </span>
-      ))}
+        <span className={cn(pillBase, "ml-auto")}>
+          <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+          <span>Comment</span>
+        </span>
+      </div>
+      <p className="text-xs text-brand-ink/35">👍 4 · ❤️ 2</p>
     </div>
   );
 }

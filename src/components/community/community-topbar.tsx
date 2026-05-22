@@ -6,8 +6,10 @@ import { Bell } from "lucide-react";
 import type { CommunityMemberProfile } from "@/lib/community/members";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import { MH } from "@/lib/community/hub-design";
+import type { CommunityComposerSpace } from "@/lib/community/composer-types";
 import { CommunityNotificationsBell } from "./community-notifications-bell";
 import { CommunityProfileMenu } from "./community-profile-menu";
+import { CommunityTopbarCreate } from "./community-topbar-create";
 import { cn } from "@/lib/utils";
 
 export function CommunityTopbar({
@@ -17,6 +19,7 @@ export function CommunityTopbar({
   accountImageUrl = null,
   notificationUserId = null,
   initialUnreadCount = 0,
+  composerSpaces = [],
 }: {
   owner: CommunityOwner | null;
   member: CommunityMemberProfile | null;
@@ -24,6 +27,7 @@ export function CommunityTopbar({
   accountImageUrl?: string | null;
   notificationUserId?: string | null;
   initialUnreadCount?: number;
+  composerSpaces?: CommunityComposerSpace[];
 }) {
   const pathname = usePathname();
   const returnPath =
@@ -58,7 +62,8 @@ export function CommunityTopbar({
           </Link>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
+          <CommunityTopbarCreate owner={owner} composerSpaces={composerSpaces} />
           {notificationUserId ? (
             <CommunityNotificationsBell
               recipientUserId={notificationUserId}

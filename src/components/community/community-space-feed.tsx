@@ -2,7 +2,6 @@ import type { CommunityComposerSpace } from "@/lib/community/composer-types";
 import type { CommunitySpaceDetail } from "@/lib/community/space-experience";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
-import { getSpaceInteractionPreset } from "@/lib/community/space-interaction";
 import { CommunityFeedEmpty } from "./community-feed-empty";
 import { CommunityPostFeed } from "./community-post-feed";
 import { CommunitySpacePageHeader } from "./community-space-page-header";
@@ -22,17 +21,11 @@ export function CommunitySpaceFeed({
   const prompt = space.experience.engagementPrompt;
   const showWelcome =
     space.experience.showWelcomeMessage && Boolean(space.experience.welcomeMessage?.trim());
-  const preset = getSpaceInteractionPreset(space.experience.spaceType, space.slug);
-
   return (
     <div className="space-y-4">
       <CommunitySpacePageHeader
         title={space.title}
         subtitle={space.description?.trim() || undefined}
-        owner={owner ?? null}
-        composerSpaces={composerSpaces}
-        defaultSpaceId={space.id}
-        defaultPostType={preset.mode === "prayer" ? "prayer" : undefined}
       />
       {showWelcome ? <CommunitySpaceWelcomeCard space={space} /> : null}
       {posts.length > 0 ? (

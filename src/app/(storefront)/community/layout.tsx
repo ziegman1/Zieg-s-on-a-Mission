@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { MissionHubShell } from "@/components/community/mission-hub-shell";
 import { getCurrentCommunityMember } from "@/lib/community/members";
 import { countUnreadNotifications } from "@/lib/community/notifications";
+import { listComposerSpacesForOwner } from "@/lib/community/composer-spaces";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
 import { MISSION_HUB_PWA } from "@/lib/community/mission-hub-pwa";
 import { getSiteCopy } from "@/lib/site-copy";
@@ -57,6 +58,15 @@ export default async function CommunityLayout({
   ]);
 
   const notificationUserId = session?.user?.id ?? null;
+  let composerSpaces: Awaited<ReturnType<typeof listComposerSpacesForOwner>> = [];
+  if (owner) {
+    try {
+      composerSpaces = await listComposerSpacesForOwner();
+    } catch (e) {
+      console.error("[community layout] composer spaces:", e);
+    }
+  }
+
   let initialUnreadCount = 0;
   if (notificationUserId) {
     try {
@@ -82,6 +92,7 @@ export default async function CommunityLayout({
       accountImageUrl={session?.user?.image ?? null}
       notificationUserId={notificationUserId}
       initialUnreadCount={initialUnreadCount}
+      composerSpaces={composerSpaces}
     >
       {children}
     </MissionHubShell>

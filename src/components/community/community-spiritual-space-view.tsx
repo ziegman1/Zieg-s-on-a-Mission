@@ -99,13 +99,7 @@ export function CommunitySpiritualSpaceView({
     <>
       <div className="space-y-3 sm:space-y-5">
         <CommunitySpaceHero space={space} />
-        <CommunitySpacePageHeader
-          title={space.title}
-          owner={owner}
-          composerSpaces={composerSpaces}
-          defaultSpaceId={space.id}
-          defaultPostType={preset.mode === "prayer" ? "prayer" : undefined}
-        />
+        <CommunitySpacePageHeader title={space.title} />
         <CommunitySpaceWelcomeIntro space={space} />
         {prayerRoom ? (
           <CommunityPrayerRoomWelcomeActions

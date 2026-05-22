@@ -132,3 +132,85 @@ export async function togglePostReaction(
 
   return { counts, myReactions, added: !existing };
 }
+
+/**
+ * Facebook-style single reaction per visitor: set type or clear if already the only active type.
+ */
+export async function setPostReaction(
+  postId: string,
+  visitorKey: string,
+  reactionType: CommunityReactionType,
+): Promise<{
+  counts: ReactionCounts;
+  myReactions: CommunityReactionType[];
+  active: boolean;
+  added: boolean;
+}> {
+  const mine = await getVisitorReactionsForPost(postId, visitorKey);
+  const togglingOff = mine.length === 1 && mine[0] === reactionType;
+
+  await prisma.communityPostReactionRecord.deleteMany({
+    where: { postId, visitorKey },
+  });
+
+  if (!togglingOff) {
+    await prisma.communityPostReactionRecord.create({
+      data: { postId, visitorKey, reactionType },
+    });
+  }
+
+  const [counts, myReactions] = await Promise.all([
+    getReactionCountsForPost(postId),
+    getVisitorReactionsForPost(postId, visitorKey),
+  ]);
+
+  return {
+    counts,
+    myReactions,
+    active: !togglingOff,
+    added: !togglingOff && !mine.includes(reactionType),
+  };
+}
+
+export type PostReactionDetail = {
+  reactionType: CommunityReactionType;
+  displayName: string;
+  createdAt: string;
+};
+
+export async function listPostReactionDetails(
+  postId: string,
+): Promise<PostReactionDetail[]> {
+  const rows = await prisma.communityPostReactionRecord.findMany({
+    where: { postId },
+    orderBy: { createdAt: "desc" },
+    select: { reactionType: true, visitorKey: true, createdAt: true },
+  });
+
+  const keys = [...new Set(rows.map((r) => r.visitorKey))];
+  const members =
+    keys.length > 0
+      ? await prisma.communityMemberRecord.findMany({
+          where: { visitorKey: { in: keys } },
+          select: { visitorKey: true, firstName: true, lastName: true },
+        })
+      : [];
+
+  const nameByKey = new Map(
+    members.map((m) => [
+      m.visitorKey,
+      `${m.firstName.trim()} ${m.lastName.trim()}`.trim() || "Member",
+    ]),
+  );
+
+  const result: PostReactionDetail[] = [];
+  for (const row of rows) {
+    if (!isCommunityReactionType(row.reactionType)) continue;
+    result.push({
+      reactionType: row.reactionType,
+      displayName: nameByKey.get(row.visitorKey) ?? "Someone",
+      createdAt: row.createdAt.toISOString(),
+    });
+  }
+  return result;
+}
