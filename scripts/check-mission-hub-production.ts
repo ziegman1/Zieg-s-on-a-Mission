@@ -14,21 +14,77 @@ function cleanUrl(url: string | undefined): string {
   return (url ?? "").trim().replace(/^["']|["']$/g, "");
 }
 
-function describeDatabaseTarget(url: string): string {
+function normalizeUrl(url: string): string {
+  const u = cleanUrl(url);
+  if (u.startsWith("postgres://")) return "postgresql://" + u.slice(11);
+  return u;
+}
+
+function parseDbTarget(url: string): { hostname: string; port: string; db: string } | null {
   try {
-    const normalized = url.replace(/^postgresql:\/\//, "http://");
+    const normalized = normalizeUrl(url).replace(/^postgresql:\/\//, "http://");
     const u = new URL(normalized);
-    const db = u.pathname.replace(/^\//, "") || "(default)";
-    const pooler = u.searchParams.has("pgbouncer") ? " (pooler/pgbouncer)" : "";
-    return `${u.hostname}:${u.port || "5432"}/${db}${pooler}`;
+    return {
+      hostname: u.hostname,
+      port: u.port || "5432",
+      db: u.pathname.replace(/^\//, "") || "postgres",
+    };
   } catch {
-    return "(could not parse DATABASE_URL)";
+    return null;
   }
+}
+
+function formatDbTarget(url: string): string {
+  const p = parseDbTarget(url);
+  if (!p) return "(could not parse URL)";
+  return `${p.hostname}:${p.port}/${p.db}`;
+}
+
+const POOLER_HOST = /\.pooler\.supabase\.com$/i;
+const DIRECT_HOST = /^db\.[a-z0-9]+\.supabase\.co$/i;
+
+function validateSupabaseUrls(databaseUrl: string, directUrl: string): string[] {
+  const errors: string[] = [];
+  const db = parseDbTarget(databaseUrl);
+  const direct = parseDbTarget(directUrl);
+
+  if (!db) errors.push("DATABASE_URL is invalid.");
+  if (!direct) errors.push("DIRECT_URL is invalid.");
+
+  if (db) {
+    if (!POOLER_HOST.test(db.hostname)) {
+      errors.push(`DATABASE_URL must use *.pooler.supabase.com (got ${db.hostname})`);
+    }
+    if (db.port !== "6543") {
+      errors.push(`DATABASE_URL must use port 6543 (got ${db.port})`);
+    }
+    if (DIRECT_HOST.test(db.hostname)) {
+      errors.push("DATABASE_URL must not use db.<ref>.supabase.co (reversed with DIRECT_URL)");
+    }
+  }
+
+  if (direct) {
+    if (!DIRECT_HOST.test(direct.hostname)) {
+      errors.push(`DIRECT_URL must use db.<ref>.supabase.co (got ${direct.hostname})`);
+    }
+    if (direct.port !== "5432") {
+      errors.push(`DIRECT_URL must use port 5432 (got ${direct.port})`);
+    }
+    if (POOLER_HOST.test(direct.hostname)) {
+      errors.push("DIRECT_URL must not use pooler host (reversed with DATABASE_URL)");
+    }
+  }
+
+  if (databaseUrl && directUrl && cleanUrl(databaseUrl) === cleanUrl(directUrl)) {
+    errors.push("DATABASE_URL and DIRECT_URL must not be identical.");
+  }
+
+  return errors;
 }
 
 function maskUrl(url: string): string {
   try {
-    const normalized = url.replace(/^postgresql:\/\//, "http://");
+    const normalized = normalizeUrl(url).replace(/^postgresql:\/\//, "http://");
     const u = new URL(normalized);
     return `postgresql://***@${u.hostname}${u.pathname}${u.search}`;
   } catch {
@@ -40,13 +96,21 @@ async function main(): Promise<void> {
   const databaseUrl = cleanUrl(process.env.DATABASE_URL);
   const directUrl = cleanUrl(process.env.DIRECT_URL);
 
-  console.log("[check:mission-hub] DATABASE_URL host:", describeDatabaseTarget(databaseUrl));
-  if (directUrl && directUrl !== databaseUrl) {
-    console.log("[check:mission-hub] DIRECT_URL host:", describeDatabaseTarget(directUrl));
-  } else {
-    console.log("[check:mission-hub] DIRECT_URL: (same as DATABASE_URL or unset)");
-  }
+  console.log("[check:mission-hub] DATABASE_URL host:", formatDbTarget(databaseUrl));
+  console.log("[check:mission-hub] DIRECT_URL host:", formatDbTarget(directUrl));
   console.log("[check:mission-hub] masked DATABASE_URL:", maskUrl(databaseUrl));
+
+  const configErrors = validateSupabaseUrls(databaseUrl, directUrl);
+  if (configErrors.length > 0) {
+    console.error("[check:mission-hub] URL configuration errors:");
+    for (const e of configErrors) {
+      console.error(`  - ${e}`);
+    }
+    console.error(
+      "[check:mission-hub] Fix Vercel / .env.production: pooler :6543 on DATABASE_URL, db.* :5432 on DIRECT_URL.",
+    );
+    process.exit(1);
+  }
 
   if (!databaseUrl) {
     console.error("[check:mission-hub] DATABASE_URL is not set.");
@@ -121,7 +185,9 @@ async function main(): Promise<void> {
 
     if (missing.length > 0) {
       console.warn("[check:mission-hub] Missing default slugs:", missing.join(", "));
-      console.warn("  Run: MISSION_HUB_SEED_CONFIRM=production npm run db:seed:mission-hub:production");
+      console.warn(
+        "  Run: MISSION_HUB_SEED_CONFIRM=production npm run db:seed:mission-hub:production",
+      );
     }
     if (unpublishedDefaults.length > 0) {
       console.warn(
@@ -136,6 +202,7 @@ async function main(): Promise<void> {
       _count: { _all: true },
     });
     console.log("[check:mission-hub] community_posts by status:", postCounts);
+    console.log("[check:mission-hub] Database connection OK.");
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[check:mission-hub] community_* query failed:", msg);

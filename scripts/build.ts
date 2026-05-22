@@ -18,7 +18,7 @@ const BUILD_STEPS: { name: string; command: string; args: string[] }[] = [
 /** Env vars required at runtime on Vercel (warn only — build does not need DB). */
 const RUNTIME_ENV_HINTS: { key: string; note: string }[] = [
   { key: "DATABASE_URL", note: "runtime + Prisma (pooler :6543?pgbouncer=true)" },
-  { key: "DIRECT_URL", note: "migrations only (session pooler :5432)" },
+  { key: "DIRECT_URL", note: "migrations only (db.<ref>.supabase.co :5432)" },
   { key: "AUTH_SECRET", note: "NextAuth session signing (alias: NEXTAUTH_SECRET)" },
   { key: "NEXTAUTH_URL", note: "must match public site URL" },
   { key: "NEXT_PUBLIC_SUPABASE_URL", note: "Mission Hub media uploads" },

@@ -14,7 +14,7 @@ Add these in **Vercel → Project → Settings → Environment Variables**. Set 
 | Variable | What to use |
 |----------|-------------|
 | **DATABASE_URL** | Your Supabase **transaction pooler** connection string (port 6543), with `?pgbouncer=true` at the end. Copy from Supabase Dashboard → Project Settings → Database → Connection string → **Transaction** (pooler). Replace `[YOUR-PASSWORD]` with your DB password; URL-encode special characters in the password. |
-| **DIRECT_URL** | Your Supabase **session pooler** connection string (port 5432), same pooler host as above. Copy from Supabase → Connection string → **Session** (pooler). Use this format so migrations work from IPv4; avoid relying on `db.xxx.supabase.co` from Vercel if it fails. |
+| **DIRECT_URL** | Your Supabase **direct** connection string (port **5432**), host `db.<project-ref>.supabase.co`. Copy from Supabase → Connection string → **Direct**. Do **not** put the pooler URL here. |
 | **AUTH_SECRET** | A new random secret for production only. Generate with: `openssl rand -base64 32`. Do not reuse your local `.env.local` value. |
 | **NEXTAUTH_URL** | Your live app URL. After custom domain setup use **`https://ziegsonamission.com`**. For the first deploy before DNS, use your Vercel URL, e.g. **`https://<your-project>.vercel.app`** (no trailing slash). |
 | **STRIPE_SECRET_KEY** | Stripe **live** secret key (`sk_live_...`) from Dashboard → Developers → API keys. Use test keys on Preview if you prefer. |
@@ -27,7 +27,7 @@ Add these in **Vercel → Project → Settings → Environment Variables**. Set 
 ## 2. Correct values / format
 
 - **DATABASE_URL** — Transaction pooler, port **6543**, include **`?pgbouncer=true`** where required for Prisma/serverless.  
-- **DIRECT_URL** — Session pooler, port **5432**, same pooler host pattern as above.  
+- **DIRECT_URL** — Direct host `db.<ref>.supabase.co`, port **5432** (never the pooler host).  
 - **NEXTAUTH_URL** — Must exactly match the URL users open in the browser for that environment (production domain or `*.vercel.app`).  
 
 ---

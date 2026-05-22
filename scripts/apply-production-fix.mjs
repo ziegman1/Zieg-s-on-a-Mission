@@ -5,69 +5,39 @@
  * Supports Vercel Postgres (POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING).
  */
 import { spawnSync } from "child_process";
-import { readFileSync, existsSync } from "fs";
+import { existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import {
+  normalizeDbUrl,
+  validateSupabaseDbUrls,
+  loadEnvFile,
+} from "./supabase-db-env.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
-function loadEnv(path) {
-  if (!existsSync(path)) return {};
-  const content = readFileSync(path, "utf-8");
-  const out = {};
-  for (const line of content.split("\n")) {
-    const m = line.match(/^([^#=]+)=(.*)$/);
-    if (m) {
-      const key = m[1].trim();
-      let val = m[2].trim();
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-        val = val.slice(1, -1);
-      }
-      out[key] = val.trim();
-    }
-  }
-  return out;
-}
-
-function cleanUrl(s) {
-  if (!s || typeof s !== "string") return "";
-  return s
-    .trim()
-    .replace(/^["']|["']$/g, "")
-    .replace(/\s+/g, "")
-    .trim();
-}
-
-function normalizeDbUrl(url) {
-  const u = cleanUrl(url);
-  if (!u) return u;
-  if (u.startsWith("postgres://")) return "postgresql://" + u.slice(11);
-  return u;
-}
+import { readFileSync } from "fs";
 
 const env = { ...process.env };
-for (const f of [".env.local", ".env"]) {
-  Object.assign(env, loadEnv(resolve(root, f)));
+for (const f of [".env", ".env.local"]) {
+  Object.assign(env, loadEnvFile(resolve(root, f), { readFileSync }, existsSync));
 }
 
-// Vercel Postgres / Neon fallbacks
+// Vercel Postgres (non-Supabase): map pooled vs non-pooled only when Supabase vars absent
 if (!env.DATABASE_URL?.trim()) {
   env.DATABASE_URL = env.POSTGRES_PRISMA_URL || env.POSTGRES_URL || "";
 }
 if (!env.DIRECT_URL?.trim()) {
   env.DIRECT_URL =
-    env.POSTGRES_URL_NON_POOLING ||
-    env.DATABASE_URL_UNPOOLED ||
-    env.DATABASE_URL ||
-    "";
+    env.POSTGRES_URL_NON_POOLING || env.DATABASE_URL_UNPOOLED || "";
 }
 
 const dbUrl = normalizeDbUrl(env.DATABASE_URL);
 const directUrl = normalizeDbUrl(env.DIRECT_URL);
 
 env.DATABASE_URL = dbUrl;
-env.DIRECT_URL = directUrl || dbUrl;
+env.DIRECT_URL = directUrl;
 
 if (!dbUrl) {
   console.error("[apply-production-fix] ERROR: DATABASE_URL is not set.");
@@ -78,6 +48,18 @@ if (!dbUrl) {
 if (!/^postgresql:\/\//.test(dbUrl)) {
   console.error("[apply-production-fix] ERROR: Invalid DATABASE_URL. Must start with postgresql://");
   console.error("  Got:", dbUrl ? dbUrl.slice(0, 30) + "..." : "(empty)");
+  process.exit(1);
+}
+
+const validation = validateSupabaseDbUrls(dbUrl, directUrl);
+if (dbUrl.includes("supabase") || directUrl.includes("supabase")) {
+  if (!validation.ok) {
+    console.error("[apply-production-fix] ERROR: Supabase URL configuration invalid:");
+    for (const e of validation.errors) console.error(`  - ${e}`);
+    process.exit(1);
+  }
+} else if (!directUrl) {
+  console.error("[apply-production-fix] ERROR: DIRECT_URL is required.");
   process.exit(1);
 }
 

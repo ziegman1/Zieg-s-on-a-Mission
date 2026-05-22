@@ -20,6 +20,33 @@ function cleanUrl(url: string | undefined): string {
   return (url ?? "").trim().replace(/^["']|["']$/g, "");
 }
 
+const POOLER_HOST = /\.pooler\.supabase\.com$/i;
+const DIRECT_HOST = /^db\.[a-z0-9]+\.supabase\.co$/i;
+
+function assertSupabaseUrlRoles(databaseUrl: string, directUrl: string): void {
+  const errors: string[] = [];
+  try {
+    const db = new URL(databaseUrl.replace(/^postgresql:\/\//, "http://"));
+    const direct = new URL(directUrl.replace(/^postgresql:\/\//, "http://"));
+    if (!POOLER_HOST.test(db.hostname) || db.port !== "6543") {
+      errors.push("DATABASE_URL must be pooler host :6543");
+    }
+    if (!DIRECT_HOST.test(direct.hostname) || direct.port !== "5432") {
+      errors.push("DIRECT_URL must be db.<ref>.supabase.co :5432");
+    }
+    if (databaseUrl === directUrl) {
+      errors.push("DATABASE_URL and DIRECT_URL must differ");
+    }
+  } catch {
+    errors.push("Invalid DATABASE_URL or DIRECT_URL");
+  }
+  if (errors.length > 0) {
+    console.error("[seed:mission-hub] URL configuration errors:");
+    for (const e of errors) console.error(`  - ${e}`);
+    process.exit(1);
+  }
+}
+
 function isLocalDatabase(url: string): boolean {
   return /localhost|127\.0\.0\.1/i.test(url);
 }
@@ -52,9 +79,13 @@ function requireRemoteSeedConfirmation(databaseUrl: string): void {
 
 async function main(): Promise<void> {
   const databaseUrl = cleanUrl(process.env.DATABASE_URL);
+  const directUrl = cleanUrl(process.env.DIRECT_URL);
   if (!databaseUrl) {
     console.error("[seed:mission-hub] DATABASE_URL is not set.");
     process.exit(1);
+  }
+  if (directUrl) {
+    assertSupabaseUrlRoles(databaseUrl, directUrl);
   }
 
   requireRemoteSeedConfirmation(databaseUrl);

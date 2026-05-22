@@ -8,23 +8,42 @@ In [Vercel](https://vercel.com) → Project → **Settings** → **Environment V
 
 | Variable | Typical Supabase value |
 |----------|------------------------|
-| `DATABASE_URL` | Connection pooler, port **6543**, `?pgbouncer=true` |
-| `DIRECT_URL` | Session mode / direct, port **5432** (migrations) |
+| `DATABASE_URL` | Transaction pooler `aws-*-*.pooler.supabase.com`, port **6543**, `?pgbouncer=true` |
+| `DIRECT_URL` | Direct host `db.<project-ref>.supabase.co`, port **5432** (migrations only) |
+
+**Do not swap these.** A common mistake is putting `db.*.supabase.co:6543` on `DATABASE_URL` or the pooler on `DIRECT_URL` — Prisma cannot connect and Mission Hub appears empty.
 
 Both must reference the **same** Supabase project ref (hostname contains `db.<project-ref>.supabase.co` or your pooler host).
 
 Copy values into a local file (never commit):
 
 ```bash
-# .env.production — gitignored; paste from Vercel Production env
-DATABASE_URL="postgresql://..."
-DIRECT_URL="postgresql://..."
+vercel env pull .env.production --environment=production --yes
+npm run db:validate:env:production
 ```
+
+Correct Supabase pattern (do **not** swap):
+
+```bash
+DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres"
+```
+
+Update the same values in **Vercel → Production** env vars, then redeploy.
+
+Production npm scripts use `dotenv -o` so a reversed `DATABASE_URL` in your shell cannot override `.env.production`.
 
 ## 2. Check migration and space state (read-only)
 
 ```bash
-npm run db:check:production
+env -u DATABASE_URL -u DIRECT_URL npm run db:check:production
+```
+
+Expected hosts:
+
+```
+DATABASE_URL host: aws-0-us-west-2.pooler.supabase.com:6543/postgres
+DIRECT_URL host: db.<project-ref>.supabase.co:5432/postgres
 ```
 
 This prints the DB host, migration status, existing spaces, and whether default slugs are missing.
@@ -34,8 +53,10 @@ This prints the DB host, migration status, existing spaces, and whether default 
 Uses `DIRECT_URL` for migration locking. **Does not run automatically on Vercel build.**
 
 ```bash
-npm run db:migrate:deploy:production
+env -u DATABASE_URL -u DIRECT_URL npm run db:migrate:deploy:production
 ```
+
+If `P1001` cannot reach `db.*.supabase.co:5432` from your network, run migrate from a host that can (or use Supabase SQL). Runtime only needs the pooler `DATABASE_URL` on Vercel.
 
 Or with explicit env file:
 
