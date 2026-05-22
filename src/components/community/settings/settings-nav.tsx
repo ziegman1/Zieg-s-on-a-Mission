@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Bell,
@@ -12,6 +13,8 @@ import {
   Users,
 } from "lucide-react";
 import type { SettingsSection } from "@/lib/community/settings-types";
+import { MissionHubNavLink } from "../mission-hub-nav-link";
+import { navTapActive, navTapBase, navTapPressed } from "../mission-hub-nav-styles";
 import { cn } from "@/lib/utils";
 
 const USER_NAV: {
@@ -39,23 +42,35 @@ function NavItem({
   label,
   icon: Icon,
   active,
+  pending,
   onNavigate,
+  onPending,
 }: {
   id: SettingsSection;
   label: string;
   icon: typeof User;
   active: boolean;
+  pending: boolean;
   onNavigate?: () => void;
+  onPending: (id: SettingsSection) => void;
 }) {
+  const href = `/community/settings?section=${id}`;
+  const selected = active || pending;
+
   return (
     <Link
-      href={`/community/settings?section=${id}`}
+      href={href}
+      prefetch
+      onPointerDown={() => onPending(id)}
       onClick={onNavigate}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-        active
+        navTapBase,
+        navTapPressed,
+        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium",
+        selected
           ? "bg-brand-primary/10 text-brand-primary"
           : "text-brand-ink/65 hover:bg-black/[0.03] hover:text-brand-ink",
+        navTapActive(selected, pending),
       )}
       aria-current={active ? "page" : undefined}
     >
@@ -77,17 +92,32 @@ export function SettingsNav({
   onNavigate?: () => void;
 }) {
   const searchParams = useSearchParams();
-  const section = searchParams.get("section") ?? activeSection;
+  const section = (searchParams.get("section") ?? activeSection) as SettingsSection;
+  const [pendingSection, setPendingSection] = useState<SettingsSection | null>(null);
+
+  useEffect(() => {
+    setPendingSection(null);
+  }, [section]);
+
+  const handlePending = (id: SettingsSection) => {
+    setPendingSection(id);
+  };
 
   return (
     <nav className={cn("flex flex-col min-h-0", className)} aria-label="Settings">
-      <Link
+      <MissionHubNavLink
         href="/community"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink/50 hover:text-brand-primary mb-4 px-1"
+        prefetch
+        activeFromPath={false}
+        className={cn(
+          navTapBase,
+          navTapPressed,
+          "inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink/50 hover:text-brand-primary mb-4 px-1",
+        )}
       >
         <ChevronLeft className="h-4 w-4" aria-hidden />
         Back to feed
-      </Link>
+      </MissionHubNavLink>
 
       <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-brand-ink/40 mb-1">
         Your settings
@@ -98,7 +128,9 @@ export function SettingsNav({
             key={item.id}
             {...item}
             active={section === item.id}
+            pending={pendingSection === item.id && section !== item.id}
             onNavigate={onNavigate}
+            onPending={handlePending}
           />
         ))}
       </div>
@@ -115,7 +147,9 @@ export function SettingsNav({
                 key={item.id}
                 {...item}
                 active={section === item.id}
+                pending={pendingSection === item.id && section !== item.id}
                 onNavigate={onNavigate}
+                onPending={handlePending}
               />
             ))}
           </div>

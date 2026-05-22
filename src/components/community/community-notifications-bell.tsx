@@ -118,11 +118,17 @@ export function CommunityNotificationsBell({
         type="button"
         onClick={() => {
           setOpen((v) => !v);
-          if (!open) void refreshCount();
+          if (!open) {
+            startTransition(() => {
+              void refreshCount();
+            });
+          }
         }}
         className={cn(
           "relative inline-flex h-10 w-10 items-center justify-center rounded-full",
-          "text-brand-ink/55 hover:text-brand-primary hover:bg-brand-surface/80 transition-colors",
+          "text-brand-ink/55 hover:text-brand-primary hover:bg-brand-surface/80",
+          "transition-[transform,background-color,color] duration-75 touch-manipulation",
+          "active:scale-[0.98] active:bg-black/[0.06]",
           open && "bg-brand-primary/10 text-brand-primary",
         )}
         aria-label={
@@ -184,9 +190,12 @@ export function CommunityNotificationsBell({
                   <li key={item.id}>
                     <Link
                       href={item.href}
+                      prefetch
                       onClick={() => handleItemClick(item)}
                       className={cn(
-                        "block px-3 py-2.5 hover:bg-brand-surface/60 transition-colors",
+                        "block px-3 py-2.5 hover:bg-brand-surface/60",
+                        "transition-[transform,background-color] duration-75 touch-manipulation",
+                        "active:scale-[0.99] active:bg-black/[0.04]",
                         !item.readAt && "bg-brand-primary/[0.04]",
                       )}
                     >

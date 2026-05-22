@@ -138,18 +138,39 @@ export function buildCommentThreads(rows: CommunityPostComment[]): CommunityPost
   }));
 }
 
-export async function listPublishedCommentsForPost(
+const moderatorVisibleCommentWhere = {
+  status: { in: ["published", "hidden"] },
+};
+
+export async function listCommentsForPost(
   postId: string,
+  options?: { includeHiddenForModerator?: boolean },
 ): Promise<CommunityPostCommentThread[]> {
+  const statusWhere = options?.includeHiddenForModerator
+    ? moderatorVisibleCommentWhere
+    : publishedCommentWhere;
+
   const [rows, ownerAvatars] = await Promise.all([
     prisma.communityPostCommentRecord.findMany({
-      where: { postId, ...publishedCommentWhere },
+      where: { postId, ...statusWhere },
       orderBy: { createdAt: "desc" },
       include: commentInclude,
     }),
     loadOwnerCommentAvatarsByDisplayName(),
   ]);
   return buildCommentThreads(rows.map((row) => recordToComment(row, ownerAvatars)));
+}
+
+export async function listPublishedCommentsForPost(
+  postId: string,
+): Promise<CommunityPostCommentThread[]> {
+  return listCommentsForPost(postId);
+}
+
+export async function countPublishedCommentsForPost(postId: string): Promise<number> {
+  return prisma.communityPostCommentRecord.count({
+    where: { postId, ...publishedCommentWhere },
+  });
 }
 
 export async function countPublishedCommentsForPosts(
@@ -287,4 +308,73 @@ export async function setCommentStatusForAdmin(
     data: { status },
   });
   return true;
+}
+
+type CommentModerationPostRef = {
+  postId: string;
+  spaceSlug: string | null;
+};
+
+async function getCommentPostRef(
+  commentId: string,
+): Promise<CommentModerationPostRef | null> {
+  const row = await prisma.communityPostCommentRecord.findUnique({
+    where: { id: commentId },
+    select: {
+      postId: true,
+      post: { select: { space: { select: { slug: true } } } },
+    },
+  });
+  if (!row) return null;
+  return { postId: row.postId, spaceSlug: row.post.space.slug };
+}
+
+export async function hideCommunityComment(
+  commentId: string,
+): Promise<CommentModerationPostRef | null> {
+  const ref = await getCommentPostRef(commentId);
+  if (!ref) return null;
+  await prisma.communityPostCommentRecord.update({
+    where: { id: commentId },
+    data: { status: "hidden" },
+  });
+  return ref;
+}
+
+export async function restoreCommunityComment(
+  commentId: string,
+): Promise<CommentModerationPostRef | null> {
+  const ref = await getCommentPostRef(commentId);
+  if (!ref) return null;
+  await prisma.communityPostCommentRecord.update({
+    where: { id: commentId },
+    data: { status: "published" },
+  });
+  return ref;
+}
+
+/** Permanently removes the comment row (replies cascade when deleting a parent). */
+export async function deleteCommunityComment(
+  commentId: string,
+): Promise<CommentModerationPostRef | null> {
+  const ref = await getCommentPostRef(commentId);
+  if (!ref) return null;
+  await prisma.communityPostCommentRecord.delete({
+    where: { id: commentId },
+  });
+  return ref;
+}
+
+export async function loadCommentsAfterModeration(
+  postId: string,
+  includeHiddenForModerator: boolean,
+): Promise<{
+  threads: CommunityPostCommentThread[];
+  commentCount: number;
+}> {
+  const [threads, commentCount] = await Promise.all([
+    listCommentsForPost(postId, { includeHiddenForModerator }),
+    countPublishedCommentsForPost(postId),
+  ]);
+  return { threads, commentCount };
 }

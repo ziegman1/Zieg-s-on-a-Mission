@@ -142,3 +142,12 @@
 html.mission-hub-standalone .mission-hub-root {
   min-height: 100dvh;
 }
+
+@keyframes mh-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

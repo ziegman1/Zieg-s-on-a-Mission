@@ -66,8 +66,9 @@ export function CommunityComments({
         return;
       }
       setThreads(res.threads);
+      onCommentCountChange?.(res.commentCount);
     });
-  }, [postId]);
+  }, [postId, onCommentCountChange]);
 
   useEffect(() => {
     loadComments();
@@ -109,7 +110,17 @@ export function CommunityComments({
     authorContext?.kind === "owner" ||
     (activeMember !== null && activeMember.status === "active");
 
+  const canModerate = authorContext?.kind === "owner";
+
   const isBlocked = activeMember?.status === "blocked";
+
+  function applyModerationResult(result: {
+    threads: CommunityPostCommentThread[];
+    commentCount: number;
+  }) {
+    setThreads(result.threads);
+    onCommentCountChange?.(result.commentCount);
+  }
 
   const prompt =
     commentPlaceholder?.trim() ||
@@ -197,6 +208,12 @@ export function CommunityComments({
                   : undefined
               }
               preset={preset}
+              canModerate={canModerate}
+              onModerated={(result) => {
+                startRefresh(() => {
+                  applyModerationResult(result);
+                });
+              }}
             />
           </>
         )}

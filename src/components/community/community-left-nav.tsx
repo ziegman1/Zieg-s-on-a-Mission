@@ -1,44 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Plus, Rows3, User } from "lucide-react";
 import type { CommunitySpace } from "@/lib/community/types";
+import { useCommunityNavPending } from "./community-nav-pending-context";
+import { MissionHubNavLink } from "./mission-hub-nav-link";
+import { navTapActive } from "./mission-hub-nav-styles";
 import { cn } from "@/lib/utils";
 import { CommunitySpaceIcon } from "./community-space-icon";
 
 function NavLink({
   href,
-  active,
+  activeFromPath,
   children,
   icon,
   ambient = false,
+  prefetch = true,
 }: {
   href: string;
-  active: boolean;
+  activeFromPath: boolean;
   children: React.ReactNode;
   icon?: React.ReactNode;
   ambient?: boolean;
+  prefetch?: boolean;
 }) {
+  const { isSelected, isPending } = useCommunityNavPending();
+  const selected = isSelected(href, activeFromPath);
+  const pending = isPending(href);
+
   return (
-    <Link
+    <MissionHubNavLink
       href={href}
+      prefetch={prefetch}
+      activeFromPath={activeFromPath}
       className={cn(
-        "flex items-center gap-2 rounded-md px-2.5 leading-tight transition-colors min-w-0",
+        "flex items-center gap-2 rounded-md px-2.5 leading-tight min-w-0",
         ambient ? "py-2 text-[12.5px] font-normal" : "py-1.5 text-[13px] font-medium",
-        active
-          ? ambient
-            ? "bg-brand-primary/[0.06] text-brand-primary/85"
-            : "bg-brand-primary/10 text-brand-primary"
-          : ambient
+        !selected &&
+          (ambient
             ? "text-brand-ink/48 hover:bg-black/[0.025] hover:text-brand-ink/72"
-            : "text-brand-ink/60 hover:bg-black/[0.04] hover:text-brand-ink",
+            : "text-brand-ink/60 hover:bg-black/[0.04] hover:text-brand-ink"),
+        navTapActive(selected, pending),
       )}
-      aria-current={active ? "page" : undefined}
     >
       {icon}
       <span className="truncate">{children}</span>
-    </Link>
+    </MissionHubNavLink>
   );
 }
 
@@ -57,15 +66,25 @@ export function CommunityLeftNav({
 }) {
   const ambient = variant === "ambient";
   const pathname = usePathname();
+  const router = useRouter();
   const isAllFeed = pathname === "/community";
   const activeSlug =
     activeSlugProp ??
     (pathname.startsWith("/community/") &&
-    !["login", "join", "profile", "spaces"].includes(
+    !["login", "join", "profile", "spaces", "settings"].includes(
       pathname.replace("/community/", "").split("/")[0] ?? "",
     )
       ? pathname.replace("/community/", "").split("/")[0]
       : null);
+
+  useEffect(() => {
+    router.prefetch("/community");
+    router.prefetch("/community/spaces");
+    router.prefetch("/community/settings");
+    for (const space of publishedSpaces) {
+      router.prefetch(`/community/${space.slug}`);
+    }
+  }, [router, publishedSpaces]);
 
   return (
     <nav
@@ -76,17 +95,19 @@ export function CommunityLeftNav({
       aria-label="Mission Hub"
     >
       <div className={cn("flex flex-col min-h-0 flex-1", ambient ? "py-2" : "py-1")}>
-        <Link
+        <MissionHubNavLink
           href="/community"
+          prefetch
+          activeFromPath={pathname === "/community"}
           className={cn(
-            "px-2.5 tracking-wide transition-colors",
+            "px-2.5 tracking-wide block",
             ambient
               ? "py-1.5 font-serif text-[14px] text-brand-ink/75 hover:text-brand-primary/90"
               : "py-2 font-serif text-[15px] text-brand-ink hover:text-brand-primary",
           )}
         >
           Mission Hub
-        </Link>
+        </MissionHubNavLink>
 
         <div
           className={cn(
@@ -96,7 +117,7 @@ export function CommunityLeftNav({
         >
           <NavLink
             href="/community"
-            active={isAllFeed && activeSlug === null}
+            activeFromPath={isAllFeed && activeSlug === null}
             ambient={ambient}
             icon={<Rows3 className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden />}
           >
@@ -107,7 +128,7 @@ export function CommunityLeftNav({
             <NavLink
               key={space.id}
               href={`/community/${space.slug}`}
-              active={activeSlug === space.slug}
+              activeFromPath={activeSlug === space.slug}
               ambient={ambient}
               icon={
                 <CommunitySpaceIcon
@@ -142,7 +163,7 @@ export function CommunityLeftNav({
         >
           <NavLink
             href="/community/settings"
-            active={pathname.startsWith("/community/settings")}
+            activeFromPath={pathname.startsWith("/community/settings")}
             ambient={ambient}
             icon={<User className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden />}
           >
@@ -151,8 +172,10 @@ export function CommunityLeftNav({
           {showAdminCreate ? (
             <Link
               href="/admin/community"
+              prefetch={false}
               className={cn(
-                "flex items-center gap-2 rounded-md px-2.5 transition-colors",
+                "flex items-center gap-2 rounded-md px-2.5 transition-[transform,background-color,color] duration-75",
+                "touch-manipulation active:scale-[0.98] active:bg-black/[0.06]",
                 ambient
                   ? "py-2 text-[11.5px] text-brand-ink/42 hover:text-brand-primary/85"
                   : "py-1.5 text-[12px] font-medium text-brand-ink/50 hover:text-brand-primary",

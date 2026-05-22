@@ -5,6 +5,7 @@ import { MH } from "@/lib/community/hub-design";
 import { CommunityBottomNav } from "./community-bottom-nav";
 import { CommunityInstallHint } from "./community-install-hint";
 import { CommunityTopbar } from "./community-topbar";
+import { MissionHubNavBoundary } from "./mission-hub-nav-boundary";
 import { MissionHubStandaloneInit } from "./mission-hub-standalone-init";
 import { MissionHubSwRegister } from "./mission-hub-sw-register";
 import { cn } from "@/lib/utils";
@@ -53,16 +54,18 @@ export function MissionHubShell({
         notificationUserId={notificationUserId}
         initialUnreadCount={initialUnreadCount}
       />
-      <main
-        className={cn(
-          "flex-1 w-full",
-          showBottomNav ? MH.bottomNavH : "pb-6",
-        )}
-      >
-        {showInstallHint ? <CommunityInstallHint signedIn={signedIn} /> : null}
-        {children}
-      </main>
-      {showBottomNav ? <CommunityBottomNav /> : null}
+      <MissionHubNavBoundary>
+        <main
+          className={cn(
+            "flex-1 w-full",
+            showBottomNav ? MH.bottomNavH : "pb-6",
+          )}
+        >
+          {showInstallHint ? <CommunityInstallHint signedIn={signedIn} /> : null}
+          {children}
+        </main>
+        {showBottomNav ? <CommunityBottomNav /> : null}
+      </MissionHubNavBoundary>
     </div>
   );
 }

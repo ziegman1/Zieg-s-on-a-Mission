@@ -47,6 +47,7 @@ export async function CommunityEngageRail({
           </p>
           <Link
             href="/partner"
+            prefetch
             className={cn(
               "flex w-full items-center justify-center rounded-full text-white transition-colors duration-200",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-2",

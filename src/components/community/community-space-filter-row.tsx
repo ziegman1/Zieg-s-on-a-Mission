@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { LayoutGrid } from "lucide-react";
 import type { CommunitySpace } from "@/lib/community/types";
 import { filterSpacesForFeedPills } from "@/lib/community/spiritual-room";
+import { useCommunityNavPending } from "./community-nav-pending-context";
+import { MissionHubNavLink } from "./mission-hub-nav-link";
+import { navTapActive } from "./mission-hub-nav-styles";
 import { CommunitySpacePill } from "./community-space-pill";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,10 @@ export function CommunitySpaceFilterRow({
 }) {
   const isAll = activeSlug === null;
   const visibleSpaces = filterSpacesForFeedPills(spaces);
+  const { isSelected, isPending } = useCommunityNavPending();
+  const allHref = "/community";
+  const allSelected = isSelected(allHref, isAll);
+  const allPending = isPending(allHref);
 
   return (
     <nav aria-label="Filter by space" className={cn("w-full min-w-0", className)}>
@@ -28,19 +34,22 @@ export function CommunitySpaceFilterRow({
           "lg:flex-wrap lg:overflow-visible lg:snap-none",
         )}
       >
-        <Link
-          href="/community"
+        <MissionHubNavLink
+          href={allHref}
+          prefetch
+          activeFromPath={isAll}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium transition-colors shrink-0 snap-start",
-            isAll
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium shrink-0 snap-start",
+            allSelected
               ? "bg-brand-ink/90 text-white"
               : "bg-white/50 text-brand-ink/65 hover:bg-white/75",
+            navTapActive(allSelected, allPending),
+            allSelected && "!bg-brand-ink/90 !text-white",
           )}
-          aria-current={isAll ? "page" : undefined}
         >
           <LayoutGrid className="h-3.5 w-3.5 shrink-0" aria-hidden />
           All
-        </Link>
+        </MissionHubNavLink>
         {visibleSpaces.map((space) => (
           <CommunitySpacePill
             key={space.id}

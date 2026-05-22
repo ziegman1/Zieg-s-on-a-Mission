@@ -57,11 +57,7 @@ export function CommunityPrayerThreadContent({
         return;
       }
       setThreads(res.threads);
-      const total = res.threads.reduce(
-        (n, t) => n + 1 + t.replies.length,
-        0,
-      );
-      onCommentCountChange?.(total);
+      onCommentCountChange?.(res.commentCount);
     });
   }, [postId, onCommentCountChange]);
 
@@ -80,6 +76,15 @@ export function CommunityPrayerThreadContent({
       ? authorContext.member
       : null;
   const isBlocked = activeMember?.status === "blocked";
+  const canModerate = authorContext?.kind === "owner";
+
+  function applyModerationResult(result: {
+    threads: CommunityPostCommentThread[];
+    commentCount: number;
+  }) {
+    setThreads(result.threads);
+    onCommentCountChange?.(result.commentCount);
+  }
 
   return (
     <div className="space-y-4">
@@ -96,6 +101,8 @@ export function CommunityPrayerThreadContent({
           canComment={false}
           preset={preset}
           prayerThreadLayout
+          canModerate={canModerate}
+          onModerated={applyModerationResult}
         />
       )}
 

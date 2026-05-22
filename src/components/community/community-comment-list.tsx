@@ -3,6 +3,7 @@
 import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
 import type { CommunityPostCommentThread } from "@/lib/community/types";
 import { CommunityCommentItem } from "./community-comment-item";
+import type { CommentModerationResult } from "./community-comment-moderation-menu";
 import { cn } from "@/lib/utils";
 
 export function CommunityCommentList({
@@ -11,6 +12,8 @@ export function CommunityCommentList({
   onReply,
   preset,
   prayerThreadLayout = false,
+  canModerate = false,
+  onModerated,
 }: {
   threads: CommunityPostCommentThread[];
   canComment: boolean;
@@ -18,6 +21,8 @@ export function CommunityCommentList({
   preset: SpaceInteractionPreset;
   /** Compact communal wall layout for prayer thread sheet */
   prayerThreadLayout?: boolean;
+  canModerate?: boolean;
+  onModerated?: (result: CommentModerationResult) => void;
 }) {
   const isPrayer = preset.mode === "prayer";
 
@@ -54,6 +59,8 @@ export function CommunityCommentList({
             onReply={onReply}
             preset={preset}
             prayerThreadLayout={prayerThreadLayout}
+            canModerate={canModerate}
+            onModerated={onModerated}
           />
           {replies.length > 0 ? (
             <ul className="space-y-1">
@@ -65,6 +72,8 @@ export function CommunityCommentList({
                     canReply={false}
                     preset={preset}
                     prayerThreadLayout={prayerThreadLayout}
+                    canModerate={canModerate}
+                    onModerated={onModerated}
                   />
                 </li>
               ))}

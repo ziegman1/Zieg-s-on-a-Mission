@@ -6,8 +6,12 @@ import { auth } from "@/auth";
 import { isAdminRole } from "@/lib/admin-users";
 import {
   createPublishedComment,
+  deleteCommunityComment,
+  hideCommunityComment,
   isPublishedPostForComments,
-  listPublishedCommentsForPost,
+  listCommentsForPost,
+  loadCommentsAfterModeration,
+  restoreCommunityComment,
 } from "@/lib/community/comments";
 import {
   formatMemberDisplayName,
@@ -15,7 +19,7 @@ import {
   ownerCommentDisplayName,
   resolveCommentMember,
 } from "@/lib/community/members";
-import { getCurrentCommunityOwner } from "@/lib/community/owner";
+import { getCurrentCommunityOwner, requireCommunityOwner } from "@/lib/community/owner";
 import type { CommunityPostCommentThread } from "@/lib/community/types";
 import { notifyCommentActivity } from "@/lib/community/notifications";
 import {
@@ -36,7 +40,7 @@ const createSchema = z.object({
 export async function loadPostCommentsAction(
   postId: string,
 ): Promise<
-  | { ok: true; threads: CommunityPostCommentThread[] }
+  | { ok: true; threads: CommunityPostCommentThread[]; commentCount: number }
   | { ok: false; error: string }
 > {
   if (!postId?.trim()) return { ok: false, error: "Invalid post" };
@@ -44,12 +48,79 @@ export async function loadPostCommentsAction(
   if (!published) return { ok: false, error: "Comments are not available on this post" };
 
   try {
-    const threads = await listPublishedCommentsForPost(postId);
-    return { ok: true, threads };
+    const owner = await getCurrentCommunityOwner();
+    const { threads, commentCount } = await loadCommentsAfterModeration(
+      postId,
+      Boolean(owner),
+    );
+    return { ok: true, threads, commentCount };
   } catch (e) {
     console.error(e);
     return { ok: false, error: "Could not load comments" };
   }
+}
+
+async function moderateCommentAndReload(
+  commentId: string,
+  mutate: (id: string) => Promise<{ postId: string; spaceSlug: string | null } | null>,
+): Promise<
+  | {
+      ok: true;
+      threads: CommunityPostCommentThread[];
+      commentCount: number;
+    }
+  | { ok: false; error: string }
+> {
+  const owner = await requireCommunityOwner();
+  if (!owner) return { ok: false, error: "Unauthorized" };
+
+  if (!commentId?.trim()) return { ok: false, error: "Invalid comment" };
+
+  try {
+    const ref = await mutate(commentId);
+    if (!ref) return { ok: false, error: "Comment not found" };
+
+    const { threads, commentCount } = await loadCommentsAfterModeration(
+      ref.postId,
+      true,
+    );
+
+    revalidatePath("/community");
+    if (ref.spaceSlug) revalidatePath(`/community/${ref.spaceSlug}`);
+    revalidatePath("/admin/community/comments");
+
+    return { ok: true, threads, commentCount };
+  } catch (e) {
+    console.error(e);
+    return { ok: false, error: "Could not update comment" };
+  }
+}
+
+export async function hideCommunityCommentAction(
+  commentId: string,
+): Promise<
+  | { ok: true; threads: CommunityPostCommentThread[]; commentCount: number }
+  | { ok: false; error: string }
+> {
+  return moderateCommentAndReload(commentId, hideCommunityComment);
+}
+
+export async function restoreCommunityCommentAction(
+  commentId: string,
+): Promise<
+  | { ok: true; threads: CommunityPostCommentThread[]; commentCount: number }
+  | { ok: false; error: string }
+> {
+  return moderateCommentAndReload(commentId, restoreCommunityComment);
+}
+
+export async function deleteCommunityCommentAction(
+  commentId: string,
+): Promise<
+  | { ok: true; threads: CommunityPostCommentThread[]; commentCount: number }
+  | { ok: false; error: string }
+> {
+  return moderateCommentAndReload(commentId, deleteCommunityComment);
 }
 
 export async function createPostCommentAction(
@@ -130,7 +201,10 @@ export async function createPostCommentAction(
       memberId,
       parentCommentId: parentCommentId ?? null,
     });
-    const threads = await listPublishedCommentsForPost(postId);
+    const ownerAfter = await getCurrentCommunityOwner();
+    const threads = await listCommentsForPost(postId, {
+      includeHiddenForModerator: Boolean(ownerAfter),
+    });
 
     await notifyCommentActivity({
       commentId: comment.id,
