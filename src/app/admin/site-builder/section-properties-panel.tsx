@@ -3,6 +3,7 @@
 import type { SectionFieldDef } from "@/lib/site-builder/registry";
 import { registryFor } from "@/lib/site-builder/registry";
 import { contentStr, newListItem, visibleListItems } from "@/lib/site-builder/content-utils";
+import { patchSectionContent } from "@/lib/site-builder/patch-section";
 import type { ListItem, PageSection, SectionType } from "@/lib/site-builder/types";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
 import { Button } from "@/components/ui/button";
@@ -81,11 +82,13 @@ function FieldEditor({
   section: PageSection;
   onChange: (s: PageSection) => void;
 }) {
-  const content = section.content;
+  const setField = (value: unknown) => {
+    onChange(patchSectionContent(section, field.key, value));
+  };
 
   if (field.kind === "list") {
-    const items = Array.isArray(content[field.key])
-      ? (content[field.key] as ListItem[])
+    const items = Array.isArray(section.content[field.key])
+      ? (section.content[field.key] as ListItem[])
       : [];
     return (
       <ListFieldEditor
@@ -102,18 +105,13 @@ function FieldEditor({
     return (
       <AdminImageUrlField
         label={field.label}
-        value={contentStr(content, field.key)}
-        onChange={(v) =>
-          onChange({
-            ...section,
-            content: { ...content, [field.key]: v },
-          })
-        }
+        value={contentStr(section.content, field.key)}
+        onChange={(v) => setField(v)}
       />
     );
   }
 
-  const value = contentStr(content, field.key);
+  const value = contentStr(section.content, field.key);
   const isLong = field.kind === "textarea" || field.kind === "rich_text";
 
   return (
@@ -123,16 +121,12 @@ function FieldEditor({
         <Textarea
           rows={4}
           value={value}
-          onChange={(e) =>
-            onChange({ ...section, content: { ...content, [field.key]: e.target.value } })
-          }
+          onChange={(e) => setField(e.target.value)}
         />
       ) : (
         <Input
           value={value}
-          onChange={(e) =>
-            onChange({ ...section, content: { ...content, [field.key]: e.target.value } })
-          }
+          onChange={(e) => setField(e.target.value)}
         />
       )}
     </div>

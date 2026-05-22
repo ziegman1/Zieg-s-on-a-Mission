@@ -6,6 +6,7 @@ import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export function ImageTextSplitSection({
   section: PageSection;
   index: number;
 }) {
+  const ctx = useBuilderPreview();
   const c = section.content;
   const title = contentStr(c, "headline");
   const body = contentStr(c, "body");
@@ -23,7 +25,7 @@ export function ImageTextSplitSection({
   const ctaUrl = contentStr(c, "ctaUrl") || "#";
   const imgUrl = contentStr(c, "imageUrl").trim();
 
-  if (!title.trim() && !body.trim()) return null;
+  if (!ctx?.editMode && !title.trim() && !body.trim()) return null;
 
   const isTextLeft = index % 2 === 0;
   const sectionBg = index % 2 === 0 ? "bg-white" : "bg-neutral-50";
@@ -33,14 +35,18 @@ export function ImageTextSplitSection({
 
   const textColumn = (
     <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4 space-y-3">
-      {title.trim() && fieldVisible(c, "headline") ? (
+      {(title.trim() || ctx?.editMode) && fieldVisible(c, "headline") ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-          <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{title}</h2>
+          <h2 className="font-serif text-2xl text-brand-primary tracking-wide">
+            {title.trim() || (ctx?.editMode ? "Headline…" : "")}
+          </h2>
         </EditableElement>
       ) : null}
-      {body.trim() && fieldVisible(c, "body") ? (
+      {(body.trim() || ctx?.editMode) && fieldVisible(c, "body") ? (
         <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-          <p className="text-brand-ink/85 leading-relaxed whitespace-pre-wrap">{body}</p>
+          <p className="text-brand-ink/85 leading-relaxed whitespace-pre-wrap">
+            {body.trim() || (ctx?.editMode ? "Body text…" : "")}
+          </p>
         </EditableElement>
       ) : null}
       {ctaLabel.trim() ? (

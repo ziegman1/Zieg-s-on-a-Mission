@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
 
 const heroTitle = Dancing_Script({
@@ -54,6 +55,7 @@ export function HeroSection({
   className?: string;
   useScriptTitle?: boolean;
 }) {
+  const ctx = useBuilderPreview();
   const c = section.content;
   const src = contentStr(c, "imageUrl").trim() || DEFAULT_HOME_HERO_IMAGE_PATH;
   const eyebrow = contentStr(c, "eyebrow");
@@ -70,7 +72,7 @@ export function HeroSection({
   const imgStyle = getFieldStyle(c, "image");
   const { className: imgCls, style: imgInline } = elementStyleProps(imgStyle);
 
-  if (!headline.trim() && !body.trim()) return null;
+  if (!ctx?.editMode && !headline.trim() && !body.trim()) return null;
 
   return (
     <section

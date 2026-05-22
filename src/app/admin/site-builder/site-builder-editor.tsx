@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { BuilderPreviewProvider } from "@/components/site-builder/builder-preview-context";
 import { PageSectionsRenderer } from "@/components/site-builder/page-sections-renderer";
@@ -9,6 +9,7 @@ import type { PageSection, SectionType } from "@/lib/site-builder/types";
 import { registryFor } from "@/lib/site-builder/registry";
 import { newBlockId } from "@/lib/site-copy-blocks/utils";
 import { selectionFromElement } from "@/lib/site-builder/section-elements";
+import { replaceSectionInList } from "@/lib/site-builder/patch-section";
 import {
   loadBuilderPageAction,
   publishAllBuilderPagesAction,
@@ -51,6 +52,9 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
   const [confirmRestore, setConfirmRestore] = useState(false);
 
   const sections = pages[activePage]?.sections ?? [];
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
+
   const selectedSection = sections.find((s) => s.id === selectedSectionId) ?? null;
   const pageMeta = BUILDER_PAGES.find((p) => p.pageKey === activePage);
   const pageLabel = pageMeta?.label ?? activePage;
@@ -81,55 +85,115 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
     [activePage],
   );
 
-  function patchSection(id: string, next: PageSection) {
-    updateSections(sections.map((s) => (s.id === id ? next : s)));
-  }
+  const patchSection = useCallback(
+    (id: string, next: PageSection) => {
+      setPages((p) => {
+        const current = p[activePage]?.sections ?? [];
+        return {
+          ...p,
+          [activePage]: {
+            sections: replaceSectionInList(current, id, next),
+            hasCustom: p[activePage]?.hasCustom ?? false,
+          },
+        };
+      });
+      setDirty(true);
+    },
+    [activePage],
+  );
 
-  function moveSection(index: number, dir: -1 | 1) {
-    const next = [...sections];
-    const target = index + dir;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target]!, next[index]!];
-    updateSections(next.map((s, i) => ({ ...s, sortOrder: i })));
-  }
+  const moveSection = useCallback(
+    (index: number, dir: -1 | 1) => {
+      setPages((p) => {
+        const current = [...(p[activePage]?.sections ?? [])];
+        const target = index + dir;
+        if (target < 0 || target >= current.length) return p;
+        [current[index], current[target]] = [current[target]!, current[index]!];
+        return {
+          ...p,
+          [activePage]: {
+            sections: current.map((s, i) => ({ ...s, sortOrder: i })),
+            hasCustom: p[activePage]?.hasCustom ?? false,
+          },
+        };
+      });
+      setDirty(true);
+    },
+    [activePage],
+  );
 
-  function duplicateSection(section: PageSection) {
-    const copy: PageSection = {
-      ...structuredClone(section),
-      id: newBlockId(),
-      sectionKey: `${section.sectionKey}-copy-${Date.now()}`,
-      label: `${section.label} (copy)`,
-      sortOrder: sections.length,
-    };
-    updateSections([...sections, copy]);
-  }
+  const duplicateSection = useCallback(
+    (section: PageSection) => {
+      setPages((p) => {
+        const current = p[activePage]?.sections ?? [];
+        const copy: PageSection = {
+          ...structuredClone(section),
+          id: newBlockId(),
+          sectionKey: `${section.sectionKey}-copy-${Date.now()}`,
+          label: `${section.label} (copy)`,
+          sortOrder: current.length,
+        };
+        return {
+          ...p,
+          [activePage]: { sections: [...current, copy], hasCustom: p[activePage]?.hasCustom ?? false },
+        };
+      });
+      setDirty(true);
+    },
+    [activePage],
+  );
 
-  function deleteSection(id: string) {
-    updateSections(sections.filter((s) => s.id !== id));
-    if (selectedSectionId === id) {
-      setSelectedSectionId(null);
+  const deleteSection = useCallback(
+    (id: string) => {
+      setPages((p) => {
+        const current = p[activePage]?.sections ?? [];
+        return {
+          ...p,
+          [activePage]: {
+            sections: current.filter((s) => s.id !== id),
+            hasCustom: p[activePage]?.hasCustom ?? false,
+          },
+        };
+      });
+      setDirty(true);
+      if (selectedSectionId === id) {
+        setSelectedSectionId(null);
+        setSelectedElementId(null);
+      }
+    },
+    [activePage, selectedSectionId],
+  );
+
+  const addSection = useCallback(
+    (type: SectionType) => {
+      const reg = registryFor(type);
+      const key = `custom-${Date.now()}`;
+      let newId = "";
+      setPages((p) => {
+        const current = p[activePage]?.sections ?? [];
+        const block: PageSection = {
+          id: newBlockId(),
+          pageKey: activePage,
+          sectionKey: key,
+          sectionType: type,
+          label: `New ${reg.label}`,
+          visible: true,
+          sortOrder: current.length,
+          content: structuredClone(reg.defaultContent),
+          settings: structuredClone(reg.defaultSettings ?? {}),
+        };
+        newId = block.id;
+        return {
+          ...p,
+          [activePage]: { sections: [...current, block], hasCustom: p[activePage]?.hasCustom ?? false },
+        };
+      });
+      setDirty(true);
+      setSelectedSectionId(newId);
       setSelectedElementId(null);
-    }
-  }
-
-  function addSection(type: SectionType) {
-    const reg = registryFor(type);
-    const key = `custom-${Date.now()}`;
-    const block: PageSection = {
-      id: newBlockId(),
-      pageKey: activePage,
-      sectionKey: key,
-      sectionType: type,
-      label: `New ${reg.label}`,
-      visible: true,
-      sortOrder: sections.length,
-      content: structuredClone(reg.defaultContent),
-      settings: structuredClone(reg.defaultSettings ?? {}),
-    };
-    updateSections([...sections, block]);
-    setSelectedSectionId(block.id);
-    setSelectedElementId(null);
-  }
+    },
+    [activePage],
+  );
 
   async function applySaveResult(res: Awaited<ReturnType<typeof saveBuilderPageAction>>) {
     if (!res.ok) {
@@ -171,14 +235,16 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
     setStatus("saving");
     setError(null);
     setSuccessMessage(null);
-    await applySaveResult(await saveBuilderPageAction(activePage, sections));
+    const toSave = sectionsRef.current;
+    await applySaveResult(await saveBuilderPageAction(activePage, toSave));
   }
 
   async function handlePublishAll() {
     setStatus("saving");
     setError(null);
     setSuccessMessage(null);
-    const res = await publishAllBuilderPagesAction(activePage, sections);
+    const toSave = sectionsRef.current;
+    const res = await publishAllBuilderPagesAction(activePage, toSave);
     if (!res.ok) {
       setStatus("error");
       setError(res.error);
@@ -193,7 +259,7 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
     }
     setDirty(false);
     setStatus("saved");
-    setSuccessMessage(res.message);
+    setSuccessMessage(`Saved and revalidated — ${res.message}`);
     setSaveDiagnostics(`Revalidated ${res.revalidated.length} paths`);
     setTimeout(() => setStatus("idle"), 5000);
   }

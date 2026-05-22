@@ -12,9 +12,24 @@ import {
   formatSiteBuilderSaveError,
   logSiteBuilderSaveError,
 } from "@/lib/site-builder/save-errors";
+import { contentStr } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { BUILDER_PAGES, PAGE_REVALIDATE_PATHS } from "@/lib/site-builder/types";
 import { requireAdminSession } from "@/lib/admin-auth";
+
+function logSavePayload(pageKey: string, sections: PageSection[]) {
+  const sample = sections.slice(0, 12).map((s) => ({
+    section_key: s.sectionKey,
+    section_type: s.sectionType,
+    headline: contentStr(s.content, "headline").slice(0, 120),
+    body: contentStr(s.content, "body").slice(0, 120),
+  }));
+  console.info("[site-builder] save payload", {
+    page_key: pageKey,
+    section_count: sections.length,
+    sections: sample,
+  });
+}
 
 const ALL_PAGE_KEYS = BUILDER_PAGES.map((p) => p.pageKey);
 
@@ -70,11 +85,12 @@ export async function saveBuilderPageAction(
   if (!session) return { ok: false, error: "Unauthorized" };
 
   try {
+    logSavePayload(pageKey, sections);
     const result = await savePageSections(pageKey, sections);
     await revalidateForPage(pageKey);
     const diagnostics = await getPageSectionsDiagnostics(pageKey);
     const label = pageLabel(pageKey);
-    const message = `Saved ${result.savedCount} section${result.savedCount === 1 ? "" : "s"} for ${label}`;
+    const message = `Saved and revalidated ${result.savedCount} section${result.savedCount === 1 ? "" : "s"} for ${label}`;
 
     return {
       ok: true,
@@ -154,7 +170,7 @@ export async function publishAllBuilderPagesAction(
     const label = pageLabel(pageKey);
     return {
       ok: true,
-      message: `Published ${saveResult.savedCount} section${saveResult.savedCount === 1 ? "" : "s"} for ${label} and refreshed ${revalidated.length} storefront paths`,
+      message: `Saved and revalidated ${saveResult.savedCount} section${saveResult.savedCount === 1 ? "" : "s"} for ${label} (${revalidated.length} paths)`,
       revalidated,
     };
   } catch (e) {
