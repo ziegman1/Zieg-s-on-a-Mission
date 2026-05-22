@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getMonthlyGivingHref, getOneTimeGivingHref } from "@/data/partnership-content";
 import { getSiteCopy } from "@/lib/site-copy";
+import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
@@ -14,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function PartnerPage() {
+async function LegacyPartnerPage() {
   const copy = await getSiteCopy();
   const p = copy.partnerPage;
   const monthlyHref = getMonthlyGivingHref();
@@ -173,4 +174,8 @@ export default async function PartnerPage() {
       </section>
     </div>
   );
+}
+
+export default async function PartnerPage() {
+  return renderStorefrontPage("partner", LegacyPartnerPage);
 }

@@ -353,6 +353,25 @@ model SiteCopy {
   updatedAt DateTime @updatedAt
 }
 
+/// Visual site builder sections (storefront pages).
+model SitePageSection {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pageKey     String   @map("page_key")
+  sectionKey  String   @map("section_key")
+  sectionType String   @map("section_type")
+  label       String   @default("")
+  visible     Boolean  @default(true)
+  sortOrder   Int      @default(0) @map("sort_order")
+  content     Json     @default("{}")
+  settings    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([pageKey, sectionKey])
+  @@index([pageKey, sortOrder])
+  @@map("site_page_sections")
+}
+
 // ——— Mission Hub community (Supabase `community_spaces` + RLS) ———
 model CommunitySpaceRecord {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid

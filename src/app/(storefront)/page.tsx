@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import { Dancing_Script } from "next/font/google";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
 import { getSiteCopy, homeHeroWithHrefs } from "@/lib/site-copy";
+import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 import { Button } from "@/components/ui/button";
 
 const heroTitle = Dancing_Script({
@@ -10,7 +11,13 @@ const heroTitle = Dancing_Script({
   weight: ["400", "600", "700"],
 });
 
-export default async function HomePage() {
+function LegacyHomePage() {
+  return (
+    <LegacyHomeContent />
+  );
+}
+
+async function LegacyHomeContent() {
   const copy = await getSiteCopy();
   const hero = homeHeroWithHrefs(copy);
   const guided = copy.homeGuided;
@@ -29,10 +36,6 @@ export default async function HomePage() {
           />
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgb(234_229_225/0.48)_0%,rgb(234_229_225/0.09)_28%,transparent_52%)] sm:bg-[linear-gradient(to_right,rgb(234_229_225/0.4)_0%,rgb(234_229_225/0.05)_26%,transparent_48%)]" />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-surface/22 via-transparent to-transparent sm:from-brand-surface/12 pointer-events-none" />
-          <div
-            className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_100%_72%_at_22%_48%,rgb(234_229_225/0.24)_0%,rgb(234_229_225/0.08)_42%,transparent_62%)] sm:bg-[radial-gradient(ellipse_90%_62%_at_20%_46%,rgb(234_229_225/0.2)_0%,rgb(234_229_225/0.06)_40%,transparent_58%)]"
-            aria-hidden
-          />
         </div>
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 py-12 sm:py-16 flex flex-col justify-center min-h-[min(90vh,52rem)]">
           <div className="max-w-[min(100%,calc(36rem-75px))] text-left -translate-y-[50px]">
@@ -74,74 +77,67 @@ export default async function HomePage() {
         {guided.sections
           .filter((section) => section.title.trim() || section.body.trim())
           .map((section, i) => {
-          const isTextLeft = i % 2 === 0;
-          const sectionBg = i % 2 === 0 ? "bg-white" : "bg-neutral-50";
-          const imgUrl = section.imageUrl?.trim();
+            const isTextLeft = i % 2 === 0;
+            const sectionBg = i % 2 === 0 ? "bg-white" : "bg-neutral-50";
+            const imgUrl = section.imageUrl?.trim();
 
-          const textColumn = (
-            <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4">
-              <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{section.title}</h2>
-              <p className="mt-3 text-brand-ink/85 leading-relaxed">{section.body}</p>
-              <Link
-                href={section.href}
-                className="text-blue-600 hover:underline mt-4 inline-block font-medium"
-              >
-                {section.ctaLabel}
-              </Link>
-            </div>
-          );
+            const textColumn = (
+              <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4">
+                <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{section.title}</h2>
+                <p className="mt-3 text-brand-ink/85 leading-relaxed">{section.body}</p>
+                <Link
+                  href={section.href}
+                  className="text-blue-600 hover:underline mt-4 inline-block font-medium"
+                >
+                  {section.ctaLabel}
+                </Link>
+              </div>
+            );
 
-          const spacerColumn = (
-            <div
-              className="hidden md:block md:col-span-1 min-h-[5rem]"
-              aria-hidden
-            />
-          );
+            const visualColumn = imgUrl ? (
+              <div className="col-span-2 md:col-span-1 flex items-center justify-center md:justify-end">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imgUrl}
+                  alt=""
+                  className="max-h-64 w-full max-w-md rounded-lg object-cover shadow-sm border border-gray-200/80"
+                />
+              </div>
+            ) : (
+              <div className="hidden md:block md:col-span-1 min-h-[5rem]" aria-hidden />
+            );
 
-          const visualColumn = imgUrl ? (
-            <div className="col-span-2 md:col-span-1 flex items-center justify-center md:justify-end">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imgUrl}
-                alt=""
-                className="max-h-64 w-full max-w-md rounded-lg object-cover shadow-sm border border-gray-200/80"
-              />
-            </div>
-          ) : (
-            spacerColumn
-          );
-
-          return (
-            <Fragment key={section.id}>
-              <section className={sectionBg}>
-                <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
-                  <div className="border-t border-gray-200 w-full mb-8 sm:mb-10" />
-                  <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
-                    {isTextLeft ? (
-                      <>
-                        {textColumn}
-                        {visualColumn}
-                      </>
-                    ) : (
-                      <>
-                        {visualColumn}
-                        {textColumn}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              {section.id === "mission" && guided.scrollBreakBody.trim() ? (
-                <section className="py-16 sm:py-20 bg-blue-50">
-                  <div className="max-w-3xl mx-auto px-6 text-center text-lg text-gray-700 leading-relaxed">
-                    {guided.scrollBreakBody}
+            return (
+              <Fragment key={section.id}>
+                <section className={sectionBg}>
+                  <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
+                    <div className="border-t border-gray-200 w-full mb-8 sm:mb-10" />
+                    <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
+                      {isTextLeft ? (
+                        <>
+                          {textColumn}
+                          {visualColumn}
+                        </>
+                      ) : (
+                        <>
+                          {visualColumn}
+                          {textColumn}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </section>
-              ) : null}
-            </Fragment>
-          );
-        })}
+
+                {section.id === "mission" && guided.scrollBreakBody.trim() ? (
+                  <section className="py-16 sm:py-20 bg-blue-50">
+                    <div className="max-w-3xl mx-auto px-6 text-center text-lg text-gray-700 leading-relaxed">
+                      {guided.scrollBreakBody}
+                    </div>
+                  </section>
+                ) : null}
+              </Fragment>
+            );
+          })}
 
         <section className="bg-white">
           <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
@@ -171,4 +167,8 @@ export default async function HomePage() {
       </div>
     </div>
   );
+}
+
+export default async function HomePage() {
+  return renderStorefrontPage("home", LegacyHomePage);
 }

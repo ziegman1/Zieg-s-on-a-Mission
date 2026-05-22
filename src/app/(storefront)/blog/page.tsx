@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MinistryPageShell } from "@/components/ministry-page-shell";
 import { getSiteCopy } from "@/lib/site-copy";
+import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
@@ -11,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function BlogPage() {
+async function LegacyBlogPage() {
   const copy = await getSiteCopy();
   const { title, lede, intro, topicsHeading, topics, emptyNote } = copy.blog;
 
@@ -57,4 +58,8 @@ export default async function BlogPage() {
       </nav>
     </MinistryPageShell>
   );
+}
+
+export default async function BlogPage() {
+  return renderStorefrontPage("blog", LegacyBlogPage);
 }

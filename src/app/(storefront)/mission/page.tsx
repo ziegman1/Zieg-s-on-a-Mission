@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MinistryPageShell } from "@/components/ministry-page-shell";
 import { getSiteCopy } from "@/lib/site-copy";
+import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
@@ -11,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function MissionPage() {
+async function LegacyMissionPage() {
   const copy = await getSiteCopy();
   const { title, lede, focusHeading, bullets, merchHeading, merchBody } = copy.mission;
 
@@ -68,4 +69,8 @@ export default async function MissionPage() {
       </nav>
     </MinistryPageShell>
   );
+}
+
+export default async function MissionPage() {
+  return renderStorefrontPage("mission", LegacyMissionPage);
 }

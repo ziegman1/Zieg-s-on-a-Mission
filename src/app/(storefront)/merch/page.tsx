@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getSiteCopy } from "@/lib/site-copy";
+import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function MerchPage() {
+async function LegacyMerchPage() {
   const copy = await getSiteCopy();
   const m = copy.merchPage;
 
@@ -60,4 +61,8 @@ export default async function MerchPage() {
       </p>
     </main>
   );
+}
+
+export default async function MerchPage() {
+  return renderStorefrontPage("merch", LegacyMerchPage);
 }

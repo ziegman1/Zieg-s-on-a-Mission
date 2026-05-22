@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getMonthlyGivingHref, getOneTimeGivingHref } from "@/data/partnership-content";
 import { getSiteCopy } from "@/lib/site-copy";
+import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
@@ -13,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function GivePage() {
+async function LegacyGivePage() {
   const copy = await getSiteCopy();
   const g = copy.givePage;
   const tiers = copy.partnerPage.tiers;
@@ -115,4 +116,8 @@ export default async function GivePage() {
       </div>
     </article>
   );
+}
+
+export default async function GivePage() {
+  return renderStorefrontPage("give", LegacyGivePage);
 }

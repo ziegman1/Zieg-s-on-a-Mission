@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPageShell } from "../legal/page-shell";
 import { getSiteCopy } from "@/lib/site-copy";
+import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
@@ -11,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function ContactPage() {
+async function LegacyContactPage() {
   const copy = await getSiteCopy();
   const email = copy.legalSupport.supportEmail;
   const { intro, responseExpectation, helpHeading, helpBullets, beforeContactLead } = copy.contact;
@@ -63,4 +64,8 @@ export default async function ContactPage() {
       </p>
     </LegalPageShell>
   );
+}
+
+export default async function ContactPage() {
+  return renderStorefrontPage("contact", LegacyContactPage);
 }

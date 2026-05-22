@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 const adminNav = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/stats", label: "Stats" },
-  { href: "/admin/site-copy", label: "Site copy" },
+  { href: "/admin/site-builder", label: "Site builder" },
   { href: "/admin/community", label: "Community" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/orders", label: "Orders" },
