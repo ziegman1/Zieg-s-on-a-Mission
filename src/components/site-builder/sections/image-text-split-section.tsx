@@ -1,6 +1,13 @@
+"use client";
+
 import Link from "next/link";
-import { contentStr } from "@/lib/site-builder/content-utils";
+import { contentStr, fieldVisible } from "@/lib/site-builder/content-utils";
+import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
+import { EditableElement } from "../editable-element";
+import { ContentElementsBlock } from "../content-elements-block";
+import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
+import { cn } from "@/lib/utils";
 
 export function ImageTextSplitSection({
   section,
@@ -20,28 +27,51 @@ export function ImageTextSplitSection({
 
   const isTextLeft = index % 2 === 0;
   const sectionBg = index % 2 === 0 ? "bg-white" : "bg-neutral-50";
+  const imgStyle = getFieldStyle(c, "image");
+  const { className: imgCls, style: imgInline } = elementStyleProps(imgStyle);
+  const btnStyle = getFieldStyle(c, "cta:primary");
 
   const textColumn = (
-    <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4">
-      <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{title}</h2>
-      <p className="mt-3 text-brand-ink/85 leading-relaxed whitespace-pre-wrap">{body}</p>
-      {ctaLabel.trim() ? (
-        <Link href={ctaUrl} className="text-blue-600 hover:underline mt-4 inline-block font-medium">
-          {ctaLabel}
-        </Link>
+    <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4 space-y-3">
+      {title.trim() && fieldVisible(c, "headline") ? (
+        <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
+          <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{title}</h2>
+        </EditableElement>
       ) : null}
+      {body.trim() && fieldVisible(c, "body") ? (
+        <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
+          <p className="text-brand-ink/85 leading-relaxed whitespace-pre-wrap">{body}</p>
+        </EditableElement>
+      ) : null}
+      {ctaLabel.trim() ? (
+        <EditableElement sectionId={section.id} elementId="cta:primary" style={btnStyle}>
+          <Link href={ctaUrl} className={cn(buttonClassesFromStyle(btnStyle), "hover:underline")}>
+            {ctaLabel}
+          </Link>
+        </EditableElement>
+      ) : null}
+      <ContentElementsBlock section={section} />
     </div>
   );
 
   const visualColumn = imgUrl ? (
-    <div className="col-span-2 md:col-span-1 flex items-center justify-center md:justify-end">
+    <EditableElement
+      sectionId={section.id}
+      elementId="image"
+      style={imgStyle}
+      className="col-span-2 md:col-span-1 flex items-center justify-center md:justify-end"
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={imgUrl}
         alt={contentStr(c, "imageAlt")}
-        className="max-h-64 w-full max-w-md rounded-lg object-cover shadow-sm border border-gray-200/80"
+        className={cn(
+          "max-h-64 w-full max-w-md rounded-lg object-cover shadow-sm border border-gray-200/80",
+          imgCls,
+        )}
+        style={imgInline}
       />
-    </div>
+    </EditableElement>
   ) : (
     <div className="hidden md:block md:col-span-1 min-h-[5rem]" aria-hidden />
   );

@@ -1,3 +1,5 @@
+export { dynamic } from "@/lib/site-builder/storefront-dynamic";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

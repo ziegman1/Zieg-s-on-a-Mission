@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { BuilderPreviewProvider } from "@/components/site-builder/builder-preview-context";
 import { PageSectionsRenderer } from "@/components/site-builder/page-sections-renderer";
 import { BUILDER_PAGES } from "@/lib/site-builder/types";
 import type { PageSection, SectionType } from "@/lib/site-builder/types";
 import { registryFor } from "@/lib/site-builder/registry";
 import { newBlockId } from "@/lib/site-copy-blocks/utils";
+import { selectionFromElement } from "@/lib/site-builder/section-elements";
 import {
+  loadBuilderPageAction,
   publishAllBuilderPagesAction,
   restoreBuilderPageDefaultsAction,
   restoreBuilderSectionDefaultsAction,
@@ -17,6 +20,7 @@ import {
   AddSectionPicker,
   SectionPropertiesPanel,
 } from "./section-properties-panel";
+import { ElementPropertiesPanel } from "./element-properties-panel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -37,15 +41,24 @@ type PageData = Record<
 export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) {
   const [pages, setPages] = useState<PageData>(initialPages);
   const [activePage, setActivePage] = useState("home");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [saveDiagnostics, setSaveDiagnostics] = useState<string | null>(null);
   const [confirmRestore, setConfirmRestore] = useState(false);
 
   const sections = pages[activePage]?.sections ?? [];
-  const selected = sections.find((s) => s.id === selectedId) ?? null;
+  const selectedSection = sections.find((s) => s.id === selectedSectionId) ?? null;
   const pageMeta = BUILDER_PAGES.find((p) => p.pageKey === activePage);
+  const pageLabel = pageMeta?.label ?? activePage;
+
+  const elementSelection = useMemo(() => {
+    if (!selectedSection || !selectedElementId) return null;
+    return selectionFromElement(selectedSection, selectedElementId);
+  }, [selectedSection, selectedElementId]);
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -93,7 +106,10 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
 
   function deleteSection(id: string) {
     updateSections(sections.filter((s) => s.id !== id));
-    if (selectedId === id) setSelectedId(null);
+    if (selectedSectionId === id) {
+      setSelectedSectionId(null);
+      setSelectedElementId(null);
+    }
   }
 
   function addSection(type: SectionType) {
@@ -111,32 +127,75 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
       settings: structuredClone(reg.defaultSettings ?? {}),
     };
     updateSections([...sections, block]);
-    setSelectedId(block.id);
+    setSelectedSectionId(block.id);
+    setSelectedElementId(null);
+  }
+
+  async function applySaveResult(res: Awaited<ReturnType<typeof saveBuilderPageAction>>) {
+    if (!res.ok) {
+      setStatus("error");
+      setError(res.error);
+      setSuccessMessage(null);
+      setSaveDiagnostics(null);
+      return false;
+    }
+    const reload = await loadBuilderPageAction(activePage);
+    if (reload.ok) {
+      setPages((p) => ({
+        ...p,
+        [activePage]: { sections: reload.sections, hasCustom: reload.hasCustom },
+      }));
+      if (selectedSectionId) {
+        const still = reload.sections.find((s) => s.sectionKey === sections.find((x) => x.id === selectedSectionId)?.sectionKey);
+        if (still) setSelectedSectionId(still.id);
+      }
+    } else {
+      setPages((p) => ({
+        ...p,
+        [activePage]: { sections, hasCustom: true },
+      }));
+    }
+    setDirty(false);
+    setStatus("saved");
+    setError(null);
+    setSuccessMessage(res.message);
+    const diag = res.diagnostics;
+    setSaveDiagnostics(
+      `page_key=${res.pageKey} · saved=${res.savedCount} · visible=${diag.visibleCount} · updated=${diag.latestUpdatedAt ?? "—"}`,
+    );
+    setTimeout(() => setStatus("idle"), 4000);
+    return true;
   }
 
   async function handleSave() {
     setStatus("saving");
     setError(null);
-    const res = await saveBuilderPageAction(activePage, sections);
+    setSuccessMessage(null);
+    await applySaveResult(await saveBuilderPageAction(activePage, sections));
+  }
+
+  async function handlePublishAll() {
+    setStatus("saving");
+    setError(null);
+    setSuccessMessage(null);
+    const res = await publishAllBuilderPagesAction(activePage, sections);
     if (!res.ok) {
       setStatus("error");
       setError(res.error);
       return;
     }
-    setPages((p) => ({
-      ...p,
-      [activePage]: { sections, hasCustom: true },
-    }));
+    const reload = await loadBuilderPageAction(activePage);
+    if (reload.ok) {
+      setPages((p) => ({
+        ...p,
+        [activePage]: { sections: reload.sections, hasCustom: reload.hasCustom },
+      }));
+    }
     setDirty(false);
     setStatus("saved");
-    setTimeout(() => setStatus("idle"), 2000);
-  }
-
-  async function handlePublishAll() {
-    await saveBuilderPageAction(activePage, sections);
-    await publishAllBuilderPagesAction();
-    setDirty(false);
-    setStatus("saved");
+    setSuccessMessage(res.message);
+    setSaveDiagnostics(`Revalidated ${res.revalidated.length} paths`);
+    setTimeout(() => setStatus("idle"), 5000);
   }
 
   async function handleRestorePage() {
@@ -150,19 +209,34 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
     setDirty(true);
   }
 
-  const preview = useMemo(
-    () => (
-      <div className="bg-brand-surface text-brand-ink origin-top scale-[0.72] w-[139%] -ml-[19.5%] pointer-events-auto">
-        <PageSectionsRenderer pageKey={activePage} sections={sections} siteTagline="" />
-      </div>
-    ),
-    [activePage, sections],
+  const previewContext = useMemo(
+    () => ({
+      editMode: true as const,
+      selectedSectionId,
+      selectedElementId,
+      onSelectSection: (sectionId: string) => {
+        setSelectedSectionId(sectionId);
+        setSelectedElementId(null);
+      },
+      onSelectElement: (sectionId: string, elementId: string) => {
+        setSelectedSectionId(sectionId);
+        setSelectedElementId(elementId);
+      },
+      selection: elementSelection,
+    }),
+    [selectedSectionId, selectedElementId, elementSelection],
   );
+
+  const breadcrumb = selectedElementId && elementSelection
+    ? `${pageLabel} › ${selectedSection?.label ?? "Section"} › ${elementSelection.label}`
+    : selectedSection
+      ? `${pageLabel} › ${selectedSection.label}`
+      : pageLabel;
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] min-h-[32rem] -mx-4 sm:-mx-6">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-zinc-800 bg-zinc-950/90 shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button type="button" size="sm" onClick={() => void handleSave()} disabled={status === "saving"}>
             {status === "saving" ? "Saving…" : dirty ? "Save page" : "Saved"}
           </Button>
@@ -197,9 +271,14 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
         )}
       </div>
 
-      {error ? <p className="px-4 py-2 text-sm text-red-400">{error}</p> : null}
-      {status === "saved" ? (
-        <p className="px-4 py-1 text-xs text-emerald-400">Saved — storefront paths revalidated.</p>
+      {error ? (
+        <p className="px-4 py-2 text-sm text-red-400 whitespace-pre-wrap">{error}</p>
+      ) : null}
+      {successMessage ? (
+        <p className="px-4 py-1 text-sm text-emerald-400">{successMessage}</p>
+      ) : null}
+      {saveDiagnostics ? (
+        <p className="px-4 pb-2 text-[11px] text-zinc-500 font-mono">{saveDiagnostics}</p>
       ) : null}
 
       <div className="flex flex-1 min-h-0">
@@ -214,7 +293,8 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
                 type="button"
                 onClick={() => {
                   setActivePage(p.pageKey);
-                  setSelectedId(null);
+                  setSelectedSectionId(null);
+                  setSelectedElementId(null);
                 }}
                 className={cn(
                   "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors",
@@ -231,14 +311,19 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
             Sections
           </p>
           <ul className="overflow-y-auto max-h-[40vh] px-2 pb-3 space-y-1">
-            {sections.map((s, i) => (
+            {sections.map((s) => (
               <li key={s.id}>
                 <button
                   type="button"
-                  onClick={() => setSelectedId(s.id)}
+                  onClick={() => {
+                    setSelectedSectionId(s.id);
+                    setSelectedElementId(null);
+                  }}
                   className={cn(
                     "w-full text-left rounded-md px-2 py-1.5 text-xs flex items-center gap-1",
-                    selectedId === s.id ? "bg-zinc-800 text-white" : "text-zinc-400 hover:bg-zinc-900",
+                    selectedSectionId === s.id && !selectedElementId
+                      ? "bg-zinc-800 text-white"
+                      : "text-zinc-400 hover:bg-zinc-900",
                     !s.visible && "opacity-50",
                   )}
                 >
@@ -254,14 +339,39 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
         </aside>
 
         <div className="flex-1 min-w-0 overflow-auto bg-zinc-900/50 p-4">
-          <p className="text-xs text-zinc-500 mb-2">Preview — click a section in the list to edit</p>
-          <div className="rounded-lg border border-zinc-700 overflow-hidden shadow-xl bg-white max-w-4xl mx-auto">
-            {preview}
+          <p className="text-xs text-zinc-500 mb-1 truncate" title={breadcrumb}>
+            {breadcrumb}
+          </p>
+          <p className="text-[11px] text-zinc-600 mb-2">
+            Click any text, card, button, or image in the preview to edit it.
+          </p>
+          <div
+            className="rounded-lg border border-zinc-700 overflow-hidden shadow-xl bg-white max-w-4xl mx-auto"
+            onClick={() => setSelectedElementId(null)}
+          >
+            <BuilderPreviewProvider value={previewContext}>
+              <div className="bg-brand-surface text-brand-ink origin-top scale-[0.72] w-[139%] -ml-[19.5%]">
+                <PageSectionsRenderer
+                  pageKey={activePage}
+                  sections={sections}
+                  siteTagline=""
+                  editMode
+                />
+              </div>
+            </BuilderPreviewProvider>
           </div>
         </div>
 
         <aside className="w-80 shrink-0 border-l border-zinc-800 bg-zinc-950 flex flex-col">
-          {selected ? (
+          {selectedSection && elementSelection ? (
+            <ElementPropertiesPanel
+              pageKey={activePage}
+              section={selectedSection}
+              selection={elementSelection}
+              onChange={(next) => patchSection(selectedSection.id, next)}
+              onDeleted={() => setSelectedElementId(null)}
+            />
+          ) : selectedSection ? (
             <>
               <div className="flex gap-1 p-2 border-b border-zinc-800">
                 <Button
@@ -269,10 +379,10 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  disabled={sections.findIndex((s) => s.id === selected.id) <= 0}
+                  disabled={sections.findIndex((s) => s.id === selectedSection.id) <= 0}
                   onClick={() =>
                     moveSection(
-                      sections.findIndex((s) => s.id === selected.id),
+                      sections.findIndex((s) => s.id === selectedSection.id),
                       -1,
                     )
                   }
@@ -286,7 +396,7 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
                   className="h-8 w-8"
                   onClick={() =>
                     moveSection(
-                      sections.findIndex((s) => s.id === selected.id),
+                      sections.findIndex((s) => s.id === selectedSection.id),
                       1,
                     )
                   }
@@ -298,7 +408,7 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => duplicateSection(selected)}
+                  onClick={() => duplicateSection(selectedSection)}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -308,8 +418,8 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
                   size="icon"
                   className="h-8 w-8 text-red-400"
                   onClick={() => {
-                    if (window.confirm(`Delete section "${selected.label}"?`)) {
-                      deleteSection(selected.id);
+                    if (window.confirm(`Delete section "${selectedSection.label}"?`)) {
+                      deleteSection(selectedSection.id);
                     }
                   }}
                 >
@@ -317,12 +427,12 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
                 </Button>
               </div>
               <SectionPropertiesPanel
-                section={selected}
-                onChange={(next) => patchSection(selected.id, next)}
+                section={selectedSection}
+                onChange={(next) => patchSection(selectedSection.id, next)}
                 onRestoreSection={async () => {
                   const res = await restoreBuilderSectionDefaultsAction(
                     activePage,
-                    selected.sectionKey,
+                    selectedSection.sectionKey,
                     sections,
                   );
                   if (res.ok) {

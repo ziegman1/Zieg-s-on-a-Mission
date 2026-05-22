@@ -1,3 +1,5 @@
+export { dynamic } from "@/lib/site-builder/storefront-dynamic";
+
 import Link from "next/link";
 import { Fragment } from "react";
 import { Dancing_Script } from "next/font/google";

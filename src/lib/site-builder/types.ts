@@ -13,12 +13,15 @@ export const SECTION_TYPES = [
 
 export type SectionType = (typeof SECTION_TYPES)[number];
 
+import type { ElementStyle } from "./element-types";
+
 export type ListItem = {
   id: string;
   text: string;
   visible: boolean;
   sortOrder: number;
   metadata?: Record<string, unknown>;
+  style?: ElementStyle;
 };
 
 export type PageSection = {

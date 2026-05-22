@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { ReactNode } from "react";
 import { PageSectionsRenderer } from "@/components/site-builder/page-sections-renderer";
 import { getSiteCopy } from "@/lib/site-copy";
@@ -7,6 +8,7 @@ export async function renderStorefrontPage(
   pageKey: string,
   legacy: () => ReactNode,
 ): Promise<ReactNode> {
+  noStore();
   const hasCustom = await pageHasCustomSections(pageKey);
   if (!hasCustom) {
     return legacy();

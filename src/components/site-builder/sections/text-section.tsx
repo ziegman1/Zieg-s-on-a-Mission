@@ -1,8 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { contentStr, visibleListItems } from "@/lib/site-builder/content-utils";
+import { contentStr, fieldVisible, sortedListItems, visibleListItems } from "@/lib/site-builder/content-utils";
+import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { MinistryPageShell } from "@/components/ministry-page-shell";
 import { cn } from "@/lib/utils";
+import { EditableElement } from "../editable-element";
+import { ContentElementsBlock } from "../content-elements-block";
+import { useBuilderPreview } from "../builder-preview-context";
+import { isElementVisible } from "@/lib/site-builder/element-style-utils";
 
 export function TextSectionBlock({
   section,
@@ -11,34 +18,19 @@ export function TextSectionBlock({
   section: PageSection;
   asPageShell?: boolean;
 }) {
+  const ctx = useBuilderPreview();
   const c = section.content;
   const headline = contentStr(c, "headline");
   const sub = contentStr(c, "subheadline");
   const eyebrow = contentStr(c, "eyebrow");
   const body = contentStr(c, "body");
-  const bullets = visibleListItems(c.bullets);
+  const bullets = ctx?.editMode
+    ? sortedListItems(c.bullets, { includeHidden: true })
+    : visibleListItems(c.bullets);
 
-  if (!headline.trim() && !body.trim() && !sub.trim() && bullets.length === 0) return null;
-
-  const inner = (
-    <>
-      {eyebrow.trim() ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">{eyebrow}</p>
-      ) : null}
-      {headline.trim() ? <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{headline}</h2> : null}
-      {sub.trim() ? <p className="mt-2 text-lg text-brand-ink/80">{sub}</p> : null}
-      {body.trim() ? (
-        <div className="mt-4 space-y-4 text-brand-ink/88 leading-relaxed whitespace-pre-wrap">{body}</div>
-      ) : null}
-      {bullets.length > 0 ? (
-        <ul className="mt-4 list-disc pl-5 space-y-1">
-          {bullets.map((b) => (
-            <li key={b.id}>{b.text}</li>
-          ))}
-        </ul>
-      ) : null}
-    </>
-  );
+  if (!headline.trim() && !body.trim() && !sub.trim() && bullets.length === 0 && !ctx?.editMode) {
+    return null;
+  }
 
   if (asPageShell && section.sectionKey === "header") {
     return (
@@ -52,14 +44,67 @@ export function TextSectionBlock({
     return (
       <section className="py-16 sm:py-20 bg-blue-50">
         <div className="max-w-3xl mx-auto px-6 text-center text-lg text-gray-700 leading-relaxed whitespace-pre-wrap">
-          {body}
+          <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
+            {body}
+          </EditableElement>
         </div>
+        <ContentElementsBlock section={section} />
       </section>
     );
   }
 
+  const inner = (
+    <>
+      {eyebrow.trim() && fieldVisible(c, "eyebrow") ? (
+        <EditableElement sectionId={section.id} elementId="eyebrow" style={getFieldStyle(c, "eyebrow")}>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">{eyebrow}</p>
+        </EditableElement>
+      ) : null}
+      {headline.trim() && fieldVisible(c, "headline") ? (
+        <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
+          <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{headline}</h2>
+        </EditableElement>
+      ) : null}
+      {sub.trim() && fieldVisible(c, "subheadline") ? (
+        <EditableElement sectionId={section.id} elementId="subheadline" style={getFieldStyle(c, "subheadline")}>
+          <p className="mt-2 text-lg text-brand-ink/80">{sub}</p>
+        </EditableElement>
+      ) : null}
+      {body.trim() && fieldVisible(c, "body") ? (
+        <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
+          <div className="mt-4 space-y-4 text-brand-ink/88 leading-relaxed whitespace-pre-wrap">{body}</div>
+        </EditableElement>
+      ) : null}
+      {bullets.length > 0 ? (
+        <ul className="mt-4 list-disc pl-5 space-y-1">
+          {bullets.map((b) => {
+            if (!ctx?.editMode && (!b.visible || !isElementVisible(b.style, true))) return null;
+            return (
+              <EditableElement
+                key={b.id}
+                sectionId={section.id}
+                elementId={`bullet:${b.id}`}
+                style={b.style}
+                visible={b.visible}
+                className={cn(!b.visible && ctx?.editMode && "opacity-50 list-none")}
+              >
+                <li className={ctx?.editMode ? "list-none" : undefined}>{b.text}</li>
+              </EditableElement>
+            );
+          })}
+        </ul>
+      ) : null}
+      <ContentElementsBlock section={section} />
+    </>
+  );
+
   return (
-    <section className={cn("mx-auto max-w-3xl px-4 py-12 sm:py-16", section.pageKey === "partner" && "py-16 sm:py-20")}>
+    <section
+      className={cn(
+        "mx-auto max-w-3xl px-4 py-12 sm:py-16",
+        section.pageKey === "partner" && "py-16 sm:py-20",
+      )}
+    >
       {inner}
     </section>
   );

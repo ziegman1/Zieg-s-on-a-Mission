@@ -1,3 +1,5 @@
+"use client";
+
 import { Fragment } from "react";
 import { MinistryPageShell } from "@/components/ministry-page-shell";
 import type { PageSection } from "@/lib/site-builder/types";
@@ -8,45 +10,65 @@ import { ImageTextSplitSection } from "./sections/image-text-split-section";
 import { QuoteSection } from "./sections/quote-section";
 import { TextSectionBlock } from "./sections/text-section";
 import { TimelineSection } from "./sections/timeline-section";
-import { visibleListItems } from "@/lib/site-builder/content-utils";
-import { contentStr } from "@/lib/site-builder/content-utils";
+import { visibleListItems, contentStr } from "@/lib/site-builder/content-utils";
+import { EditableSectionShell } from "./editable-element";
+import { useBuilderPreview } from "./builder-preview-context";
+import { EDITABLE_SECTION_TYPES } from "@/lib/site-builder/section-elements";
 
 export function PageSectionsRenderer({
   pageKey,
   sections,
   siteTagline = "",
+  editMode = false,
 }: {
   pageKey: string;
   sections: PageSection[];
   siteTagline?: string;
+  editMode?: boolean;
 }) {
-  const visible = sections.filter((s) => s.visible);
+  const ctx = useBuilderPreview();
+  const inEditor = Boolean(editMode || ctx?.editMode);
+  const toRender = inEditor ? sections : sections.filter((s) => s.visible);
   let splitIndex = 0;
+
+  const wrap = (section: PageSection, node: React.ReactNode) => {
+    if (!inEditor) return node;
+    return (
+      <EditableSectionShell
+        key={section.id}
+        sectionId={section.id}
+        visible={section.visible}
+        label={section.label}
+      >
+        {node}
+      </EditableSectionShell>
+    );
+  };
 
   if (pageKey === "home") {
     return (
       <div>
-        {visible.map((section) => {
-          switch (section.sectionType) {
-            case "hero":
-              return <HeroSection key={section.id} section={section} useScriptTitle />;
-            case "image_text_split": {
-              const idx = splitIndex++;
-              return (
-                <Fragment key={section.id}>
-                  <ImageTextSplitSection section={section} index={idx} />
-                </Fragment>
-              );
+        {toRender.map((section) => {
+          if (!inEditor && !section.visible) return null;
+          const inner = (() => {
+            switch (section.sectionType) {
+              case "hero":
+                return <HeroSection section={section} useScriptTitle />;
+              case "image_text_split": {
+                const idx = splitIndex++;
+                return <ImageTextSplitSection section={section} index={idx} />;
+              }
+              case "text_section":
+                return <TextSectionBlock section={section} />;
+              case "card_grid":
+                return <CardGridSection section={section} />;
+              case "cta":
+                return <CtaSection section={section} siteTagline={siteTagline} />;
+              default:
+                return null;
             }
-            case "text_section":
-              return <TextSectionBlock key={section.id} section={section} />;
-            case "card_grid":
-              return <CardGridSection key={section.id} section={section} />;
-            case "cta":
-              return <CtaSection key={section.id} section={section} siteTagline={siteTagline} />;
-            default:
-              return null;
-          }
+          })();
+          return wrap(section, inner);
         })}
       </div>
     );
@@ -55,18 +77,20 @@ export function PageSectionsRenderer({
   if (pageKey === "partner") {
     return (
       <div className="bg-brand-surface text-brand-ink">
-        {visible.map((section) => renderPartnerSection(section))}
+        {toRender.map((section) => wrap(section, renderPartnerSection(section)))}
       </div>
     );
   }
 
   if (["about", "mission", "blog", "contact", "give", "merch"].includes(pageKey)) {
-    return <MinistrySectionsPage pageKey={pageKey} sections={visible} />;
+    return <MinistrySectionsPage pageKey={pageKey} sections={toRender} inEditor={inEditor} wrap={wrap} />;
   }
 
   return (
     <div>
-      {visible.map((section) => renderGenericSection(section, siteTagline))}
+      {toRender.map((section) =>
+        wrap(section, renderGenericSection(section, siteTagline)),
+      )}
     </div>
   );
 }
@@ -74,17 +98,17 @@ export function PageSectionsRenderer({
 function renderPartnerSection(section: PageSection) {
   switch (section.sectionType) {
     case "hero":
-      return <HeroSection key={section.id} section={section} />;
+      return <HeroSection section={section} />;
     case "text_section":
-      return <TextSectionBlock key={section.id} section={section} />;
+      return <TextSectionBlock section={section} />;
     case "card_grid":
-      return <CardGridSection key={section.id} section={section} />;
+      return <CardGridSection section={section} />;
     case "timeline":
-      return <TimelineSection key={section.id} section={section} />;
+      return <TimelineSection section={section} />;
     case "quote":
-      return <QuoteSection key={section.id} section={section} />;
+      return <QuoteSection section={section} />;
     case "cta":
-      return <CtaSection key={section.id} section={section} />;
+      return <CtaSection section={section} />;
     default:
       return null;
   }
@@ -93,13 +117,13 @@ function renderPartnerSection(section: PageSection) {
 function renderGenericSection(section: PageSection, siteTagline: string) {
   switch (section.sectionType) {
     case "hero":
-      return <HeroSection key={section.id} section={section} />;
+      return <HeroSection section={section} />;
     case "text_section":
-      return <TextSectionBlock key={section.id} section={section} />;
+      return <TextSectionBlock section={section} />;
     case "cta":
-      return <CtaSection key={section.id} section={section} siteTagline={siteTagline} />;
+      return <CtaSection section={section} siteTagline={siteTagline} />;
     case "quote":
-      return <QuoteSection key={section.id} section={section} />;
+      return <QuoteSection section={section} />;
     default:
       return null;
   }
@@ -108,9 +132,13 @@ function renderGenericSection(section: PageSection, siteTagline: string) {
 function MinistrySectionsPage({
   pageKey,
   sections,
+  inEditor,
+  wrap,
 }: {
   pageKey: string;
   sections: PageSection[];
+  inEditor: boolean;
+  wrap: (section: PageSection, node: React.ReactNode) => React.ReactNode;
 }) {
   const header = sections.find((s) => s.sectionKey === "header");
   const rest = sections.filter((s) => s.sectionKey !== "header" && s.sectionKey !== "footer-nav");
@@ -119,6 +147,20 @@ function MinistrySectionsPage({
   const lede = header
     ? contentStr(header.content, "body") || contentStr(header.content, "subheadline")
     : "";
+
+  const useRich =
+    inEditor && rest.some((s) => EDITABLE_SECTION_TYPES.includes(s.sectionType));
+
+  if (useRich) {
+    return (
+      <MinistryPageShell title={title || pageKey} lede={lede}>
+        {rest.map((section) => {
+          const inner = renderMinistrySection(section);
+          return inner ? wrap(section, inner) : null;
+        })}
+      </MinistryPageShell>
+    );
+  }
 
   return (
     <MinistryPageShell title={title || pageKey} lede={lede}>
@@ -166,4 +208,17 @@ function MinistrySectionsPage({
       })}
     </MinistryPageShell>
   );
+}
+
+function renderMinistrySection(section: PageSection) {
+  switch (section.sectionType) {
+    case "text_section":
+      return <TextSectionBlock section={section} />;
+    case "quote":
+      return <QuoteSection section={section} />;
+    case "cta":
+      return <CtaSection section={section} />;
+    default:
+      return null;
+  }
 }
