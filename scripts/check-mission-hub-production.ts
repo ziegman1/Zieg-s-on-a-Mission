@@ -1,121 +1,181 @@
 /**
  * Read-only production / remote DB diagnostics for Mission Hub.
+ * Connects via DIRECT_URL (not the transaction pooler) for local CLI reliability.
  *
  * Usage:
  *   npm run db:check:production
- *   dotenv -e .env.production -- tsx scripts/check-mission-hub-production.ts
  */
-import { PrismaClient } from "@prisma/client";
 import { DEFAULT_MISSION_HUB_SPACES } from "../prisma/mission-hub-default-spaces";
-
-const prisma = new PrismaClient();
-
-function cleanUrl(url: string | undefined): string {
-  return (url ?? "").trim().replace(/^["']|["']$/g, "");
-}
-
-function normalizeUrl(url: string): string {
-  const u = cleanUrl(url);
-  if (u.startsWith("postgres://")) return "postgresql://" + u.slice(11);
-  return u;
-}
-
-function parseDbTarget(url: string): { hostname: string; port: string; db: string } | null {
-  try {
-    const normalized = normalizeUrl(url).replace(/^postgresql:\/\//, "http://");
-    const u = new URL(normalized);
-    return {
-      hostname: u.hostname,
-      port: u.port || "5432",
-      db: u.pathname.replace(/^\//, "") || "postgres",
-    };
-  } catch {
-    return null;
-  }
-}
-
-function formatDbTarget(url: string): string {
-  const p = parseDbTarget(url);
-  if (!p) return "(could not parse URL)";
-  return `${p.hostname}:${p.port}/${p.db}`;
-}
+import {
+  createPrismaCliClient,
+  deriveSessionPoolerUrl,
+  formatDbTarget,
+  maskDbUrl,
+  normalizeDbUrl,
+  parseDbTarget,
+} from "./prisma-cli";
 
 const POOLER_HOST = /\.pooler\.supabase\.com$/i;
 const DIRECT_HOST = /^db\.[a-z0-9]+\.supabase\.co$/i;
 
-function validateSupabaseUrls(databaseUrl: string, directUrl: string): string[] {
+function validateRuntimeDatabaseUrl(databaseUrl: string): string[] {
   const errors: string[] = [];
   const db = parseDbTarget(databaseUrl);
-  const direct = parseDbTarget(directUrl);
-
-  if (!db) errors.push("DATABASE_URL is invalid.");
-  if (!direct) errors.push("DIRECT_URL is invalid.");
-
-  if (db) {
-    if (!POOLER_HOST.test(db.hostname)) {
-      errors.push(`DATABASE_URL must use *.pooler.supabase.com (got ${db.hostname})`);
-    }
-    if (db.port !== "6543") {
-      errors.push(`DATABASE_URL must use port 6543 (got ${db.port})`);
-    }
-    if (DIRECT_HOST.test(db.hostname)) {
-      errors.push("DATABASE_URL must not use db.<ref>.supabase.co (reversed with DIRECT_URL)");
-    }
+  if (!db) return ["DATABASE_URL is invalid."];
+  if (!POOLER_HOST.test(db.hostname)) {
+    errors.push(`DATABASE_URL must use *.pooler.supabase.com (got ${db.hostname})`);
   }
-
-  if (direct) {
-    if (!DIRECT_HOST.test(direct.hostname)) {
-      errors.push(`DIRECT_URL must use db.<ref>.supabase.co (got ${direct.hostname})`);
-    }
-    if (direct.port !== "5432") {
-      errors.push(`DIRECT_URL must use port 5432 (got ${direct.port})`);
-    }
-    if (POOLER_HOST.test(direct.hostname)) {
-      errors.push("DIRECT_URL must not use pooler host (reversed with DATABASE_URL)");
-    }
+  if (db.port !== "6543") {
+    errors.push(`DATABASE_URL must use port 6543 (got ${db.port})`);
   }
-
-  if (databaseUrl && directUrl && cleanUrl(databaseUrl) === cleanUrl(directUrl)) {
-    errors.push("DATABASE_URL and DIRECT_URL must not be identical.");
+  if (DIRECT_HOST.test(db.hostname)) {
+    errors.push("DATABASE_URL must not use db.<ref>.supabase.co");
   }
-
   return errors;
 }
 
-function maskUrl(url: string): string {
-  try {
-    const normalized = normalizeUrl(url).replace(/^postgresql:\/\//, "http://");
-    const u = new URL(normalized);
-    return `postgresql://***@${u.hostname}${u.pathname}${u.search}`;
-  } catch {
-    return "(invalid URL)";
+function validateCliDirectUrl(directUrl: string): string[] {
+  const errors: string[] = [];
+  const direct = parseDbTarget(directUrl);
+  if (!direct) return ["DIRECT_URL is invalid."];
+  if (!DIRECT_HOST.test(direct.hostname)) {
+    errors.push(`DIRECT_URL must use db.<ref>.supabase.co (got ${direct.hostname})`);
+  }
+  if (direct.port !== "5432") {
+    errors.push(`DIRECT_URL must use port 5432 (got ${direct.port})`);
+  }
+  if (POOLER_HOST.test(direct.hostname)) {
+    errors.push("DIRECT_URL must not use pooler host — use db.<ref>.supabase.co for CLI");
+  }
+  return errors;
+}
+
+async function diagnosePosts(prisma: ReturnType<typeof createPrismaCliClient>): Promise<void> {
+  const now = new Date();
+
+  const total = await prisma.communityPostRecord.count();
+  const byStatus = await prisma.communityPostRecord.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  });
+  console.log("[check:mission-hub] community_posts total:", total);
+  console.log("[check:mission-hub] community_posts by status:", byStatus);
+
+  const published = await prisma.communityPostRecord.count({
+    where: { status: "published" },
+  });
+  const publishedAtNull = await prisma.communityPostRecord.count({
+    where: { status: "published", publishedAt: null },
+  });
+  const publishedAtFuture = await prisma.communityPostRecord.count({
+    where: { status: "published", publishedAt: { gt: now } },
+  });
+
+  console.log("[check:mission-hub] published posts:", published);
+  console.log("[check:mission-hub] published with published_at NULL:", publishedAtNull);
+  console.log("[check:mission-hub] published with published_at in future:", publishedAtFuture);
+
+  const feedEligible = await prisma.communityPostRecord.count({
+    where: {
+      status: "published",
+      space: { status: "published" },
+    },
+  });
+  console.log(
+    "[check:mission-hub] feed-eligible (published post + published space):",
+    feedEligible,
+  );
+
+  const orphanedPublished = await prisma.communityPostRecord.count({
+    where: {
+      status: "published",
+      space: { status: { not: "published" } },
+    },
+  });
+  if (orphanedPublished > 0) {
+    console.warn(
+      "[check:mission-hub] published posts in non-published spaces:",
+      orphanedPublished,
+    );
+  }
+
+  const postsBySpace = await prisma.communityPostRecord.groupBy({
+    by: ["spaceId", "status"],
+    where: { status: "published" },
+    _count: { _all: true },
+  });
+  const spaces = await prisma.communitySpaceRecord.findMany({
+    select: { id: true, slug: true, title: true, status: true },
+  });
+  const spaceById = new Map(spaces.map((s) => [s.id, s]));
+
+  console.log("[check:mission-hub] published posts by space:");
+  for (const row of postsBySpace) {
+    const space = spaceById.get(row.spaceId);
+    const label = space ? `${space.slug} (space ${space.status})` : row.spaceId;
+    console.log(`  - ${label}: ${row._count._all}`);
+  }
+
+  const sample = await prisma.communityPostRecord.findMany({
+    where: { status: "published" },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      publishedAt: true,
+      createdAt: true,
+      space: { select: { slug: true, status: true } },
+    },
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    take: 5,
+  });
+  if (sample.length > 0) {
+    console.log("[check:mission-hub] sample published posts:");
+    for (const p of sample) {
+      console.log(
+        `  - ${p.id.slice(0, 8)}… "${p.title ?? "(no title)"}" space=${p.space.slug} (${p.space.status}) published_at=${p.publishedAt?.toISOString() ?? "null"}`,
+      );
+    }
+  }
+
+  if (feedEligible > 0) {
+    console.log(
+      "[check:mission-hub] If production /community shows spaces but no posts, check Vercel DATABASE_URL (pooler :6543) and server logs for [community] failed to load. RLS may hide rows from the pooler role if misconfigured.",
+    );
   }
 }
 
 async function main(): Promise<void> {
-  const databaseUrl = cleanUrl(process.env.DATABASE_URL);
-  const directUrl = cleanUrl(process.env.DIRECT_URL);
+  const databaseUrl = normalizeDbUrl(process.env.DATABASE_URL ?? "");
+  const directUrl = normalizeDbUrl(process.env.DIRECT_URL ?? "");
 
   console.log("[check:mission-hub] DATABASE_URL host:", formatDbTarget(databaseUrl));
   console.log("[check:mission-hub] DIRECT_URL host:", formatDbTarget(directUrl));
-  console.log("[check:mission-hub] masked DATABASE_URL:", maskUrl(databaseUrl));
+  console.log("[check:mission-hub] masked DATABASE_URL:", maskDbUrl(databaseUrl));
+  console.log("[check:mission-hub] masked DIRECT_URL:", maskDbUrl(directUrl));
 
-  const configErrors = validateSupabaseUrls(databaseUrl, directUrl);
-  if (configErrors.length > 0) {
-    console.error("[check:mission-hub] URL configuration errors:");
-    for (const e of configErrors) {
-      console.error(`  - ${e}`);
+  const runtimeErrors = databaseUrl ? validateRuntimeDatabaseUrl(databaseUrl) : [];
+  const cliErrors = directUrl ? validateCliDirectUrl(directUrl) : ["DIRECT_URL is not set."];
+
+  if (runtimeErrors.length > 0) {
+    console.warn("[check:mission-hub] Vercel runtime DATABASE_URL issues (app may fail):");
+    for (const e of runtimeErrors) console.warn(`  - ${e}`);
+  }
+
+  const sessionFallback = databaseUrl ? deriveSessionPoolerUrl(databaseUrl) : null;
+  if (cliErrors.length > 0) {
+    console.warn("[check:mission-hub] DIRECT_URL config issues:");
+    for (const e of cliErrors) console.warn(`  - ${e}`);
+    if (!sessionFallback) {
+      console.error("[check:mission-hub] No CLI fallback available (fix DIRECT_URL or DATABASE_URL).");
+      process.exit(1);
     }
-    console.error(
-      "[check:mission-hub] Fix Vercel / .env.production: pooler :6543 on DATABASE_URL, db.* :5432 on DIRECT_URL.",
+    console.warn(
+      "[check:mission-hub] CLI will use session pooler :5432 derived from DATABASE_URL.",
     );
-    process.exit(1);
   }
 
-  if (!databaseUrl) {
-    console.error("[check:mission-hub] DATABASE_URL is not set.");
-    process.exit(1);
-  }
+  const prisma = createPrismaCliClient("check:mission-hub");
 
   try {
     const migrations = await prisma.$queryRaw<
@@ -145,7 +205,6 @@ async function main(): Promise<void> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.warn("[check:mission-hub] Could not read _prisma_migrations:", msg);
-    console.warn("  Tables may not exist yet — run db:migrate:deploy:production first.");
   }
 
   try {
@@ -178,42 +237,23 @@ async function main(): Promise<void> {
     const missing = expectedSlugs.filter(
       (slug) => !spaces.some((s) => s.slug === slug),
     );
-    const unpublishedDefaults = expectedSlugs.filter((slug) => {
-      const row = spaces.find((s) => s.slug === slug);
-      return row && row.status !== "published";
-    });
 
     if (missing.length > 0) {
       console.warn("[check:mission-hub] Missing default slugs:", missing.join(", "));
-      console.warn(
-        "  Run: MISSION_HUB_SEED_CONFIRM=production npm run db:seed:mission-hub:production",
-      );
-    }
-    if (unpublishedDefaults.length > 0) {
-      console.warn(
-        "[check:mission-hub] Default spaces exist but are not published:",
-        unpublishedDefaults.join(", "),
-      );
-      console.warn("  Publish them in admin — seed does not change existing rows.");
     }
 
-    const postCounts = await prisma.communityPostRecord.groupBy({
-      by: ["status"],
-      _count: { _all: true },
-    });
-    console.log("[check:mission-hub] community_posts by status:", postCounts);
+    await diagnosePosts(prisma);
     console.log("[check:mission-hub] Database connection OK.");
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[check:mission-hub] community_* query failed:", msg);
     process.exit(1);
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-main()
-  .then(() => prisma.$disconnect())
-  .catch((e) => {
-    console.error(e);
-    prisma.$disconnect();
-    process.exit(1);
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

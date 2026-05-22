@@ -180,7 +180,19 @@ export function CommunityPostCard({
           initialMyReactions={post.myReactions}
           commentCount={commentCount}
           commentsOpen={commentsOpen}
-          onCommentsToggle={() => setCommentsOpen((v) => !v)}
+          onCommentsToggle={() => {
+            setCommentsOpen((open) => {
+              const next = !open;
+              if (next && prayerSpace) {
+                requestAnimationFrame(() => {
+                  document
+                    .getElementById(`post-prayers-${post.id}`)
+                    ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                });
+              }
+              return next;
+            });
+          }}
           allowReactions={post.spaceAllowReactions}
           allowComments={post.spaceAllowComments}
           interactionPreset={preset}
@@ -191,6 +203,7 @@ export function CommunityPostCard({
 
       {commentsOpen && post.spaceAllowComments ? (
         <div
+          id={prayerSpace ? `post-prayers-${post.id}` : undefined}
           className={cn(
             "pt-0 border-t",
             spiritual

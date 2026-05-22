@@ -39,12 +39,18 @@ Production npm scripts use `dotenv -o` so a reversed `DATABASE_URL` in your shel
 env -u DATABASE_URL -u DIRECT_URL npm run db:check:production
 ```
 
-Expected hosts:
+CLI scripts connect via **DIRECT_URL** (direct host). The app on Vercel uses **DATABASE_URL** (pooler).
+
+Expected log:
 
 ```
 DATABASE_URL host: aws-0-us-west-2.pooler.supabase.com:6543/postgres
 DIRECT_URL host: db.<project-ref>.supabase.co:5432/postgres
+[check:mission-hub] DIRECT_URL host (migrations / intended direct): db.<ref>.supabase.co:5432/postgres
+[check:mission-hub] Prisma connection uses session pooler :5432 (CLI fallback): aws-0-...pooler.supabase.com:5432/postgres
 ```
+
+Local CLI avoids transaction pooler `:6543` (ENOIDENTIFIER). `prisma migrate deploy` still uses `DIRECT_URL` from the schema. If `db.*:5432` is unreachable locally, migrations may need to run from Supabase SQL or a network that can reach the direct host.
 
 This prints the DB host, migration status, existing spaces, and whether default slugs are missing.
 

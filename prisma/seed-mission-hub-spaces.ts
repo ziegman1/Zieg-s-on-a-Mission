@@ -8,17 +8,15 @@
  * Local:  npm run db:seed:mission-hub
  * Production: see docs/mission-hub-production-setup.md
  */
-import { PrismaClient } from "@prisma/client";
 import {
   DEFAULT_MISSION_HUB_SPACES,
   defaultSpaceToCreateInput,
 } from "./mission-hub-default-spaces";
-
-const prisma = new PrismaClient();
-
-function cleanUrl(url: string | undefined): string {
-  return (url ?? "").trim().replace(/^["']|["']$/g, "");
-}
+import {
+  createPrismaCliClient,
+  formatDbTarget,
+  normalizeDbUrl,
+} from "../scripts/prisma-cli";
 
 const POOLER_HOST = /\.pooler\.supabase\.com$/i;
 const DIRECT_HOST = /^db\.[a-z0-9]+\.supabase\.co$/i;
@@ -51,19 +49,8 @@ function isLocalDatabase(url: string): boolean {
   return /localhost|127\.0\.0\.1/i.test(url);
 }
 
-function describeDatabaseTarget(url: string): string {
-  try {
-    const normalized = url.replace(/^postgresql:\/\//, "http://");
-    const u = new URL(normalized);
-    const db = u.pathname.replace(/^\//, "") || "(default)";
-    return `${u.hostname}:${u.port || "5432"}/${db}`;
-  } catch {
-    return "(could not parse DATABASE_URL)";
-  }
-}
-
-function requireRemoteSeedConfirmation(databaseUrl: string): void {
-  if (isLocalDatabase(databaseUrl)) return;
+function requireRemoteSeedConfirmation(cliUrl: string): void {
+  if (isLocalDatabase(cliUrl)) return;
   if (process.env.MISSION_HUB_SEED_CONFIRM === "production") return;
   console.error(
     "[seed:mission-hub] Refusing to write to a non-local database.",
@@ -78,19 +65,22 @@ function requireRemoteSeedConfirmation(databaseUrl: string): void {
 }
 
 async function main(): Promise<void> {
-  const databaseUrl = cleanUrl(process.env.DATABASE_URL);
-  const directUrl = cleanUrl(process.env.DIRECT_URL);
-  if (!databaseUrl) {
-    console.error("[seed:mission-hub] DATABASE_URL is not set.");
+  const databaseUrl = normalizeDbUrl(process.env.DATABASE_URL ?? "");
+  const directUrl = normalizeDbUrl(process.env.DIRECT_URL ?? "");
+  if (!directUrl && !databaseUrl) {
+    console.error("[seed:mission-hub] DIRECT_URL or DATABASE_URL is not set.");
     process.exit(1);
   }
-  if (directUrl) {
+  if (databaseUrl && directUrl) {
     assertSupabaseUrlRoles(databaseUrl, directUrl);
   }
 
-  requireRemoteSeedConfirmation(databaseUrl);
+  const prisma = createPrismaCliClient("seed:mission-hub");
+  const cliUrl = directUrl || databaseUrl;
+  requireRemoteSeedConfirmation(cliUrl);
 
-  console.log("[seed:mission-hub] Target:", describeDatabaseTarget(databaseUrl));
+  console.log("[seed:mission-hub] DATABASE_URL host:", formatDbTarget(databaseUrl));
+  console.log("[seed:mission-hub] DIRECT_URL host:", formatDbTarget(directUrl));
   console.log(
     "[seed:mission-hub] Mode: insert missing slugs only (no updates to existing rows)",
   );
@@ -135,12 +125,11 @@ async function main(): Promise<void> {
   console.log(
     "[seed:mission-hub] Posts are not seeded — publish content in admin or migrate from dev separately.",
   );
+
+  await prisma.$disconnect();
 }
 
-main()
-  .then(() => prisma.$disconnect())
-  .catch((e) => {
-    console.error(e);
-    prisma.$disconnect();
-    process.exit(1);
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
