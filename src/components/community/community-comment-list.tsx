@@ -10,11 +10,14 @@ export function CommunityCommentList({
   canComment,
   onReply,
   preset,
+  prayerThreadLayout = false,
 }: {
   threads: CommunityPostCommentThread[];
   canComment: boolean;
   onReply?: (parentCommentId: string, body: string) => Promise<void>;
   preset: SpaceInteractionPreset;
+  /** Compact communal wall layout for prayer thread sheet */
+  prayerThreadLayout?: boolean;
 }) {
   const isPrayer = preset.mode === "prayer";
 
@@ -35,7 +38,14 @@ export function CommunityCommentList({
   }
 
   return (
-    <ul className={cn("space-y-3", isPrayer && "space-y-4")} aria-label={preset.comments.sectionLabel}>
+    <ul
+      className={cn(
+        "space-y-3",
+        isPrayer && !prayerThreadLayout && "space-y-4",
+        prayerThreadLayout && "space-y-3.5",
+      )}
+      aria-label={preset.comments.sectionLabel}
+    >
       {threads.map(({ comment, replies }) => (
         <li key={comment.id} className="space-y-1">
           <CommunityCommentItem
@@ -43,12 +53,19 @@ export function CommunityCommentList({
             canReply={canComment}
             onReply={onReply}
             preset={preset}
+            prayerThreadLayout={prayerThreadLayout}
           />
           {replies.length > 0 ? (
             <ul className="space-y-1">
               {replies.map((reply) => (
                 <li key={reply.id}>
-                  <CommunityCommentItem comment={reply} isReply canReply={false} preset={preset} />
+                  <CommunityCommentItem
+                    comment={reply}
+                    isReply
+                    canReply={false}
+                    preset={preset}
+                    prayerThreadLayout={prayerThreadLayout}
+                  />
                 </li>
               ))}
             </ul>

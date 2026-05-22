@@ -10,6 +10,7 @@ import { MH } from "@/lib/community/hub-design";
 import { CommunityAvatar } from "./community-avatar";
 import { CommunityComments } from "./community-comments";
 import { CommunityEngagementBar } from "./community-engagement-bar";
+import { CommunityPrayerEngagement } from "./community-prayer-engagement";
 import { getSpaceInteractionPreset } from "@/lib/community/space-interaction";
 import { canUseVoicePrayer } from "@/lib/community/voice-prayer";
 import type { CommunityComposerSpace } from "@/lib/community/composer-types";
@@ -57,6 +58,7 @@ export function CommunityPostCard({
   const [expanded, setExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
+  const returnPath = showSpaceLabel ? "/community" : `/community/${post.spaceSlug}`;
 
   const displayText = expanded ? fullBody : collapsedPreview;
   const showReadMoreControl = canExpand;
@@ -174,36 +176,39 @@ export function CommunityPostCard({
       ) : null}
 
       <div className={spiritual ? "px-4 sm:px-5 py-3" : "px-3.5 sm:px-4 py-2.5"}>
-        <CommunityEngagementBar
-          postId={post.id}
-          initialCounts={post.reactionCounts}
-          initialMyReactions={post.myReactions}
-          commentCount={commentCount}
-          commentsOpen={commentsOpen}
-          onCommentsToggle={() => {
-            setCommentsOpen((open) => {
-              const next = !open;
-              if (next && prayerSpace) {
-                requestAnimationFrame(() => {
-                  document
-                    .getElementById(`post-prayers-${post.id}`)
-                    ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                });
-              }
-              return next;
-            });
-          }}
-          allowReactions={post.spaceAllowReactions}
-          allowComments={post.spaceAllowComments}
-          interactionPreset={preset}
-          spaceType={post.spaceType}
-          spaceSlug={post.spaceSlug}
-        />
+        {prayerSpace ? (
+          <CommunityPrayerEngagement
+            postId={post.id}
+            initialCounts={post.reactionCounts}
+            initialMyReactions={post.myReactions}
+            initialCommentCount={commentCount}
+            allowReactions={post.spaceAllowReactions}
+            allowComments={post.spaceAllowComments}
+            preset={preset}
+            returnPath={returnPath}
+            allowVoicePrayer={voicePrayerEnabled}
+            spaceType={post.spaceType}
+            spaceSlug={post.spaceSlug}
+          />
+        ) : (
+          <CommunityEngagementBar
+            postId={post.id}
+            initialCounts={post.reactionCounts}
+            initialMyReactions={post.myReactions}
+            commentCount={commentCount}
+            commentsOpen={commentsOpen}
+            onCommentsToggle={() => setCommentsOpen((v) => !v)}
+            allowReactions={post.spaceAllowReactions}
+            allowComments={post.spaceAllowComments}
+            interactionPreset={preset}
+            spaceType={post.spaceType}
+            spaceSlug={post.spaceSlug}
+          />
+        )}
       </div>
 
-      {commentsOpen && post.spaceAllowComments ? (
+      {!prayerSpace && commentsOpen && post.spaceAllowComments ? (
         <div
-          id={prayerSpace ? `post-prayers-${post.id}` : undefined}
           className={cn(
             "pt-0 border-t",
             spiritual
@@ -213,15 +218,9 @@ export function CommunityPostCard({
         >
           <CommunityComments
             postId={post.id}
-            returnPath={
-              showSpaceLabel ? "/community" : `/community/${post.spaceSlug}`
-            }
+            returnPath={returnPath}
             onCommentCountChange={setCommentCount}
-            commentPlaceholder={
-              prayerSpace
-                ? preset.comments.placeholder
-                : post.spaceEngagementPrompt
-            }
+            commentPlaceholder={post.spaceEngagementPrompt}
             allowComments={post.spaceAllowComments}
             allowVoiceMessages={voicePrayerEnabled}
             spaceType={post.spaceType}

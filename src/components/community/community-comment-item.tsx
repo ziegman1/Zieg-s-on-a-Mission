@@ -16,23 +16,56 @@ export function CommunityCommentItem({
   canReply,
   onReply,
   preset,
+  prayerThreadLayout = false,
 }: {
   comment: CommunityPostComment;
   isReply?: boolean;
   canReply: boolean;
   onReply?: (parentCommentId: string, body: string) => Promise<void>;
   preset: SpaceInteractionPreset;
+  prayerThreadLayout?: boolean;
 }) {
   const [replyOpen, setReplyOpen] = useState(false);
   const parsed = parsePrayerResponseBody(comment.body);
   const isPrayer = preset.mode === "prayer";
   const firstName = comment.displayName.split(/\s+/)[0] ?? comment.displayName;
+  const threadPrayer = isPrayer && prayerThreadLayout && !isReply;
+
+  if (threadPrayer && parsed.kind === "voice") {
+    return (
+      <article className="rounded-2xl bg-white ring-1 ring-black/[0.05] px-3.5 py-3.5 space-y-2.5">
+        <p className="text-sm font-semibold text-brand-ink">{comment.displayName}</p>
+        <CommunityVoicePrayerPlayer
+          audioUrl={parsed.audioUrl}
+          durationSeconds={parsed.durationSeconds}
+          showPlayLabel
+        />
+        <time dateTime={comment.createdAt} className="block text-xs text-brand-ink/45">
+          {formatCommunityPostDate(comment.createdAt)}
+        </time>
+      </article>
+    );
+  }
+
+  if (threadPrayer && parsed.kind === "written") {
+    return (
+      <article className="rounded-2xl bg-white ring-1 ring-black/[0.05] px-3.5 py-3.5 space-y-1.5">
+        <p className="text-sm font-semibold text-brand-ink">{comment.displayName}</p>
+        <p className="text-[15px] leading-relaxed text-brand-ink/85 whitespace-pre-wrap">
+          &ldquo;{parsed.text}&rdquo;
+        </p>
+        <time dateTime={comment.createdAt} className="block text-xs text-brand-ink/45">
+          {formatCommunityPostDate(comment.createdAt)}
+        </time>
+      </article>
+    );
+  }
 
   return (
     <div
       className={cn(
         "flex gap-2.5 rounded-xl px-2 py-2.5 -mx-2",
-        isPrayer && !isReply && "bg-brand-primary/[0.03]",
+        isPrayer && !isReply && !prayerThreadLayout && "bg-brand-primary/[0.03]",
         isReply && "ml-6 sm:ml-8 pt-2",
       )}
     >
@@ -75,7 +108,7 @@ export function CommunityCommentItem({
           </div>
         ) : (
           <p className="mt-1.5 text-sm text-brand-ink/82 leading-relaxed whitespace-pre-wrap">
-            {parsed.text}
+            {parsed.kind === "written" ? parsed.text : ""}
           </p>
         )}
         {canReply && !isReply && onReply ? (

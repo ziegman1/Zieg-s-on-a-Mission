@@ -56,6 +56,12 @@ export type SpaceInteractionPreset = {
     emptyTitle: string;
     emptyBody: string;
     emptyCta: string;
+    /** Thread row below reactions when count is 0 */
+    threadInvite: string;
+    threadViewOne: string;
+    threadViewMany: string;
+    threadEmptyHint: string;
+    submitSuccess: string;
     loadingLabel: string;
     pausedLabel: string;
     actionVerb: string;
@@ -100,6 +106,11 @@ const PRAYER_PRESET: SpaceInteractionPreset = {
     emptyTitle: "No prayers have been shared yet.",
     emptyBody: "Be the first to stand with this request in prayer.",
     emptyCta: "Share a Prayer",
+    threadInvite: "Be the first to pray together",
+    threadViewOne: "View 1 Prayer",
+    threadViewMany: "View {count} Prayers",
+    threadEmptyHint: "No prayers shared yet",
+    submitSuccess: "Your prayer was shared",
     loadingLabel: "Loading prayers…",
     pausedLabel: "Prayer responses are paused in this room for now.",
     actionVerb: "prayed",
@@ -127,6 +138,11 @@ const DEFAULT_PRESET: SpaceInteractionPreset = {
     emptyTitle: "No comments yet.",
     emptyBody: "Be the first to encourage our family.",
     emptyCta: "Add a comment",
+    threadInvite: "Join the conversation",
+    threadViewOne: "View 1 comment",
+    threadViewMany: "View {count} comments",
+    threadEmptyHint: "No comments yet",
+    submitSuccess: "Comment posted",
     loadingLabel: "Loading comments…",
     pausedLabel: "Comments are paused in this space for now.",
     actionVerb: "commented",

@@ -8,10 +8,13 @@ export function CommunityVoicePrayerPlayer({
   audioUrl,
   durationSeconds,
   className,
+  showPlayLabel = false,
 }: {
   audioUrl: string;
   durationSeconds?: number | null;
   className?: string;
+  /** Thread layout: show “Voice Prayer” heading */
+  showPlayLabel?: boolean;
 }) {
   const durationLabel = formatPrayerDuration(durationSeconds);
 
@@ -29,6 +32,9 @@ export function CommunityVoicePrayerPlayer({
         >
           <Mic className="h-3.5 w-3.5" />
         </span>
+        {showPlayLabel ? (
+          <span className="text-sm font-medium text-brand-ink">Voice Prayer</span>
+        ) : null}
         {durationLabel ? (
           <span className="text-[11px] font-medium text-brand-ink/50 tabular-nums">
             {durationLabel}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import { Loader2, Mic, PenLine } from "lucide-react";
 import type { CommentAuthorContext } from "@/lib/community/members";
 import { encodeVoicePrayerBody } from "@/lib/community/prayer-response-body";
@@ -34,6 +34,8 @@ export function CommunityPrayerResponseForm({
   onSubmit,
   disabled,
   allowVoice = false,
+  autoFocus = false,
+  variant = "inline",
 }: {
   postId: string;
   authorContext: CommentAuthorContext;
@@ -42,6 +44,9 @@ export function CommunityPrayerResponseForm({
   disabled?: boolean;
   /** From `canUseVoicePrayer()` — prayer room with voice prayers enabled */
   allowVoice?: boolean;
+  /** Focus textarea when mounted (composer sheet) */
+  autoFocus?: boolean;
+  variant?: "inline" | "sheet";
 }) {
   const [mode, setMode] = useState<"written" | "voice">("written");
   const [body, setBody] = useState("");
@@ -49,6 +54,21 @@ export function CommunityPrayerResponseForm({
   const [recorderKey, setRecorderKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const textareaId = useId();
+  const isSheet = variant === "sheet";
+
+  useEffect(() => {
+    if (!autoFocus || mode !== "written") return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(textareaId) as HTMLTextAreaElement | null;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [autoFocus, mode, textareaId]);
 
   const name = authorLabel(authorContext);
   const { comments: copy } = preset;
@@ -99,8 +119,9 @@ export function CommunityPrayerResponseForm({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "rounded-2xl bg-white/92 ring-1 ring-brand-primary/10 p-3.5 sm:p-4 space-y-3",
-        "shadow-[0_1px_16px_rgba(30,54,68,0.04)]",
+        "space-y-3",
+        !isSheet &&
+          "rounded-2xl bg-white/92 ring-1 ring-brand-primary/10 p-3.5 sm:p-4 shadow-[0_1px_16px_rgba(30,54,68,0.04)]",
       )}
     >
       <div className="flex items-center gap-2.5">
@@ -157,18 +178,23 @@ export function CommunityPrayerResponseForm({
 
       {mode === "written" || !showVoice ? (
         <div className="space-y-1.5">
-          <Label htmlFor="mh-prayer-body" className="sr-only">
+          <Label htmlFor={textareaId} className="sr-only">
             Written prayer
           </Label>
           <Textarea
-            id="mh-prayer-body"
+            id={textareaId}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={copy.placeholder}
-            rows={3}
+            rows={isSheet ? 4 : 3}
             maxLength={2000}
             disabled={disabled || isPending}
-            className="text-[15px] leading-relaxed bg-white border-black/[0.08] resize-y min-h-[4.5rem] rounded-xl"
+            autoFocus={autoFocus && mode === "written"}
+            enterKeyHint="send"
+            className={cn(
+              "text-[15px] leading-relaxed bg-white border-black/[0.08] resize-none rounded-xl",
+              isSheet ? "min-h-[7rem] text-base" : "resize-y min-h-[4.5rem]",
+            )}
           />
         </div>
       ) : (
@@ -195,7 +221,10 @@ export function CommunityPrayerResponseForm({
         type="submit"
         size="sm"
         disabled={voiceSubmitDisabled}
-        className="rounded-full min-h-[2.75rem] px-6 text-sm bg-brand-primary/90 hover:bg-brand-primary w-full sm:w-auto"
+        className={cn(
+          "rounded-full min-h-[2.875rem] px-6 text-sm font-semibold bg-brand-primary hover:bg-brand-primary w-full",
+          isSheet && "min-h-[3rem] text-[15px]",
+        )}
       >
         {isPending ? (
           <>
@@ -205,7 +234,7 @@ export function CommunityPrayerResponseForm({
         ) : mode === "voice" && showVoice ? (
           copy.submitVoice
         ) : (
-          copy.submitWritten
+          "Share Prayer"
         )}
       </Button>
     </form>
