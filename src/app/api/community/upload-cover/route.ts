@@ -10,9 +10,9 @@ import {
 } from "@/lib/supabase/community-media";
 import {
   getSupabaseStorageConfigProblems,
-  logSupabaseServiceRoleKeyDebug,
   supabaseStorageNotConfiguredMessage,
-} from "@/lib/supabase/config";
+} from "@/lib/supabase/config-env";
+import { logSupabaseServiceRoleKeyDebug } from "@/lib/supabase/config-server";
 
 export const runtime = "nodejs";
 

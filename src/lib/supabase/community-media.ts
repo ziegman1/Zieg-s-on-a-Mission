@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   buildBlogFeaturedImagePath,
   buildCommunityMemberProfilePath,
@@ -12,7 +14,7 @@ import {
   COMMUNITY_MEDIA_BUCKET,
   getSupabaseProjectUrl,
   supabaseServiceRoleKeyErrorMessage,
-} from "@/lib/supabase/config";
+} from "@/lib/supabase/config-env";
 import { getSupabaseStorageAdmin } from "@/lib/supabase/storage-admin";
 
 export function getCommunityMediaPublicUrl(storagePath: string): string | null {

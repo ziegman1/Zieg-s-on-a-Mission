@@ -5,15 +5,17 @@ import {
   validateCommunityCoverFile,
 } from "@/lib/community/media-upload";
 import {
+  formatNewsletterUploadErrorBody,
+  storageConfigErrorBody,
+  UNAUTHORIZED_UPLOAD_MESSAGE,
+} from "@/lib/newsletter/newsletter-upload-errors";
+import {
   NEWSLETTER_IMAGE_PURPOSES,
   type NewsletterImagePurpose,
 } from "@/lib/newsletter/storage-paths";
 import { uploadNewsletterAsset } from "@/lib/supabase/newsletter-media";
-import {
-  getSupabaseStorageConfigProblems,
-  logSupabaseServiceRoleKeyDebug,
-  supabaseStorageNotConfiguredMessage,
-} from "@/lib/supabase/config";
+import { getSupabaseStorageConfigProblems } from "@/lib/supabase/config-env";
+import { logSupabaseServiceRoleKeyDebug } from "@/lib/supabase/config-server";
 
 export const runtime = "nodejs";
 
@@ -30,45 +32,16 @@ function parseNewsletterId(value: FormDataEntryValue | null): string | undefined
   return id.length > 0 ? id : undefined;
 }
 
-function clientFacingUploadError(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes("5 mb") || lower.includes("size limit") || lower.includes("too large")) {
-    return "Image exceeds size limit.";
-  }
-  if (lower.includes("jpg") || lower.includes("png") || lower.includes("webp") || lower.includes("mime")) {
-    return "Unsupported file type.";
-  }
-  if (lower.includes("not configured") || lower.includes("missing next_public")) {
-    return message;
-  }
-  if (lower.includes("bucket") && lower.includes("missing")) {
-    return "Upload failed. Create the newsletter-assets bucket in Supabase.";
-  }
-  if (process.env.NODE_ENV === "development") {
-    return message;
-  }
-  return "Upload failed.";
-}
-
-function storageConfigErrorResponse() {
-  const problems = getSupabaseStorageConfigProblems();
-  let error = supabaseStorageNotConfiguredMessage(problems);
-  if (process.env.NODE_ENV === "development") {
-    error += " Add values to .env.local and restart npm run dev.";
-  }
-  return NextResponse.json({ error }, { status: 503 });
-}
-
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.role || !["ADMIN", "STAFF"].includes(session.user.role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: UNAUTHORIZED_UPLOAD_MESSAGE }, { status: 401 });
   }
 
   logSupabaseServiceRoleKeyDebug("upload-newsletter-image");
 
   if (getSupabaseStorageConfigProblems().length > 0) {
-    return storageConfigErrorResponse();
+    return NextResponse.json(storageConfigErrorBody(), { status: 503 });
   }
 
   let formData: FormData;
@@ -105,11 +78,12 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ url, path, storage: "supabase", purpose });
   } catch (e) {
-    console.error("[upload-newsletter-image]", e);
-    const message = e instanceof Error ? e.message : "Upload failed";
-    return NextResponse.json(
-      { error: clientFacingUploadError(message) },
-      { status: 500 },
-    );
+    const raw = e instanceof Error ? e.message : String(e);
+    const body = formatNewsletterUploadErrorBody(raw, "image");
+    console.error("[upload-newsletter-image] failed", {
+      ...body,
+      stack: e instanceof Error ? e.stack : undefined,
+    });
+    return NextResponse.json(body, { status: 500 });
   }
 }

@@ -77,6 +77,15 @@ export const DEFAULT_MISSION_HUB_SPACES: MissionHubDefaultSpace[] = [
     engagementPrompt: "What update encouraged you most?",
   },
   {
+    slug: "newsletters",
+    title: "Newsletters",
+    description: "New issues and archived newsletters for partners and friends.",
+    icon: "newsletter",
+    sortOrder: 25,
+    spaceType: "newsletter",
+    engagementPrompt: "Which newsletter encouraged you this month?",
+  },
+  {
     slug: "resources",
     title: "Resources",
     description: "Guides, links, and materials to support prayer and partnership.",

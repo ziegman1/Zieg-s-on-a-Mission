@@ -4,12 +4,14 @@ import {
   NEWSLETTER_PDF_MAX_BYTES,
   validateNewsletterPdfFile,
 } from "@/lib/newsletter/document-upload";
-import { uploadNewsletterDocument } from "@/lib/supabase/newsletter-media";
 import {
-  getSupabaseStorageConfigProblems,
-  logSupabaseServiceRoleKeyDebug,
-  supabaseStorageNotConfiguredMessage,
-} from "@/lib/supabase/config";
+  formatNewsletterUploadErrorBody,
+  storageConfigErrorBody,
+  UNAUTHORIZED_UPLOAD_MESSAGE,
+} from "@/lib/newsletter/newsletter-upload-errors";
+import { uploadNewsletterDocument } from "@/lib/supabase/newsletter-media";
+import { getSupabaseStorageConfigProblems } from "@/lib/supabase/config-env";
+import { logSupabaseServiceRoleKeyDebug } from "@/lib/supabase/config-server";
 
 export const runtime = "nodejs";
 
@@ -19,56 +21,28 @@ function parseNewsletterId(value: FormDataEntryValue | null): string | undefined
   return id.length > 0 ? id : undefined;
 }
 
-function clientFacingUploadError(message: string): string {
-  const lower = message.toLowerCase();
-  if (
-    lower.includes("20 mb") ||
-    lower.includes("size limit") ||
-    lower.includes("too large") ||
-    lower.includes("payload too large")
-  ) {
-    return "PDF must be 20 MB or smaller.";
-  }
-  if (lower.includes("pdf") || lower.includes("mime") || lower.includes("not allowed")) {
-    return "Use a PDF file.";
-  }
-  if (lower.includes("not configured") || lower.includes("missing next_public")) {
-    return message;
-  }
-  if (lower.includes("bucket") && lower.includes("missing")) {
-    return "Upload failed. Create the newsletter-assets bucket in Supabase.";
-  }
-  if (process.env.NODE_ENV === "development") {
-    return message;
-  }
-  return "Upload failed.";
-}
-
-function storageConfigErrorResponse() {
-  const problems = getSupabaseStorageConfigProblems();
-  let error = supabaseStorageNotConfiguredMessage(problems);
-  if (process.env.NODE_ENV === "development") {
-    error += " Add values to .env.local and restart npm run dev.";
-  }
-  return NextResponse.json({ error }, { status: 503 });
-}
-
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.role || !["ADMIN", "STAFF"].includes(session.user.role)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    console.warn("[upload-newsletter-document] rejected: no admin session", {
+      role: session?.user?.role ?? null,
+    });
+    return NextResponse.json({ error: UNAUTHORIZED_UPLOAD_MESSAGE }, { status: 401 });
   }
 
   logSupabaseServiceRoleKeyDebug("upload-newsletter-document");
 
   if (getSupabaseStorageConfigProblems().length > 0) {
-    return storageConfigErrorResponse();
+    const body = storageConfigErrorBody();
+    console.error("[upload-newsletter-document] storage not configured", body);
+    return NextResponse.json(body, { status: 503 });
   }
 
   let formData: FormData;
   try {
     formData = await req.formData();
-  } catch {
+  } catch (e) {
+    console.error("[upload-newsletter-document] invalid form data", e);
     return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
   }
 
@@ -85,19 +59,29 @@ export async function POST(req: Request) {
   }
 
   if (file.size > NEWSLETTER_PDF_MAX_BYTES) {
-    return NextResponse.json({ error: "PDF must be 20 MB or smaller." }, { status: 400 });
+    return NextResponse.json({ error: "PDF exceeds 20 MB." }, { status: 400 });
   }
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const { url, path } = await uploadNewsletterDocument(buffer, { newsletterId });
+    console.info("[upload-newsletter-document] ok", {
+      path,
+      bytes: buffer.length,
+      newsletterId: newsletterId ?? null,
+      userId: session.user.id ?? session.user.email,
+    });
     return NextResponse.json({ url, path, storage: "supabase" });
   } catch (e) {
-    console.error("[upload-newsletter-document]", e);
-    const message = e instanceof Error ? e.message : "Upload failed";
-    return NextResponse.json(
-      { error: clientFacingUploadError(message) },
-      { status: 500 },
-    );
+    const raw = e instanceof Error ? e.message : String(e);
+    const body = formatNewsletterUploadErrorBody(raw, "pdf");
+    console.error("[upload-newsletter-document] failed", {
+      ...body,
+      stack: e instanceof Error ? e.stack : undefined,
+      fileName: file.name,
+      fileSize: file.size,
+      newsletterId: newsletterId ?? null,
+    });
+    return NextResponse.json(body, { status: 500 });
   }
 }

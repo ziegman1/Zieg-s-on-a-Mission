@@ -1,14 +1,13 @@
+import "server-only";
+
 import type { CommunityCoverMimeType } from "@/lib/community/media-upload";
 import {
   buildNewsletterAssetPathFromMime,
   buildNewsletterDocumentPath,
   type NewsletterImagePurpose,
 } from "@/lib/newsletter/storage-paths";
-import {
-  getSupabaseProjectUrl,
-  NEWSLETTER_ASSETS_BUCKET,
-  supabaseServiceRoleKeyErrorMessage,
-} from "@/lib/supabase/config";
+import { mapSupabaseStorageErrorMessage } from "@/lib/newsletter/newsletter-upload-errors-client";
+import { getSupabaseProjectUrl, NEWSLETTER_ASSETS_BUCKET } from "@/lib/supabase/config-env";
 import { getSupabaseStorageAdmin } from "@/lib/supabase/storage-admin";
 
 export function getNewsletterAssetPublicUrl(storagePath: string): string | null {
@@ -21,34 +20,25 @@ export function getNewsletterAssetPublicUrl(storagePath: string): string | null 
   return `${base}/storage/v1/object/public/${NEWSLETTER_ASSETS_BUCKET}/${encoded}`;
 }
 
-function mapStorageUploadError(message: string): string {
-  const lower = message.toLowerCase();
-  if (
-    lower.includes("invalid compact jws") ||
-    lower.includes("expected 3 parts in jwt") ||
-    (lower.includes("jwt") && lower.includes("malformed"))
-  ) {
-    return supabaseServiceRoleKeyErrorMessage("new_secret_format");
-  }
-  if (lower.includes("placeholder") || lower.includes("too short")) {
-    return supabaseServiceRoleKeyErrorMessage("placeholder");
-  }
-  if (lower.includes("unauthorized") || lower.includes("invalid api key")) {
-    return "Upload failed. Check Supabase credentials.";
-  }
-  if (lower.includes("forbidden") || lower.includes("permission denied")) {
-    return (
-      "Upload failed. Confirm the newsletter-assets bucket exists " +
-      "(see docs/supabase-newsletter-assets.md)."
-    );
-  }
-  if (lower.includes("payload too large") || lower.includes("file size")) {
-    return "File exceeds size limit.";
-  }
-  if (lower.includes("mime") || lower.includes("not allowed")) {
-    return "Unsupported file type.";
-  }
-  return message || "Upload failed.";
+function logStorageUploadFailure(
+  context: "image" | "document",
+  path: string,
+  error: { message?: string; statusCode?: string },
+): void {
+  console.error(`[newsletter-media] ${context} upload failed`, {
+    bucket: NEWSLETTER_ASSETS_BUCKET,
+    path,
+    statusCode: error.statusCode,
+    message: error.message,
+  });
+}
+
+function mapStorageUploadError(
+  message: string,
+  statusCode?: string,
+  kind: "pdf" | "image" = "image",
+): string {
+  return mapSupabaseStorageErrorMessage(message, statusCode, kind);
 }
 
 /** Upload newsletter image to Supabase Storage (`newsletter-assets` bucket). */
@@ -68,13 +58,8 @@ export async function uploadNewsletterAsset(
   });
 
   if (error) {
-    if (error.message?.toLowerCase().includes("bucket") || error.message?.includes("not found")) {
-      throw new Error(
-        `Storage bucket "${NEWSLETTER_ASSETS_BUCKET}" is missing. ` +
-          "Create it in Supabase (see docs/supabase-newsletter-assets.md).",
-      );
-    }
-    throw new Error(mapStorageUploadError(error.message || "Upload failed"));
+    logStorageUploadFailure("image", path, error);
+    throw new Error(mapStorageUploadError(error.message || "Upload failed", error.statusCode, "image"));
   }
 
   const url = getNewsletterAssetPublicUrl(path);
@@ -99,13 +84,8 @@ export async function uploadNewsletterDocument(
   });
 
   if (error) {
-    if (error.message?.toLowerCase().includes("bucket") || error.message?.includes("not found")) {
-      throw new Error(
-        `Storage bucket "${NEWSLETTER_ASSETS_BUCKET}" is missing. ` +
-          "Create it in Supabase (see docs/supabase-newsletter-assets.md).",
-      );
-    }
-    throw new Error(mapStorageUploadError(error.message || "Upload failed"));
+    logStorageUploadFailure("document", path, error);
+    throw new Error(mapStorageUploadError(error.message || "Upload failed", error.statusCode, "pdf"));
   }
 
   const url = getNewsletterAssetPublicUrl(path);

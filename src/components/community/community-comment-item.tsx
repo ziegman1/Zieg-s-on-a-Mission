@@ -98,6 +98,8 @@ export function CommunityCommentItem({
         <CommunityVoicePrayerPlayer
           audioUrl={parsed.audioUrl}
           durationSeconds={parsed.durationSeconds}
+          mimeType={parsed.mimeType}
+          hasVideo={parsed.hasVideo}
           showPlayLabel
         />
         <time dateTime={comment.createdAt} className="block text-xs text-brand-ink/45">
@@ -180,6 +182,8 @@ export function CommunityCommentItem({
             <CommunityVoicePrayerPlayer
               audioUrl={parsed.audioUrl}
               durationSeconds={parsed.durationSeconds}
+              mimeType={parsed.mimeType}
+              hasVideo={parsed.hasVideo}
             />
             {parsed.caption ? (
               <p className="mt-2 text-sm text-brand-ink/75 leading-relaxed">{parsed.caption}</p>

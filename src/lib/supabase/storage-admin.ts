@@ -1,9 +1,11 @@
+import "server-only";
+
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   assertSupabaseStorageReady,
   getSupabaseProjectUrl,
   getSupabaseServiceRoleKey,
-} from "@/lib/supabase/config";
+} from "@/lib/supabase/config-env";
 
 let cachedAdmin: SupabaseClient | null = null;
 

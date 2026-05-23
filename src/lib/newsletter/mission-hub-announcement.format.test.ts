@@ -2,32 +2,41 @@ import { describe, expect, it } from "vitest";
 import { formatNewsletterPublishSuccessMessage } from "./mission-hub-announcement";
 
 describe("formatNewsletterPublishSuccessMessage", () => {
-  it("shows announcement status and prepared recipient counts", () => {
+  it("shows announcements and Mission Hub in-app + email delivery lines", () => {
     const message = formatNewsletterPublishSuccessMessage({
       newsletterSlug: "march-update",
       hub: {
-        announcement: {
+        ministryUpdates: {
           postId: "post-1",
           spaceSlug: "ministry-updates",
+          spaceId: "s1",
           created: true,
           newsletterPath: "/newsletters/march-update",
+          targetSpaceType: "ministry_updates",
         },
-        announcementCreated: true,
+        newsletterSpace: {
+          postId: "post-2",
+          spaceSlug: "newsletters",
+          spaceId: "s2",
+          created: false,
+          newsletterPath: "/newsletters/march-update",
+          targetSpaceType: "newsletter",
+        },
+        inAppNotificationsSent: 10,
+        inAppNotificationsUpdated: 2,
+        emailNotificationsSent: 8,
+        emailEnabled: true,
         emailRecipientsPrepared: 12,
-        inAppRecipientsPrepared: 15,
-        pushRecipientsPrepared: 0,
         skippedMutedOrDisabled: 3,
-        deliveryEnabled: false,
       },
     });
 
     expect(message).toContain("Newsletter published");
     expect(message).toContain("/newsletters/march-update");
-    expect(message).toContain("Mission Hub announcement created");
-    expect(message).toContain("Email recipients prepared: 12");
-    expect(message).toContain("In-app recipients prepared: 15");
-    expect(message).toContain("Push recipients prepared: 0");
-    expect(message).toContain("Skipped (muted or disabled): 3");
-    expect(message).toContain("Delivery disabled");
+    expect(message).toContain("Ministry Updates post created");
+    expect(message).toContain("Newsletter space post updated");
+    expect(message).toContain("Mission Hub in-app notifications sent: 12");
+    expect(message).toContain("Mission Hub email notifications sent: 8");
+    expect(message).not.toContain("Mail Suite");
   });
 });

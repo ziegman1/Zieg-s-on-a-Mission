@@ -1,13 +1,18 @@
 /** Prayer response payloads stored in `community_post_comments.body` (no schema migration). */
 
+import { inferPrayerHasVideoFromMime } from "@/lib/community/prayer-media-playback";
+
 const LEGACY_VOICE_MARKER = "__mhVoicePrayer";
 
 export type VoicePrayerPayload = {
   kind: "voice_prayer";
+  /** Public URL for audio or video prayer media. */
   audioUrl: string;
   durationSeconds?: number;
   mimeType?: string;
   filename?: string;
+  hasVideo?: boolean;
+  originalFileName?: string;
 };
 
 export type WrittenPrayerPayload = {
@@ -28,6 +33,8 @@ export type ParsedPrayerResponseBody =
       durationSeconds: number | null;
       mimeType: string | null;
       filename: string | null;
+      hasVideo: boolean;
+      originalFileName: string | null;
       caption: string | null;
     }
   | { kind: "written"; text: string };
@@ -37,15 +44,26 @@ export function encodeVoicePrayerBody(input: {
   durationSeconds?: number;
   mimeType?: string;
   filename?: string;
+  hasVideo?: boolean;
+  originalFileName?: string;
 }): string {
+  const mime = input.mimeType?.trim() || undefined;
+  const hasVideo =
+    input.hasVideo === true ||
+    (input.hasVideo !== false && Boolean(mime && inferPrayerHasVideoFromMime(mime)));
+
   const payload: VoicePrayerPayload = {
     kind: "voice_prayer",
     audioUrl: input.audioUrl.trim(),
     ...(typeof input.durationSeconds === "number" && input.durationSeconds >= 0
       ? { durationSeconds: Math.round(input.durationSeconds) }
       : {}),
-    ...(input.mimeType?.trim() ? { mimeType: input.mimeType.trim() } : {}),
+    ...(mime ? { mimeType: mime } : {}),
     ...(input.filename?.trim() ? { filename: input.filename.trim() } : {}),
+    ...(hasVideo ? { hasVideo: true } : {}),
+    ...(input.originalFileName?.trim()
+      ? { originalFileName: input.originalFileName.trim() }
+      : {}),
   };
   return JSON.stringify(payload);
 }
@@ -68,6 +86,8 @@ function parseLegacyVoice(parsed: Record<string, unknown>): ParsedPrayerResponse
       durationSeconds: null,
       mimeType: null,
       filename: null,
+      hasVideo: false,
+      originalFileName: null,
       caption: typeof parsed.caption === "string" ? parsed.caption.trim() || null : null,
     };
   }
@@ -81,12 +101,25 @@ function parseCanonicalVoice(parsed: Record<string, unknown>): ParsedPrayerRespo
     typeof parsed.durationSeconds === "number" && Number.isFinite(parsed.durationSeconds)
       ? Math.max(0, Math.round(parsed.durationSeconds))
       : null;
+  const mimeType =
+    typeof parsed.mimeType === "string" ? parsed.mimeType.trim() || null : null;
+  const hasVideoExplicit = parsed.hasVideo === true;
+  const hasVideo =
+    hasVideoExplicit ||
+    (parsed.hasVideo !== false && inferPrayerHasVideoFromMime(mimeType));
+  const originalFileName =
+    typeof parsed.originalFileName === "string"
+      ? parsed.originalFileName.trim() || null
+      : null;
+
   return {
     kind: "voice",
     audioUrl: parsed.audioUrl.trim(),
     durationSeconds: duration,
-    mimeType: typeof parsed.mimeType === "string" ? parsed.mimeType.trim() || null : null,
+    mimeType,
     filename: typeof parsed.filename === "string" ? parsed.filename.trim() || null : null,
+    hasVideo,
+    originalFileName,
     caption: null,
   };
 }

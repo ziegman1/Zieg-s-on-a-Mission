@@ -3,6 +3,10 @@ import {
   COMMUNITY_COVER_MAX_BYTES,
   isCommunityCoverMimeType,
 } from "@/lib/community/media-upload";
+import {
+  parseNewsletterUploadApiError,
+  UNAUTHORIZED_UPLOAD_MESSAGE,
+} from "@/lib/newsletter/newsletter-upload-errors-client";
 import type { NewsletterImagePurpose } from "@/lib/newsletter/storage-paths";
 
 export type { NewsletterImagePurpose };
@@ -66,12 +70,18 @@ export async function uploadNewsletterImageFile(
     body: fd,
   });
 
-  const data = (await res.json()) as { url?: string; storage?: string; error?: string };
+  const text = await res.text();
+  let data: { url?: string; storage?: string; error?: string; detail?: string } = {};
+  try {
+    data = text ? (JSON.parse(text) as typeof data) : {};
+  } catch {
+    throw new Error(parseNewsletterUploadApiError(res.status, null, "image"));
+  }
   if (res.status === 401) {
-    throw new Error("Upload failed. Sign in as an admin.");
+    throw new Error(UNAUTHORIZED_UPLOAD_MESSAGE);
   }
   if (!res.ok || !data.url) {
-    throw new Error(data.error ?? "Upload failed.");
+    throw new Error(parseNewsletterUploadApiError(res.status, data, "image"));
   }
 
   return { url: data.url, storage: data.storage };

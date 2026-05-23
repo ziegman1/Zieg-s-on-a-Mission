@@ -6,7 +6,7 @@ const VALID_SERVICE_ROLE =
 
 async function loadConfig() {
   vi.resetModules();
-  return import("./config");
+  return import("./config-env");
 }
 
 describe("Supabase Storage config", () => {

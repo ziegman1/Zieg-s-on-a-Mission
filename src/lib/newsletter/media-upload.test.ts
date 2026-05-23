@@ -104,7 +104,7 @@ describe("uploadNewsletterImageFile", () => {
     );
     const file = new File([new Uint8Array(10)], "h.jpg", { type: "image/jpeg" });
     await expect(uploadNewsletterImageFile(file, "header")).rejects.toThrow(
-      "Upload failed. Sign in as an admin.",
+      "You are not authorized to upload",
     );
   });
 });

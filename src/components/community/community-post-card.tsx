@@ -150,6 +150,8 @@ export function CommunityPostCard({
               <CommunityVoicePrayerPlayer
                 audioUrl={parsedBody.audioUrl}
                 durationSeconds={parsedBody.durationSeconds}
+                mimeType={parsedBody.mimeType}
+                hasVideo={parsedBody.hasVideo}
                 showPlayLabel
               />
             </div>

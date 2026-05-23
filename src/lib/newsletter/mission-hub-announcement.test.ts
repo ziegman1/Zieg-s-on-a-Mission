@@ -4,19 +4,25 @@ import type { NewsletterRecord } from "./types";
 vi.mock("@/lib/db", () => ({
   prisma: {
     communitySpaceRecord: { findFirst: vi.fn() },
-    communityPostRecord: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    communityPostRecord: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
   },
 }));
 
 import { prisma } from "@/lib/db";
 import {
   NEWSLETTER_SOURCE_KIND,
+  NEWSLETTER_SPACE_SLUG,
   archiveMissionHubNewsletterAnnouncement,
   buildNewsletterAnnouncementBody,
   buildNewsletterAnnouncementMetadata,
   newsletterPublicPath,
   parseNewsletterAnnouncementMetadata,
-  upsertMissionHubNewsletterAnnouncement,
+  upsertMissionHubNewsletterAnnouncements,
 } from "./mission-hub-announcement";
 
 const sample: NewsletterRecord = {
@@ -45,100 +51,129 @@ const sample: NewsletterRecord = {
   updatedAt: "2026-03-15T12:00:00.000Z",
 };
 
+function mockSpaces(ministry = true, newsletter = true) {
+  vi.mocked(prisma.communitySpaceRecord.findFirst).mockImplementation((async (args: { where?: { slug?: string } }) => {
+    const slug = (args?.where as { slug?: string } | undefined)?.slug;
+    if (slug === "ministry-updates" && ministry) {
+      return { id: "space-ministry", slug: "ministry-updates" } as never;
+    }
+    if (slug === NEWSLETTER_SPACE_SLUG && newsletter) {
+      return { id: "space-newsletters", slug: NEWSLETTER_SPACE_SLUG } as never;
+    }
+    return null;
+  }) as never);
+}
+
 describe("newsletter announcement builders", () => {
-  it("builds metadata with public newsletter path", () => {
-    const meta = buildNewsletterAnnouncementMetadata(sample);
+  it("builds metadata with target space and originating newsletter id", () => {
+    const meta = buildNewsletterAnnouncementMetadata(sample, "newsletter");
     expect(meta.newsletterId).toBe("nl_test_1");
-    expect(meta.newsletterSlug).toBe("march-field-update");
+    expect(meta.originatingNewsletterId).toBe("nl_test_1");
+    expect(meta.targetSpaceType).toBe("newsletter");
     expect(meta.newsletterPath).toBe("/newsletters/march-field-update");
-    expect(meta.ctaLabel).toBe("Partner with us");
   });
 
-  it("builds teaser body linking to public newsletter (not full body)", () => {
-    const body = buildNewsletterAnnouncementBody(sample);
-    expect(body).toContain("/newsletters/march-field-update");
-    expect(body).toContain("Highlights from March.");
-    expect(body).toContain("Partner with us");
+  it("builds teaser body with read link arrow", () => {
+    const body = buildNewsletterAnnouncementBody(sample, "ministry_updates");
+    expect(body).toContain("Read full newsletter → /newsletters/march-field-update");
     expect(body).not.toContain("Full newsletter body stays on the public page.");
   });
 
-  it("does not include block composer content in Mission Hub teaser", () => {
-    const withBlocks = {
-      ...sample,
-      bodyBlocks: [
-        {
-          id: "blk_secret",
-          type: "text" as const,
-          content: "Secret block-only paragraph that must not appear in Mission Hub.",
-        },
-      ],
-    };
-    const body = buildNewsletterAnnouncementBody(withBlocks);
-    expect(body).not.toContain("Secret block-only paragraph");
-    expect(body).toContain("Highlights from March.");
+  it("builds richer newsletter-space body", () => {
+    const body = buildNewsletterAnnouncementBody(sample, "newsletter");
+    expect(body).toContain("New issue ·");
+    expect(body).toContain("March Field Update");
+    expect(body).toContain("Read full newsletter →");
   });
 
   it("parses announcement metadata for feed cards", () => {
-    const meta = buildNewsletterAnnouncementMetadata(sample);
+    const meta = buildNewsletterAnnouncementMetadata(sample, "ministry_updates");
     const link = parseNewsletterAnnouncementMetadata(meta, NEWSLETTER_SOURCE_KIND);
     expect(link?.newsletterPath).toBe(newsletterPublicPath("march-field-update"));
   });
-
-  it("does not parse draft sources without newsletter kind", () => {
-    expect(parseNewsletterAnnouncementMetadata({}, null)).toBeNull();
-    expect(parseNewsletterAnnouncementMetadata({}, "manual")).toBeNull();
-  });
 });
 
-describe("upsertMissionHubNewsletterAnnouncement", () => {
+describe("upsertMissionHubNewsletterAnnouncements", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSpaces(true, true);
+    vi.mocked(prisma.communityPostRecord.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.communityPostRecord.create)
+      .mockResolvedValueOnce({ id: "post-ministry" } as never)
+      .mockResolvedValueOnce({ id: "post-newsletter" } as never);
   });
 
-  it("creates a Mission Hub announcement on first publish", async () => {
-    vi.mocked(prisma.communitySpaceRecord.findFirst).mockResolvedValue({
-      id: "space-1",
-      slug: "ministry-updates",
-    } as never);
-    vi.mocked(prisma.communityPostRecord.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.communityPostRecord.create).mockResolvedValue({ id: "post-1" } as never);
+  it("creates posts in Ministry Updates and Newsletter spaces on first publish", async () => {
+    const result = await upsertMissionHubNewsletterAnnouncements(sample, "admin-1");
 
-    const result = await upsertMissionHubNewsletterAnnouncement(sample, "admin-1");
-
-    expect(result.created).toBe(true);
-    expect(result.postId).toBe("post-1");
-    expect(result.newsletterPath).toBe("/newsletters/march-field-update");
+    expect(result.ministryUpdates.created).toBe(true);
+    expect(result.ministryUpdates.postId).toBe("post-ministry");
+    expect(result.ministryUpdates.spaceSlug).toBe("ministry-updates");
+    expect(result.newsletterSpace?.created).toBe(true);
+    expect(result.newsletterSpace?.postId).toBe("post-newsletter");
+    expect(result.newsletterSpace?.spaceSlug).toBe(NEWSLETTER_SPACE_SLUG);
+    expect(prisma.communityPostRecord.create).toHaveBeenCalledTimes(2);
     expect(prisma.communityPostRecord.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           sourceKind: NEWSLETTER_SOURCE_KIND,
           sourceId: "nl_test_1",
-          postType: "newsletter",
-          status: "published",
+          spaceId: "space-ministry",
+        }),
+      }),
+    );
+    expect(prisma.communityPostRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sourceKind: NEWSLETTER_SOURCE_KIND,
+          sourceId: "nl_test_1",
+          spaceId: "space-newsletters",
         }),
       }),
     );
   });
 
-  it("updates existing announcement on republish without creating duplicate", async () => {
-    vi.mocked(prisma.communitySpaceRecord.findFirst).mockResolvedValue({
-      id: "space-1",
-      slug: "ministry-updates",
-    } as never);
-    vi.mocked(prisma.communityPostRecord.findUnique).mockResolvedValue({ id: "post-1" } as never);
-    vi.mocked(prisma.communityPostRecord.update).mockResolvedValue({ id: "post-1" } as never);
+  it("updates existing posts per space on republish without duplicates", async () => {
+    vi.mocked(prisma.communityPostRecord.findFirst).mockImplementation((async (args: { where?: { spaceId?: string } }) => {
+      const spaceId = (args?.where as { spaceId?: string } | undefined)?.spaceId;
+      if (spaceId === "space-ministry") return { id: "post-ministry" } as never;
+      if (spaceId === "space-newsletters") return { id: "post-newsletter" } as never;
+      return null;
+    }) as never);
+    vi.mocked(prisma.communityPostRecord.update)
+      .mockResolvedValueOnce({ id: "post-ministry" } as never)
+      .mockResolvedValueOnce({ id: "post-newsletter" } as never);
 
-    const result = await upsertMissionHubNewsletterAnnouncement(sample, "admin-1");
+    const result = await upsertMissionHubNewsletterAnnouncements(sample, "admin-1");
 
-    expect(result.created).toBe(false);
+    expect(result.ministryUpdates.created).toBe(false);
+    expect(result.newsletterSpace?.created).toBe(false);
     expect(prisma.communityPostRecord.create).not.toHaveBeenCalled();
-    expect(prisma.communityPostRecord.update).toHaveBeenCalled();
+    expect(prisma.communityPostRecord.update).toHaveBeenCalledTimes(2);
+  });
+
+  it("degrades gracefully when Newsletter space is missing", async () => {
+    mockSpaces(true, false);
+    vi.mocked(prisma.communityPostRecord.create).mockReset();
+    vi.mocked(prisma.communityPostRecord.create).mockResolvedValue({ id: "post-ministry" } as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await upsertMissionHubNewsletterAnnouncements(sample, "admin-1");
+
+    expect(result.ministryUpdates.postId).toBe("post-ministry");
+    expect(result.newsletterSpace).toBeNull();
+    expect(prisma.communityPostRecord.create).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Newsletter space not found"),
+      expect.objectContaining({ expectedSlug: NEWSLETTER_SPACE_SLUG }),
+    );
+    warn.mockRestore();
   });
 });
 
 describe("archiveMissionHubNewsletterAnnouncement", () => {
-  it("archives hub post when newsletter is unpublished", async () => {
-    vi.mocked(prisma.communityPostRecord.updateMany).mockResolvedValue({ count: 1 });
+  it("archives all linked hub posts when newsletter is unpublished", async () => {
+    vi.mocked(prisma.communityPostRecord.updateMany).mockResolvedValue({ count: 2 });
 
     const archived = await archiveMissionHubNewsletterAnnouncement("nl_test_1");
     expect(archived).toBe(true);

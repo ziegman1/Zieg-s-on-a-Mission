@@ -91,7 +91,15 @@ Member profile photos use `profiles/…` via `POST /api/community/upload-profile
 
 Product/site-copy uploads still use **Vercel Blob** (`/api/admin/upload`) unless migrated separately.
 
-## 6. Test locally
+## 6. Prayer audio & video uploads
+
+Voice and video prayers upload to `prayers/YYYY/MM/<uuid>.<ext>` in the same bucket via `POST /api/community/upload-prayer-audio`.
+
+Run `supabase/storage/community-media-prayer-mime-update.sql` in the SQL Editor to allow prayer MIME types and raise the bucket limit to **25 MB** (covers short video prayers; images remain validated at 5 MB in the app).
+
+Allowed prayer types include: MP3, M4A, WebM, WAV, AAC, MP4 (`video/mp4`, `audio/mp4`).
+
+## 7. Test locally
 
 1. Create bucket + policies in Supabase.
 2. Add env vars to `.env.local` (save the file — placeholders like `REPLACE_WITH_SUPABASE_SERVICE_ROLE_KEY` will fail validation).
@@ -101,7 +109,7 @@ Product/site-copy uploads still use **Vercel Blob** (`/api/admin/upload`) unless
 4. **Add cover photo** → choose image → wait for preview → **Share post**.
 5. Confirm image loads on the feed card (public URL).
 
-## 7. Test production
+## 8. Test production
 
 1. Set the same env vars on Vercel; redeploy (build does not configure Storage).
 2. Repeat upload flow on live `/community`.

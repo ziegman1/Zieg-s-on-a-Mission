@@ -1,76 +1,144 @@
 import { revalidatePath } from "next/cache";
-import { prepareNewsletterMemberNotifications } from "./member-notifications-prep";
 import {
-  upsertMissionHubNewsletterAnnouncement,
+  deliverNewsletterPublishNotifications,
+  formatMissionHubNotificationDeliveryLines,
+} from "./member-notifications-prep";
+import {
+  upsertMissionHubNewsletterAnnouncements,
+  type MissionHubNewsletterAnnouncementsResult,
   type UpsertMissionHubAnnouncementResult,
 } from "./mission-hub-announcement";
-import type { NewsletterMemberNotificationsPrep } from "./member-notifications-prep";
+import type { NewsletterPublishNotificationsResult } from "./member-notifications-prep";
 import type { NewsletterRecord } from "./types";
 
 export type NewsletterNotifyResult = {
   ok: boolean;
   newsletterId: string;
+  /** Ministry Updates teaser post. */
+  ministryUpdates: UpsertMissionHubAnnouncementResult;
+  /** Dedicated Newsletter space post, when that space exists. */
+  newsletterSpace: UpsertMissionHubAnnouncementResult | null;
+  /** @deprecated Use {@link ministryUpdates}. */
   announcement: UpsertMissionHubAnnouncementResult;
+  ministryUpdatesCreated: boolean;
+  newsletterSpaceCreated: boolean | null;
+  /** @deprecated Use {@link ministryUpdatesCreated}. */
   announcementCreated: boolean;
-  notifications: NewsletterMemberNotificationsPrep;
+  notifications: NewsletterPublishNotificationsResult;
   message: string;
 };
 
 export type NotifyNewsletterPublishOptions = {
   publisherUserId?: string | null;
+  /** When true, resend newsletter publish emails even if already delivered. */
+  resendNewsletterEmail?: boolean;
 };
+
+function buildNotifyMessage(
+  announcements: MissionHubNewsletterAnnouncementsResult,
+  notifications: NewsletterPublishNotificationsResult,
+): string {
+  const parts = [
+    announcements.ministryUpdates.created
+      ? "Ministry Updates post created."
+      : "Ministry Updates post updated.",
+  ];
+  if (announcements.newsletterSpace) {
+    parts.push(
+      announcements.newsletterSpace.created
+        ? "Newsletter space post created."
+        : "Newsletter space post updated.",
+    );
+  } else {
+    parts.push("Newsletter space post skipped (space not found).");
+  }
+  parts.push(...formatMissionHubNotificationDeliveryLines(notifications));
+  return parts.join(" ");
+}
 
 /**
  * Mission Hub integration when a newsletter is published from Newsletter Builder.
- * Creates/updates a feed announcement (teaser + link). Full content stays on /newsletters/[slug].
- * Member email / in-app / push are prepared but not sent yet.
+ * Creates/updates feed announcements in Ministry Updates and the Newsletter space,
+ * then creates in-app Mission Hub notifications for eligible members.
+ * Full content stays on /newsletters/[slug].
  */
 export async function notifyMissionHubMembersOfNewsletterPublish(
   newsletter: NewsletterRecord,
   options: NotifyNewsletterPublishOptions = {},
 ): Promise<NewsletterNotifyResult> {
-  const announcement = await upsertMissionHubNewsletterAnnouncement(
+  const announcements = await upsertMissionHubNewsletterAnnouncements(
     newsletter,
     options.publisherUserId ?? null,
   );
 
-  const notifications = await prepareNewsletterMemberNotifications(newsletter);
+  const sourcePostId =
+    announcements.newsletterSpace?.postId ?? announcements.ministryUpdates.postId;
+
+  const missionHubSpaceSlug =
+    announcements.newsletterSpace?.spaceSlug ??
+    announcements.ministryUpdates.spaceSlug;
+
+  const notifications = await deliverNewsletterPublishNotifications(newsletter, {
+    sourcePostId,
+    missionHubSpaceSlug,
+    publisherUserId: options.publisherUserId ?? null,
+    resendNewsletterEmail: options.resendNewsletterEmail,
+  });
 
   revalidatePath("/community", "page");
-  revalidatePath(`/community/${announcement.spaceSlug}`, "page");
+  revalidatePath(`/community/${announcements.ministryUpdates.spaceSlug}`, "page");
+  if (announcements.newsletterSpace) {
+    revalidatePath(`/community/${announcements.newsletterSpace.spaceSlug}`, "page");
+  }
 
-  logNewsletterNotifyPlanned(newsletter, announcement, notifications);
+  logNewsletterNotifyPlanned(newsletter, announcements, notifications);
 
   return {
     ok: true,
     newsletterId: newsletter.id,
-    announcement,
-    announcementCreated: announcement.created,
+    ministryUpdates: announcements.ministryUpdates,
+    newsletterSpace: announcements.newsletterSpace,
+    announcement: announcements.ministryUpdates,
+    ministryUpdatesCreated: announcements.ministryUpdates.created,
+    newsletterSpaceCreated: announcements.newsletterSpace?.created ?? null,
+    announcementCreated: announcements.ministryUpdates.created,
     notifications,
-    message: announcement.created
-      ? "Mission Hub announcement created."
-      : "Mission Hub announcement updated.",
+    message: buildNotifyMessage(announcements, notifications),
   };
 }
 
 export function logNewsletterNotifyPlanned(
   newsletter: Pick<NewsletterRecord, "id" | "title" | "slug">,
-  announcement: UpsertMissionHubAnnouncementResult,
-  notifications: NewsletterMemberNotificationsPrep,
+  announcements: MissionHubNewsletterAnnouncementsResult,
+  notifications: NewsletterPublishNotificationsResult,
 ): void {
   if (process.env.NODE_ENV === "production") return;
   console.info("[newsletter] notifyMissionHubMembersOfNewsletterPublish", {
     newsletterId: newsletter.id,
     title: newsletter.title,
     slug: newsletter.slug,
-    postId: announcement.postId,
-    spaceSlug: announcement.spaceSlug,
-    newsletterPath: announcement.newsletterPath,
+    ministryUpdates: {
+      postId: announcements.ministryUpdates.postId,
+      spaceSlug: announcements.ministryUpdates.spaceSlug,
+      created: announcements.ministryUpdates.created,
+    },
+    newsletterSpace: announcements.newsletterSpace
+      ? {
+          postId: announcements.newsletterSpace.postId,
+          spaceSlug: announcements.newsletterSpace.spaceSlug,
+          created: announcements.newsletterSpace.created,
+        }
+      : null,
+    newsletterPath: announcements.ministryUpdates.newsletterPath,
     notifications: {
       members: notifications.totalMembersWithAccounts,
-      email: notifications.emailRecipientsPrepared,
-      inApp: notifications.inAppRecipientsPrepared,
-      push: notifications.pushRecipientsPrepared,
+      inAppSent: notifications.inAppNotificationsSent,
+      inAppUpdated: notifications.inAppNotificationsUpdated,
+      emailPrepared: notifications.emailRecipientsPrepared,
+      emailSent: notifications.emailNotificationsSent,
+      emailDeduped: notifications.emailNotificationsDeduped,
+      emailFailed: notifications.emailNotificationsFailed,
+      emailEnabled: notifications.emailEnabled,
       skipped: notifications.skippedMutedOrDisabled,
     },
   });

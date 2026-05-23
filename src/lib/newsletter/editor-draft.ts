@@ -99,6 +99,20 @@ export function clearNewsletterEditorDraft(
   }
 }
 
+/** Remove draft from localStorage and sessionStorage (same key pattern). */
+export function clearNewsletterEditorDraftAll(
+  draftKey: string,
+  storage: StorageLike | null = getDefaultStorage(),
+): void {
+  clearNewsletterEditorDraft(draftKey, storage);
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(storageKey(draftKey));
+  } catch {
+    // ignore
+  }
+}
+
 /** New-issue drafts use a stable key until first server save. */
 export function newIssueDraftKey(): string {
   return "new";

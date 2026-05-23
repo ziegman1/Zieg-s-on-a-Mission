@@ -1,9 +1,13 @@
 "use client";
 
+import { memo } from "react";
 import type { NewsletterBlock } from "@/lib/newsletter/blocks/types";
 import { CtaAlignmentControl } from "@/components/newsletter/cta-alignment-control";
+import { convertButtonBlockToDocument } from "@/lib/newsletter/blocks/convert-button-to-document";
 import { NewsletterDocumentUploadField } from "@/components/newsletter/newsletter-document-upload-field";
 import { NewsletterImageUploadField } from "@/components/newsletter/newsletter-image-upload-field";
+import { NewsletterPdfLinkField } from "@/components/newsletter/newsletter-pdf-link-field";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 const fieldClass = "bg-zinc-900 border-zinc-700 text-sm";
 
-export function NewsletterBlockEditor({
+function NewsletterBlockEditorInner({
   block,
   onChange,
   newsletterId,
@@ -199,29 +203,42 @@ export function NewsletterBlockEditor({
       );
     case "button":
       return (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label className="text-zinc-400 text-xs">Label</Label>
-            <Input
-              value={block.label}
-              onChange={(e) => onChange({ ...block, label: e.target.value })}
-              className={fieldClass}
-            />
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-zinc-400 text-xs">Label</Label>
+              <Input
+                value={block.label}
+                onChange={(e) => onChange({ ...block, label: e.target.value })}
+                className={fieldClass}
+                placeholder="Download report"
+              />
+            </div>
+            <div className="space-y-1.5 sm:pt-6">
+              <CtaAlignmentControl
+                value={block.align}
+                onChange={(align) => onChange({ ...block, align })}
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-zinc-400 text-xs">URL</Label>
-            <Input
-              value={block.url}
-              onChange={(e) => onChange({ ...block, url: e.target.value })}
-              className={fieldClass}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <CtaAlignmentControl
-              value={block.align}
-              onChange={(align) => onChange({ ...block, align })}
-            />
-          </div>
+          <NewsletterPdfLinkField
+            url={block.url}
+            onUrlChange={(url) => onChange({ ...block, url })}
+            newsletterId={newsletterId}
+            variant="compact"
+            urlLabel="Link URL (https://, site path, or uploaded PDF)"
+            helpText="Link this button to a PDF or web page. Drag a PDF here or use Upload PDF — do not paste local file paths."
+            testId="newsletter-button-pdf-link"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-zinc-400 hover:text-zinc-200 px-0"
+            onClick={() => onChange(convertButtonBlockToDocument(block))}
+          >
+            Convert to Document / PDF block
+          </Button>
         </div>
       );
     case "quote":
@@ -277,3 +294,5 @@ export function NewsletterBlockEditor({
       return null;
   }
 }
+
+export const NewsletterBlockEditor = memo(NewsletterBlockEditorInner);

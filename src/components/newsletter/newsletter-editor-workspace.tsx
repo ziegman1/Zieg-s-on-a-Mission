@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
-  ChevronDown,
-  ChevronUp,
-  Copy,
   Columns2,
   LayoutTemplate,
   PanelLeftClose,
@@ -12,7 +9,6 @@ import {
   Pencil,
   Plus,
   Smartphone,
-  Trash2,
 } from "lucide-react";
 import { BLOCK_TYPE_LABELS, createNewsletterBlock } from "@/lib/newsletter/blocks/factory";
 import {
@@ -29,8 +25,10 @@ import {
   shouldShowComposerEditor,
   shouldShowComposerPreview,
 } from "@/lib/newsletter/composer-layout";
-import { NewsletterBlockEditor } from "./newsletter-block-editor";
-import { NewsletterComposerPreview } from "./newsletter-composer-preview";
+import { perfMark } from "@/lib/newsletter/composer-perf";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
+import { ComposerBlockRow } from "@/components/newsletter/composer-block-row";
+import { NewsletterComposerPreviewPane } from "@/components/newsletter/newsletter-composer-preview-pane";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +47,8 @@ export type NewsletterComposerMeta = {
   footerAltText: string;
   useDefaultFooterImage: boolean;
 };
+
+const PREVIEW_DEBOUNCE_MS = 250;
 
 export function NewsletterEditorWorkspace({
   blocks,
@@ -73,47 +73,67 @@ export function NewsletterEditorWorkspace({
   const [railExpanded, setRailExpanded] = useState(true);
   const [mobilePreview, setMobilePreview] = useState(false);
 
-  const selected = blocks.find((b) => b.id === selectedId) ?? null;
+  const debouncedBlocks = useDebouncedValue(blocks, PREVIEW_DEBOUNCE_MS);
+  const debouncedMeta = useDebouncedValue(meta, PREVIEW_DEBOUNCE_MS);
+
   const showEditor = shouldShowComposerEditor(layoutMode);
   const showPreview = shouldShowComposerPreview(layoutMode);
   const publishReady = hasVisibleNewsletterContent("", blocks);
 
-  function updateBlock(id: string, next: NewsletterBlock) {
-    onBlocksChange(blocks.map((b) => (b.id === id ? next : b)));
-  }
+  const updateBlock = useCallback(
+    (id: string, next: NewsletterBlock) => {
+      perfMark("block-update", { id, type: next.type });
+      onBlocksChange(blocks.map((b) => (b.id === id ? next : b)));
+    },
+    [blocks, onBlocksChange],
+  );
 
-  function addBlock(type: (typeof NEWSLETTER_BLOCK_TYPES)[number]) {
-    const block = createNewsletterBlock(type);
-    onBlocksChange([...blocks, block]);
-    setSelectedId(block.id);
-  }
+  const addBlock = useCallback(
+    (type: (typeof NEWSLETTER_BLOCK_TYPES)[number]) => {
+      perfMark("block-add", type);
+      const block = createNewsletterBlock(type);
+      onBlocksChange([...blocks, block]);
+      setSelectedId(block.id);
+    },
+    [blocks, onBlocksChange],
+  );
 
-  function removeBlock(id: string) {
-    const next = blocks.filter((b) => b.id !== id);
-    onBlocksChange(next);
-    if (selectedId === id) setSelectedId(next[0]?.id ?? null);
-  }
+  const removeBlock = useCallback(
+    (id: string) => {
+      perfMark("block-remove", id);
+      const next = blocks.filter((b) => b.id !== id);
+      onBlocksChange(next);
+      setSelectedId((current) => (current === id ? (next[0]?.id ?? null) : current));
+    },
+    [blocks, onBlocksChange],
+  );
 
-  function duplicateBlock(id: string) {
-    const idx = blocks.findIndex((b) => b.id === id);
-    if (idx < 0) return;
-    const src = blocks[idx]!;
-    const copy = { ...src, id: createNewsletterBlock(src.type).id };
-    const next = [...blocks.slice(0, idx + 1), copy, ...blocks.slice(idx + 1)];
-    onBlocksChange(next);
-    setSelectedId(copy.id);
-  }
+  const duplicateBlock = useCallback(
+    (id: string) => {
+      const idx = blocks.findIndex((b) => b.id === id);
+      if (idx < 0) return;
+      const src = blocks[idx]!;
+      const copy = { ...src, id: createNewsletterBlock(src.type).id };
+      const next = [...blocks.slice(0, idx + 1), copy, ...blocks.slice(idx + 1)];
+      onBlocksChange(next);
+      setSelectedId(copy.id);
+    },
+    [blocks, onBlocksChange],
+  );
 
-  function moveBlock(id: string, dir: -1 | 1) {
-    const idx = blocks.findIndex((b) => b.id === id);
-    if (idx < 0) return;
-    const target = idx + dir;
-    if (target < 0 || target >= blocks.length) return;
-    const next = [...blocks];
-    const [item] = next.splice(idx, 1);
-    next.splice(target, 0, item!);
-    onBlocksChange(next);
-  }
+  const moveBlock = useCallback(
+    (id: string, dir: -1 | 1) => {
+      const idx = blocks.findIndex((b) => b.id === id);
+      if (idx < 0) return;
+      const target = idx + dir;
+      if (target < 0 || target >= blocks.length) return;
+      const next = [...blocks];
+      const [item] = next.splice(idx, 1);
+      next.splice(target, 0, item!);
+      onBlocksChange(next);
+    },
+    [blocks, onBlocksChange],
+  );
 
   return (
     <div className="flex flex-1 min-h-0 flex-col" data-testid="newsletter-composer">
@@ -263,78 +283,19 @@ export function NewsletterEditorWorkspace({
                   </div>
                 ) : (
                   blocks.map((block, index) => (
-                    <div
+                    <ComposerBlockRow
                       key={block.id}
-                      className={cn(
-                        "rounded-xl border transition-colors",
-                        selectedId === block.id
-                          ? "border-brand-primary/50 bg-zinc-900 shadow-sm"
-                          : "border-zinc-800 bg-zinc-900/70 hover:border-zinc-600",
-                      )}
-                    >
-                      <div className="flex items-center gap-1 px-3 py-2 border-b border-zinc-800/80">
-                        <button
-                          type="button"
-                          className="flex-1 text-left text-sm font-medium text-zinc-200"
-                          onClick={() => setSelectedId(block.id)}
-                        >
-                          {BLOCK_TYPE_LABELS[block.type]}
-                        </button>
-                        <div className="flex shrink-0 gap-0.5">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={index === 0}
-                            onClick={() => moveBlock(block.id, -1)}
-                            aria-label="Move up"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={index === blocks.length - 1}
-                            onClick={() => moveBlock(block.id, 1)}
-                            aria-label="Move down"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => duplicateBlock(block.id)}
-                            aria-label="Duplicate"
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-400"
-                            onClick={() => removeBlock(block.id)}
-                            aria-label="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {selectedId === block.id ? (
-                        <div className="p-4">
-                          <NewsletterBlockEditor
-                            block={block}
-                            newsletterId={newsletterId}
-                            onChange={(next) => updateBlock(block.id, next)}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
+                      block={block}
+                      index={index}
+                      total={blocks.length}
+                      selected={selectedId === block.id}
+                      newsletterId={newsletterId}
+                      onSelect={setSelectedId}
+                      onMove={moveBlock}
+                      onDuplicate={duplicateBlock}
+                      onRemove={removeBlock}
+                      onChange={updateBlock}
+                    />
                   ))
                 )}
               </div>
@@ -348,9 +309,9 @@ export function NewsletterEditorWorkspace({
                 layoutMode === "split" ? "w-1/2 min-w-0 bg-zinc-900/30" : "flex-1 bg-zinc-900/40",
               )}
             >
-              <NewsletterComposerPreview
-                blocks={blocks}
-                meta={meta}
+              <NewsletterComposerPreviewPane
+                blocks={debouncedBlocks}
+                meta={debouncedMeta}
                 brand={brand}
                 mobilePreview={mobilePreview}
               />

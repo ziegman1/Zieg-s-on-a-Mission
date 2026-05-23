@@ -1,25 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { NEWSLETTER_BUILDER_NAV } from "@/lib/site-builder/types";
 import {
-  clearNewsletterEditorDraft,
+  clearNewsletterEditorDraftAll,
   loadNewsletterEditorDraft,
   newIssueDraftKey,
   saveNewsletterEditorDraft,
   shouldApplyNewsletterEditorDraft,
   type NewsletterEditorDraftForm,
 } from "@/lib/newsletter/editor-draft";
+import {
+  BLOCKING_LOCAL_FILE_SAVE_MESSAGE,
+  clearLocalFileReferencesFromForm,
+  formatRecoveredDraftLocalFileWarning,
+  hasBlockingLocalFileReferences,
+  sanitizeRecoveredDraftForm,
+} from "@/lib/newsletter/editor-draft-local-files";
 import { useSiteBuilderNavigation } from "./use-site-builder-navigation";
 import { ArrowLeft, ExternalLink, Loader2, Plus, X } from "lucide-react";
 import { blocksToPlainBody } from "@/lib/newsletter/blocks/plain-text";
 import { hasVisibleNewsletterContent } from "@/lib/newsletter/blocks/visible";
 import type { NewsletterBlocks } from "@/lib/newsletter/blocks/types";
+import { perfMark } from "@/lib/newsletter/composer-perf";
 import { formatNewsletterIssueDateLabel } from "@/lib/newsletter/mission-hub-announcement";
+import { useNewsletterComposerLayout } from "@/lib/newsletter/use-newsletter-composer-layout";
 import type { NewsletterRecord, NewsletterStatus } from "@/lib/newsletter/types";
 import { slugifyTitle } from "@/lib/newsletter/slug";
-import { NewsletterEditorWorkspace } from "@/components/newsletter/newsletter-editor-workspace";
+import {
+  NewsletterEditorWorkspace,
+  type NewsletterComposerMeta,
+} from "@/components/newsletter/newsletter-editor-workspace";
 import { NewsletterBrandingPanel } from "@/components/newsletter/newsletter-branding-panel";
 import { NewsletterSettingsPanel } from "@/components/newsletter/newsletter-settings-panel";
 import type { CtaAlign } from "@/lib/newsletter/align";
@@ -210,6 +222,9 @@ export function NewslettersManager({
   const [isPending, startTransition] = useTransition();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [recoveredDraft, setRecoveredDraft] = useState(false);
+  const [recoveredLocalFileWarning, setRecoveredLocalFileWarning] = useState<string | null>(
+    null,
+  );
 
   const managerTab =
     urlState.page === NEWSLETTER_BUILDER_NAV.id ? urlState.newsletterTab : "issues";
@@ -217,7 +232,23 @@ export function NewslettersManager({
     urlState.page === NEWSLETTER_BUILDER_NAV.id && managerTab === "issues"
       ? urlState.issue
       : null;
-  const composerLayoutMode = urlState.mode;
+  const layoutResetKey = `${urlState.page}:${managerTab}:${issueFromUrl ?? ""}`;
+  const syncLayoutToUrl = useCallback(
+    (mode: NewsletterComposerLayoutMode) => {
+      navigate({
+        page: NEWSLETTER_BUILDER_NAV.id,
+        newsletterTab: "issues",
+        issue: issueFromUrl ?? editingId ?? "new",
+        mode,
+      });
+    },
+    [navigate, issueFromUrl, editingId],
+  );
+  const [composerLayoutMode, setComposerLayoutMode] = useNewsletterComposerLayout(
+    urlState.mode,
+    syncLayoutToUrl,
+    layoutResetKey,
+  );
 
   const serverMetaRef = useRef<{
     serverLoadedAt: number | null;
@@ -240,9 +271,28 @@ export function NewslettersManager({
     setForm(emptyForm(brandSettings));
     setSlugTouched(false);
     setRecoveredDraft(false);
+    setRecoveredLocalFileWarning(null);
     setError(null);
     setSuccess(null);
   }, [brandSettings, navigate]);
+
+  const applyRecoveredDraftForm = useCallback(
+    (draft: {
+      form: NewsletterEditorDraftForm;
+      slugTouched: boolean;
+      composerLayoutMode: NewsletterComposerLayoutMode;
+    }) => {
+      const { form: sanitized, hadInvalid, removed } = sanitizeRecoveredDraftForm(draft.form);
+      setForm(sanitized as NewsletterFormState);
+      setSlugTouched(draft.slugTouched);
+      setRecoveredDraft(true);
+      setRecoveredLocalFileWarning(
+        hadInvalid ? formatRecoveredDraftLocalFileWarning(removed) : null,
+      );
+      skipDraftPersistRef.current = false;
+    },
+    [],
+  );
 
   const reloadFromDb = useCallback(async (): Promise<boolean> => {
     setListBusy(true);
@@ -269,10 +319,6 @@ export function NewslettersManager({
     if (loadError) setError(loadError);
   }, [loadError]);
 
-  useEffect(() => {
-    void reloadFromDb();
-  }, [reloadFromDb]);
-
   const hydrateFromUrl = useCallback(() => {
     if (urlState.page !== NEWSLETTER_BUILDER_NAV.id) return;
 
@@ -280,6 +326,7 @@ export function NewslettersManager({
       lastHydratedKeyRef.current = `branding`;
       setEditingId(null);
       setRecoveredDraft(false);
+      setRecoveredLocalFileWarning(null);
       return;
     }
 
@@ -287,6 +334,7 @@ export function NewslettersManager({
       lastHydratedKeyRef.current = "issues:list";
       setEditingId(null);
       setRecoveredDraft(false);
+      setRecoveredLocalFileWarning(null);
       return;
     }
 
@@ -304,15 +352,13 @@ export function NewslettersManager({
           serverLoadedAt: null,
         })
       ) {
-        setForm(draft.form as NewsletterFormState);
-        setSlugTouched(draft.slugTouched);
-        setRecoveredDraft(true);
-        skipDraftPersistRef.current = false;
+        applyRecoveredDraftForm(draft);
         serverMetaRef.current = { serverLoadedAt: null, serverUpdatedAt: null };
       } else {
         setForm(emptyForm(brandSettings));
         setSlugTouched(false);
         setRecoveredDraft(false);
+        setRecoveredLocalFileWarning(null);
         skipDraftPersistRef.current = false;
         serverMetaRef.current = { serverLoadedAt: null, serverUpdatedAt: null };
       }
@@ -342,14 +388,12 @@ export function NewslettersManager({
         serverUpdatedAt: record.updatedAt,
       })
     ) {
-      setForm(draft.form as NewsletterFormState);
-      setSlugTouched(draft.slugTouched);
-      setRecoveredDraft(true);
-      skipDraftPersistRef.current = false;
+      applyRecoveredDraftForm(draft);
     } else {
       setForm(postToForm(record));
       setSlugTouched(true);
       setRecoveredDraft(false);
+      setRecoveredLocalFileWarning(null);
       skipDraftPersistRef.current = true;
     }
     serverMetaRef.current = {
@@ -365,6 +409,7 @@ export function NewslettersManager({
     brandSettings,
     listBusy,
     navigate,
+    applyRecoveredDraftForm,
   ]);
 
   useEffect(() => {
@@ -379,6 +424,7 @@ export function NewslettersManager({
       return;
     }
     const timer = window.setTimeout(() => {
+      const { form: draftForm } = sanitizeRecoveredDraftForm(formToDraftForm(form));
       saveNewsletterEditorDraft({
         draftKey: draftStorageKey,
         savedAt: Date.now(),
@@ -386,21 +432,73 @@ export function NewslettersManager({
         serverUpdatedAt: serverMetaRef.current.serverUpdatedAt,
         slugTouched,
         composerLayoutMode,
-        form: formToDraftForm(form),
+        form: draftForm,
       });
-    }, 400);
+    }, 500);
     return () => window.clearTimeout(timer);
   }, [form, composerLayoutMode, slugTouched, draftStorageKey, isComposing, managerTab]);
 
-  function patchForm(patch: Partial<NewsletterFormState>) {
+  const patchForm = useCallback((patch: Partial<NewsletterFormState>) => {
     skipDraftPersistRef.current = false;
     setForm((f) => ({ ...f, ...patch }));
-  }
+  }, []);
+
+  const handleBlocksChange = useCallback(
+    (bodyBlocks: NewsletterBlocks) => {
+      patchForm({ bodyBlocks });
+    },
+    [patchForm],
+  );
+
+  const composerMeta = useMemo(
+    (): NewsletterComposerMeta => ({
+      title: form.title,
+      subtitle: form.subtitle,
+      excerpt: form.excerpt,
+      featuredImageUrl: form.featuredImageUrl,
+      headerImageUrl: form.headerImageUrl,
+      useDefaultBrandedHeader: form.useDefaultBrandedHeader,
+      issueDateLabel: form.issueDate
+        ? (formatNewsletterIssueDateLabel(new Date(form.issueDate).toISOString()) ?? undefined)
+        : undefined,
+      ctaLabel: form.ctaLabel,
+      ctaUrl: form.ctaUrl,
+      ctaAlign: form.ctaAlign,
+      footerImageUrl: form.footerImageUrl,
+      footerAltText: form.footerAltText,
+      useDefaultFooterImage: form.useDefaultFooterImage,
+    }),
+    [
+      form.title,
+      form.subtitle,
+      form.excerpt,
+      form.featuredImageUrl,
+      form.headerImageUrl,
+      form.useDefaultBrandedHeader,
+      form.issueDate,
+      form.ctaLabel,
+      form.ctaUrl,
+      form.ctaAlign,
+      form.footerImageUrl,
+      form.footerAltText,
+      form.useDefaultFooterImage,
+    ],
+  );
+
+  const localFileBlocked = useMemo(
+    () => hasBlockingLocalFileReferences(formToDraftForm(form)),
+    [form],
+  );
+
+  const publishReady = useMemo(
+    () => hasVisibleNewsletterContent(form.body, form.bodyBlocks),
+    [form.body, form.bodyBlocks],
+  );
 
   function discardRecoveredDraft() {
     const key = editingId === "new" ? newIssueDraftKey() : editingId;
     if (!key) return;
-    clearNewsletterEditorDraft(key);
+    clearNewsletterEditorDraftAll(key);
     lastHydratedKeyRef.current = null;
     if (editingId === "new") {
       setForm(emptyForm(brandSettings));
@@ -417,7 +515,15 @@ export function NewslettersManager({
       }
     }
     setRecoveredDraft(false);
+    setRecoveredLocalFileWarning(null);
     hydrateFromUrl();
+  }
+
+  function clearLocalFileLinksInForm() {
+    const sanitized = clearLocalFileReferencesFromForm(formToDraftForm(form));
+    patchForm(sanitized as Partial<NewsletterFormState>);
+    setRecoveredLocalFileWarning(null);
+    setError(null);
   }
 
   function startNew() {
@@ -488,6 +594,10 @@ export function NewslettersManager({
           newsletter: NewsletterRecord;
           message: string;
           hub?: {
+            ministryUpdatesPostId: string;
+            ministryUpdatesSpaceSlug: string;
+            newsletterSpacePostId: string | null;
+            newsletterSpaceSlug: string | null;
             announcementPostId: string;
             announcementSpaceSlug: string;
           };
@@ -501,10 +611,11 @@ export function NewslettersManager({
       return;
     }
     const wasNew = editingId === "new" || !editingId;
-    clearNewsletterEditorDraft(newIssueDraftKey());
-    clearNewsletterEditorDraft(res.newsletter.id);
+    clearNewsletterEditorDraftAll(newIssueDraftKey());
+    clearNewsletterEditorDraftAll(res.newsletter.id);
     lastHydratedKeyRef.current = null;
     setRecoveredDraft(false);
+    setRecoveredLocalFileWarning(null);
     skipDraftPersistRef.current = true;
     serverMetaRef.current = {
       serverLoadedAt: Date.now(),
@@ -526,7 +637,10 @@ export function NewslettersManager({
         const detail = res.hub
           ? [
               res.message,
-              `Mission Hub: /community/${res.hub.announcementSpaceSlug}#post-${res.hub.announcementPostId}`,
+              `Ministry Updates: /community/${res.hub.ministryUpdatesSpaceSlug}#post-${res.hub.ministryUpdatesPostId}`,
+              res.hub.newsletterSpacePostId && res.hub.newsletterSpaceSlug
+                ? `Newsletter space: /community/${res.hub.newsletterSpaceSlug}#post-${res.hub.newsletterSpacePostId}`
+                : "Newsletter space: skipped (space not configured).",
             ].join("\n")
           : res.message;
         setSuccess(detail);
@@ -554,10 +668,15 @@ export function NewslettersManager({
   }
 
   function save(intent: "draft" | "publish") {
+    perfMark("save", intent);
     setError(null);
     setSuccess(null);
     if (!form.title.trim()) {
       setError("Title is required.");
+      return;
+    }
+    if (localFileBlocked) {
+      setError(BLOCKING_LOCAL_FILE_SAVE_MESSAGE);
       return;
     }
     if (intent === "publish" && !hasVisibleNewsletterContent(form.body, form.bodyBlocks)) {
@@ -631,6 +750,7 @@ export function NewslettersManager({
                 managerTab === "issues" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
               )}
               onClick={() => {
+                perfMark("tab-issues");
                 lastHydratedKeyRef.current = null;
                 navigate({
                   page: NEWSLETTER_BUILDER_NAV.id,
@@ -648,6 +768,7 @@ export function NewslettersManager({
                 managerTab === "branding" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
               )}
               onClick={() => {
+                perfMark("tab-branding");
                 lastHydratedKeyRef.current = null;
                 navigate({
                   page: NEWSLETTER_BUILDER_NAV.id,
@@ -702,7 +823,7 @@ export function NewslettersManager({
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={isPending || !form.title.trim()}
+                disabled={isPending || !form.title.trim() || localFileBlocked}
                 onClick={() => save("draft")}
                 className="rounded-full h-8"
               >
@@ -726,8 +847,9 @@ export function NewslettersManager({
                 size="sm"
                 disabled={
                   isPending ||
+                  localFileBlocked ||
                   !form.title.trim() ||
-                  !hasVisibleNewsletterContent(form.body, form.bodyBlocks)
+                  !publishReady
                 }
                 onClick={() => save("publish")}
                 className="rounded-full h-8 bg-brand-primary"
@@ -737,7 +859,7 @@ export function NewslettersManager({
             </div>
           </div>
 
-          {(recoveredDraft || error || success) && (
+          {(recoveredDraft || recoveredLocalFileWarning || localFileBlocked || error || success) && (
             <div className="shrink-0 px-4 py-2 border-b border-zinc-800/80 bg-zinc-950 space-y-1">
               {recoveredDraft ? (
                 <div className="flex flex-wrap items-center gap-2 text-sm text-amber-400/90">
@@ -750,6 +872,27 @@ export function NewslettersManager({
                     onClick={discardRecoveredDraft}
                   >
                     Discard recovered changes
+                  </Button>
+                </div>
+              ) : null}
+              {recoveredLocalFileWarning ? (
+                <p className="text-sm text-amber-400/90 whitespace-pre-wrap" role="status">
+                  {recoveredLocalFileWarning}
+                </p>
+              ) : null}
+              {localFileBlocked ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-amber-500/90" role="status">
+                    {BLOCKING_LOCAL_FILE_SAVE_MESSAGE}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-zinc-400 hover:text-zinc-200"
+                    onClick={clearLocalFileLinksInForm}
+                  >
+                    Clear local file links
                   </Button>
                 </div>
               ) : null}
@@ -768,40 +911,15 @@ export function NewslettersManager({
 
           <NewsletterEditorWorkspace
             blocks={form.bodyBlocks}
-            onBlocksChange={(bodyBlocks) => patchForm({ bodyBlocks })}
+            onBlocksChange={handleBlocksChange}
             brand={brandSettings}
             layoutMode={composerLayoutMode}
-            onLayoutModeChange={(mode) => {
-              navigate({
-                page: NEWSLETTER_BUILDER_NAV.id,
-                newsletterTab: "issues",
-                issue: issueFromUrl ?? editingId ?? "new",
-                mode,
-              });
-            }}
+            onLayoutModeChange={setComposerLayoutMode}
             onOpenSettings={() => setSettingsOpen(true)}
             newsletterId={
               editingId && editingId !== "new" ? editingId : undefined
             }
-            meta={{
-              title: form.title,
-              subtitle: form.subtitle,
-              excerpt: form.excerpt,
-              featuredImageUrl: form.featuredImageUrl,
-              headerImageUrl: form.headerImageUrl,
-              useDefaultBrandedHeader: form.useDefaultBrandedHeader,
-              issueDateLabel: form.issueDate
-                ? (formatNewsletterIssueDateLabel(
-                    new Date(form.issueDate).toISOString(),
-                  ) ?? undefined)
-                : undefined,
-              ctaLabel: form.ctaLabel,
-              ctaUrl: form.ctaUrl,
-              ctaAlign: form.ctaAlign,
-              footerImageUrl: form.footerImageUrl,
-              footerAltText: form.footerAltText,
-              useDefaultFooterImage: form.useDefaultFooterImage,
-            }}
+            meta={composerMeta}
           />
 
           {settingsOpen ? (

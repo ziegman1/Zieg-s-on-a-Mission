@@ -18,6 +18,7 @@ Migration: `prisma/migrations/20260527120000_add_community_notifications/migrati
 | Comment or reply on a post (non-owner actor) | All ADMIN/STAFF users |
 | Reply to a top-level comment | Parent comment author (if they have a linked `User`) |
 | Reaction added on a post (non-owner) | All ADMIN/STAFF users |
+| New newsletter published (from Newsletter Builder) | Active members with newsletters + in-app enabled, not muted on Newsletter space |
 | New member account (`/community/join`) | All ADMIN/STAFF users |
 
 Owners do not receive notifications for their own comments or reactions.
@@ -37,6 +38,16 @@ Owners do not receive notifications for their own comments or reactions.
 1. Sign in as member A, comment on a post.
 2. Sign in as member B, reply to member A’s comment.
 3. As member A: bell shows **reply_to_comment** notification.
+
+## Testing — newsletter publish
+
+1. Sign in as member with default notification prefs (newsletters + in-app on).
+2. Admin publishes a newsletter from Newsletter Builder.
+3. Member refreshes Mission Hub — bell badge increments; **New newsletter published** appears.
+4. Click notification — opens `/community/newsletters#post-{id}` (Newsletter space post).
+5. Republish the same newsletter — no duplicate notification row; existing item refreshes and becomes unread again.
+
+Also run migration `20260607120000_community_notification_dedupe` for `dedupe_key` / `metadata` columns.
 
 ## Security
 

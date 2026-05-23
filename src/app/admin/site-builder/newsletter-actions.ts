@@ -102,8 +102,17 @@ function successMessage(
 }
 
 export type NewsletterPublishHubSummary = {
+  ministryUpdatesPostId: string;
+  ministryUpdatesSpaceSlug: string;
+  ministryUpdatesCreated: boolean;
+  newsletterSpacePostId: string | null;
+  newsletterSpaceSlug: string | null;
+  newsletterSpaceCreated: boolean | null;
+  /** @deprecated Use ministryUpdatesPostId. */
   announcementPostId: string;
+  /** @deprecated Use ministryUpdatesSpaceSlug. */
   announcementSpaceSlug: string;
+  /** @deprecated Use ministryUpdatesCreated. */
   announcementCreated: boolean;
   newsletterPublicPath: string;
   notificationsPrepared: boolean;
@@ -165,11 +174,17 @@ async function persistNewsletter(
         publisherUserId: session.id,
       });
       hub = {
-        announcementPostId: notify.announcement.postId,
-        announcementSpaceSlug: notify.announcement.spaceSlug,
-        announcementCreated: notify.announcementCreated,
-        newsletterPublicPath: notify.announcement.newsletterPath,
-        notificationsPrepared: notify.notifications.prepared,
+        ministryUpdatesPostId: notify.ministryUpdates.postId,
+        ministryUpdatesSpaceSlug: notify.ministryUpdates.spaceSlug,
+        ministryUpdatesCreated: notify.ministryUpdatesCreated,
+        newsletterSpacePostId: notify.newsletterSpace?.postId ?? null,
+        newsletterSpaceSlug: notify.newsletterSpace?.spaceSlug ?? null,
+        newsletterSpaceCreated: notify.newsletterSpaceCreated,
+        announcementPostId: notify.ministryUpdates.postId,
+        announcementSpaceSlug: notify.ministryUpdates.spaceSlug,
+        announcementCreated: notify.ministryUpdatesCreated,
+        newsletterPublicPath: notify.ministryUpdates.newsletterPath,
+        notificationsPrepared: notify.notifications.inAppDelivered,
         notify,
       };
     } else if (
@@ -202,13 +217,17 @@ async function persistNewsletter(
         ? formatNewsletterPublishSuccessMessage({
             newsletterSlug: newsletter.slug,
             hub: {
-              announcement: hub.notify.announcement,
-              announcementCreated: hub.announcementCreated,
+              ministryUpdates: hub.notify.ministryUpdates,
+              newsletterSpace: hub.notify.newsletterSpace,
+              inAppNotificationsSent: hub.notify.notifications.inAppNotificationsSent,
+              inAppNotificationsUpdated: hub.notify.notifications.inAppNotificationsUpdated,
+              emailNotificationsSent: hub.notify.notifications.emailNotificationsSent,
+              emailNotificationsDeduped: hub.notify.notifications.emailNotificationsDeduped,
+              emailNotificationsFailed: hub.notify.notifications.emailNotificationsFailed,
+              emailEnabled: hub.notify.notifications.emailEnabled,
+              emailDisabledReason: hub.notify.notifications.emailDisabledReason,
               emailRecipientsPrepared: hub.notify.notifications.emailRecipientsPrepared,
-              inAppRecipientsPrepared: hub.notify.notifications.inAppRecipientsPrepared,
-              pushRecipientsPrepared: hub.notify.notifications.pushRecipientsPrepared,
               skippedMutedOrDisabled: hub.notify.notifications.skippedMutedOrDisabled,
-              deliveryEnabled: hub.notify.notifications.deliveryEnabled,
             },
           })
         : successMessage(intent, hadExistingId, previousStatus);

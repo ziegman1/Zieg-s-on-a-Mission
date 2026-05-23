@@ -1,21 +1,28 @@
 "use client";
 
-import { Mic } from "lucide-react";
+import { Mic, Video } from "lucide-react";
 import { formatPrayerDuration } from "@/lib/community/prayer-response-body";
+import { shouldUseVideoPrayerPlayer } from "@/lib/community/prayer-media-playback";
 import { cn } from "@/lib/utils";
 
 export function CommunityVoicePrayerPlayer({
   audioUrl,
   durationSeconds,
+  mimeType,
+  hasVideo,
   className,
   showPlayLabel = false,
 }: {
   audioUrl: string;
   durationSeconds?: number | null;
+  mimeType?: string | null;
+  hasVideo?: boolean | null;
   className?: string;
   showPlayLabel?: boolean;
 }) {
+  const isVideo = shouldUseVideoPrayerPlayer({ mimeType, hasVideo });
   const durationLabel = formatPrayerDuration(durationSeconds);
+  const label = isVideo ? "Video Prayer" : "Voice Prayer";
 
   return (
     <div
@@ -31,11 +38,11 @@ export function CommunityVoicePrayerPlayer({
           className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary/12 text-brand-primary shadow-sm"
           aria-hidden
         >
-          <Mic className="h-4 w-4" />
+          {isVideo ? <Video className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </span>
         <div className="min-w-0 flex-1">
           {showPlayLabel ? (
-            <span className="text-sm font-medium text-brand-ink block">Voice Prayer</span>
+            <span className="text-sm font-medium text-brand-ink block">{label}</span>
           ) : null}
           {durationLabel ? (
             <span className="text-[11px] font-medium text-brand-ink/48 tabular-nums">
@@ -44,13 +51,23 @@ export function CommunityVoicePrayerPlayer({
           ) : null}
         </div>
       </div>
-      <audio
-        controls
-        src={audioUrl}
-        className="w-full h-10 min-h-[2.5rem] rounded-lg accent-brand-primary"
-        preload="metadata"
-        controlsList="nodownload"
-      />
+      {isVideo ? (
+        <video
+          controls
+          src={audioUrl}
+          className="w-full max-h-64 rounded-lg bg-black/[0.04]"
+          preload="metadata"
+          playsInline
+        />
+      ) : (
+        <audio
+          controls
+          src={audioUrl}
+          className="w-full h-10 min-h-[2.5rem] rounded-lg accent-brand-primary"
+          preload="metadata"
+          controlsList="nodownload"
+        />
+      )}
     </div>
   );
 }

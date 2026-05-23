@@ -85,6 +85,23 @@ export function SiteBuilderEditor({
   const [newsletterSuccessMessage, setNewsletterSuccessMessage] = useState<string | null>(null);
   const [saveDiagnostics, setSaveDiagnostics] = useState<string | null>(null);
 
+  const handleNewslettersChange = useCallback((items: NewsletterRecord[]) => {
+    setNewsletters(items);
+  }, []);
+
+  const handleNewsletterSuccess = useCallback((msg: string) => {
+    setNewsletterSuccessMessage(msg);
+    setPageSuccessMessage(null);
+    setBlogSuccessMessage(null);
+    setSaveDiagnostics(null);
+    setError(null);
+  }, []);
+
+  const handleNewsletterError = useCallback((msg: string | null) => {
+    setNewsletterSuccessMessage(null);
+    if (msg) setError(msg);
+  }, []);
+
   const isBlogPostsTab = activePage === "blog" && blogTab === "posts";
   const isBlogIntroTab = activePage === "blog" && blogTab === "intro";
   const isNewslettersPage = activePage === NEWSLETTER_BUILDER_NAV.id;
@@ -509,18 +526,9 @@ export function SiteBuilderEditor({
               initialNewsletters={newsletters}
               initialBrandSettings={initialNewsletterBrand}
               loadError={newsletterLoadError}
-              onNewslettersChange={setNewsletters}
-              onSuccess={(msg) => {
-                setNewsletterSuccessMessage(msg);
-                setPageSuccessMessage(null);
-                setBlogSuccessMessage(null);
-                setSaveDiagnostics(null);
-                setError(null);
-              }}
-              onError={(msg) => {
-                setNewsletterSuccessMessage(null);
-                if (msg) setError(msg);
-              }}
+              onNewslettersChange={handleNewslettersChange}
+              onSuccess={handleNewsletterSuccess}
+              onError={handleNewsletterError}
             />
           </div>
           </>

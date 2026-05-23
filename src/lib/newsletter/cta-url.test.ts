@@ -56,6 +56,12 @@ describe("isValidNewsletterLinkUrl", () => {
       "Local files must be uploaded before they can be used in newsletters.",
     );
   });
+
+  it("rejects bare and encoded PDF filenames", () => {
+    expect(isValidNewsletterLinkUrl("report.pdf")).toBe(false);
+    expect(isValidNewsletterLinkUrl("026-03%20Report.pdf")).toBe(false);
+    expect(validateNewsletterLinkUrl("report.pdf")).toContain("Upload this PDF");
+  });
 });
 
 describe("validateNewsletterLinkUrl", () => {

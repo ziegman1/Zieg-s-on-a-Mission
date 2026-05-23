@@ -46,7 +46,10 @@ export function buildCommunityPrayerAudioPath(ext: string): string {
 
 export const COMMUNITY_PRAYER_AUDIO_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
-/** Max in-browser recording length for voice prayers. */
+/** Short video prayers (camera recordings / MP4 uploads). */
+export const COMMUNITY_PRAYER_VIDEO_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+
+/** Max in-browser recording length for voice/video prayers. */
 export const COMMUNITY_PRAYER_AUDIO_MAX_DURATION_SECONDS = 180;
 
 export const COMMUNITY_PRAYER_AUDIO_TYPES = [
@@ -60,7 +63,16 @@ export const COMMUNITY_PRAYER_AUDIO_TYPES = [
   "audio/aac",
 ] as const;
 
+export const COMMUNITY_PRAYER_VIDEO_TYPES = ["video/mp4", "video/webm"] as const;
+
+export const COMMUNITY_PRAYER_MEDIA_TYPES = [
+  ...COMMUNITY_PRAYER_AUDIO_TYPES,
+  ...COMMUNITY_PRAYER_VIDEO_TYPES,
+] as const;
+
 export type CommunityPrayerAudioMimeType = (typeof COMMUNITY_PRAYER_AUDIO_TYPES)[number];
+export type CommunityPrayerVideoMimeType = (typeof COMMUNITY_PRAYER_VIDEO_TYPES)[number];
+export type CommunityPrayerMediaMimeType = (typeof COMMUNITY_PRAYER_MEDIA_TYPES)[number];
 
 export const COMMUNITY_PRAYER_AUDIO_EXTENSIONS = [
   "mp3",
@@ -71,7 +83,15 @@ export const COMMUNITY_PRAYER_AUDIO_EXTENSIONS = [
   "ogg",
 ] as const;
 
-const AUDIO_EXT_BY_MIME: Record<string, string> = {
+export const COMMUNITY_PRAYER_MEDIA_EXTENSIONS = [
+  ...COMMUNITY_PRAYER_AUDIO_EXTENSIONS,
+  "mp4",
+] as const;
+
+export const PRAYER_MEDIA_VALIDATION_MESSAGE =
+  "Use MP3, M4A, WebM, WAV, AAC, or MP4.";
+
+const MEDIA_EXT_BY_MIME: Record<string, string> = {
   "audio/mpeg": "mp3",
   "audio/mp4": "m4a",
   "audio/webm": "webm",
@@ -80,17 +100,17 @@ const AUDIO_EXT_BY_MIME: Record<string, string> = {
   "audio/x-m4a": "m4a",
   "audio/m4a": "m4a",
   "audio/aac": "aac",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
 };
 
-/** iOS / mobile browsers sometimes report video/* for .m4a uploads. */
+/** Audio-only aliases (do not map video/mp4 — needed for video prayers). */
 const PRAYER_AUDIO_MIME_ALIASES: Record<string, string> = {
-  "video/mp4": "audio/mp4",
-  "video/quicktime": "audio/mp4",
   "audio/x-m4a": "audio/mp4",
   "audio/m4a": "audio/mp4",
 };
 
-export function guessAudioMimeFromName(name: string): string {
+export function guessPrayerMediaMimeFromName(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase();
   const map: Record<string, string> = {
     mp3: "audio/mpeg",
@@ -99,17 +119,41 @@ export function guessAudioMimeFromName(name: string): string {
     wav: "audio/wav",
     aac: "audio/aac",
     ogg: "audio/ogg",
+    mp4: "video/mp4",
   };
   return ext ? (map[ext] ?? "") : "";
 }
 
-/** Strip codec parameters and map mobile aliases to canonical prayer audio MIME. */
-export function normalizePrayerAudioMime(type: string, filename?: string): string {
+/** @deprecated Use {@link guessPrayerMediaMimeFromName}. */
+export const guessAudioMimeFromName = guessPrayerMediaMimeFromName;
+
+/**
+ * Normalize prayer media MIME (strip codecs; map audio aliases).
+ * `video/quicktime` + `.m4a` → audio/mp4 (iOS voice memos); `.mp4` → video/mp4.
+ */
+export function normalizePrayerMediaMime(type: string, filename?: string): string {
   const raw = (type || "").split(";")[0]?.trim().toLowerCase() ?? "";
+  const ext = filename?.split(".").pop()?.toLowerCase() ?? "";
+
+  if (raw === "video/quicktime") {
+    if (ext === "m4a" || ext === "aac") return "audio/mp4";
+    if (ext === "mp3") return "audio/mpeg";
+    if (ext === "mp4") return "video/mp4";
+    return "audio/mp4";
+  }
+
+  if (raw && isCommunityPrayerMediaMimeType(raw)) return raw;
+
   const aliased = PRAYER_AUDIO_MIME_ALIASES[raw] ?? raw;
-  if (aliased && isCommunityPrayerAudioMimeType(aliased)) return aliased;
-  const fromName = guessAudioMimeFromName(filename ?? "");
+  if (aliased && isCommunityPrayerMediaMimeType(aliased)) return aliased;
+
+  const fromName = guessPrayerMediaMimeFromName(filename ?? "");
   return fromName || aliased;
+}
+
+/** @deprecated Use {@link normalizePrayerMediaMime}. */
+export function normalizePrayerAudioMime(type: string, filename?: string): string {
+  return normalizePrayerMediaMime(type, filename);
 }
 
 export function isCommunityPrayerAudioMimeType(type: string): type is CommunityPrayerAudioMimeType {
@@ -118,43 +162,95 @@ export function isCommunityPrayerAudioMimeType(type: string): type is CommunityP
   return (COMMUNITY_PRAYER_AUDIO_TYPES as readonly string[]).includes(normalized);
 }
 
-export function isAllowedPrayerAudioExtension(filename: string): boolean {
+export function isCommunityPrayerVideoMimeType(type: string): type is CommunityPrayerVideoMimeType {
+  const base = type.split(";")[0]?.trim().toLowerCase() ?? "";
+  return (COMMUNITY_PRAYER_VIDEO_TYPES as readonly string[]).includes(base);
+}
+
+export function isCommunityPrayerMediaMimeType(
+  type: string,
+): type is CommunityPrayerMediaMimeType {
+  const base = type.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (isCommunityPrayerVideoMimeType(base)) return true;
+  const normalized = PRAYER_AUDIO_MIME_ALIASES[base] ?? base;
+  return (COMMUNITY_PRAYER_AUDIO_TYPES as readonly string[]).includes(normalized);
+}
+
+export function isPrayerVideoMimeType(type: string): boolean {
+  const normalized = normalizePrayerMediaMime(type);
+  return isCommunityPrayerVideoMimeType(normalized);
+}
+
+export function isAllowedPrayerMediaExtension(filename: string): boolean {
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
-  return (COMMUNITY_PRAYER_AUDIO_EXTENSIONS as readonly string[]).includes(ext);
+  return (COMMUNITY_PRAYER_MEDIA_EXTENSIONS as readonly string[]).includes(ext);
 }
 
-export function isAllowedPrayerAudioFile(file: File): boolean {
+/** @deprecated Use {@link isAllowedPrayerMediaExtension}. */
+export function isAllowedPrayerAudioExtension(filename: string): boolean {
+  return isAllowedPrayerMediaExtension(filename);
+}
+
+export function isAllowedPrayerMediaFile(file: File): boolean {
   if (file.size < 1) return false;
-  const mime = normalizePrayerAudioMime(file.type, file.name);
-  if (mime && isCommunityPrayerAudioMimeType(mime)) return true;
-  return isAllowedPrayerAudioExtension(file.name);
+  const mime = normalizePrayerMediaMime(file.type, file.name);
+  if (mime && isCommunityPrayerMediaMimeType(mime)) return true;
+  return isAllowedPrayerMediaExtension(file.name);
 }
 
-export function extensionForPrayerAudioMime(type: string): string {
-  const normalized = normalizePrayerAudioMime(type);
-  return AUDIO_EXT_BY_MIME[normalized] ?? "webm";
+/** @deprecated Use {@link isAllowedPrayerMediaFile}. */
+export const isAllowedPrayerAudioFile = isAllowedPrayerMediaFile;
+
+export function extensionForPrayerMediaMime(type: string): string {
+  const normalized = normalizePrayerMediaMime(type);
+  return MEDIA_EXT_BY_MIME[normalized] ?? "webm";
 }
 
-export function validateCommunityPrayerAudioFile(file: File): string | null {
-  if (file.size > COMMUNITY_PRAYER_AUDIO_MAX_BYTES) {
-    return "Audio must be 10 MB or smaller.";
+/** @deprecated Use {@link extensionForPrayerMediaMime}. */
+export const extensionForPrayerAudioMime = extensionForPrayerMediaMime;
+
+export function maxBytesForPrayerMediaMime(type: string): number {
+  return isPrayerVideoMimeType(type)
+    ? COMMUNITY_PRAYER_VIDEO_MAX_BYTES
+    : COMMUNITY_PRAYER_AUDIO_MAX_BYTES;
+}
+
+export function validateCommunityPrayerMediaFile(file: File): string | null {
+  const mime = normalizePrayerMediaMime(file.type, file.name);
+  const maxBytes = mime ? maxBytesForPrayerMediaMime(mime) : COMMUNITY_PRAYER_AUDIO_MAX_BYTES;
+
+  if (file.size > maxBytes) {
+    return isPrayerVideoMimeType(mime || file.type)
+      ? "Video must be 25 MB or smaller."
+      : "Audio must be 10 MB or smaller.";
   }
   if (file.size < 1) {
-    return "Audio file is empty.";
+    return "File is empty.";
   }
-  if (!isAllowedPrayerAudioFile(file)) {
-    return "Use MP3, M4A, WebM, WAV, or AAC audio.";
+  if (!isAllowedPrayerMediaFile(file)) {
+    return PRAYER_MEDIA_VALIDATION_MESSAGE;
   }
   return null;
 }
 
+/** @deprecated Use {@link validateCommunityPrayerMediaFile}. */
+export const validateCommunityPrayerAudioFile = validateCommunityPrayerMediaFile;
+
 /** Build a File with a normalized MIME for upload validation and storage. */
-export function prayerAudioFileFromBlob(
-  blob: Blob,
-  filename: string,
-): File {
-  const mime = normalizePrayerAudioMime(blob.type, filename) || guessAudioMimeFromName(filename) || "audio/webm";
+export function prayerMediaFileFromBlob(blob: Blob, filename: string): File {
+  const mime =
+    normalizePrayerMediaMime(blob.type, filename) ||
+    guessPrayerMediaMimeFromName(filename) ||
+    "audio/webm";
   return new File([blob], filename, { type: mime });
+}
+
+/** @deprecated Use {@link prayerMediaFileFromBlob}. */
+export const prayerAudioFileFromBlob = prayerMediaFileFromBlob;
+
+export function inferPrayerMediaHasVideo(file: File): boolean {
+  const mime = normalizePrayerMediaMime(file.type, file.name);
+  return isPrayerVideoMimeType(mime);
 }
 
 /** `blog/2026/05/<uuid>.jpg` */

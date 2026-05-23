@@ -12,21 +12,38 @@ vi.mock("@/lib/community/user-notification-prefs", () => ({
   getUserNotificationPreferences: vi.fn(),
 }));
 
+vi.mock("@/lib/community/notifications", () => ({
+  buildNewsletterPublishedNotificationBody: vi.fn(
+    (excerpt: string, subtitle: string) => excerpt.trim() || subtitle.trim() || "A new ministry update is available.",
+  ),
+  upsertNewsletterPublishedNotification: vi.fn(),
+}));
+
+vi.mock("@/lib/mission-hub/email-config", () => ({
+  isMissionHubEmailNotificationsEnabled: vi.fn(() => false),
+}));
+
+vi.mock("@/lib/mission-hub/newsletter-publish-email", () => ({
+  getNewsletterPublishEmailDisabledReason: vi.fn(() => "disabled"),
+  queueAndSendNewsletterPublishEmail: vi.fn(),
+}));
+
 import { prisma } from "@/lib/db";
+import { upsertNewsletterPublishedNotification } from "@/lib/community/notifications";
 import { getUserNotificationPreferences } from "@/lib/community/user-notification-prefs";
-import { prepareNewsletterMemberNotifications } from "./member-notifications-prep";
+import { deliverNewsletterPublishNotifications } from "./member-notifications-prep";
 import type { NewsletterRecord } from "./types";
 
 const sampleNewsletter: NewsletterRecord = {
   id: "nl_1",
-  title: "Test",
-  subtitle: "",
-  slug: "test",
+  title: "March Update",
+  subtitle: "From the field",
+  slug: "march-update",
   issueDate: null,
   headerImageUrl: null,
   useDefaultBrandedHeader: true,
   featuredImageUrl: null,
-  excerpt: "",
+  excerpt: "Highlights from March.",
   body: "Body",
   bodyBlocks: [],
   ctaLabel: "",
@@ -43,18 +60,24 @@ const sampleNewsletter: NewsletterRecord = {
   updatedAt: new Date().toISOString(),
 };
 
-describe("prepareNewsletterMemberNotifications", () => {
+const deliveryOptions = {
+  sourcePostId: "post-newsletter-1",
+  missionHubSpaceSlug: "newsletters",
+};
+
+describe("deliverNewsletterPublishNotifications", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(prisma.communitySpaceRecord.findFirst).mockResolvedValue({
-      id: "space-ministry",
+      id: "space-newsletters",
     } as never);
+    vi.mocked(upsertNewsletterPublishedNotification).mockResolvedValue("created");
   });
 
-  it("returns structured counts with delivery disabled", async () => {
+  it("creates in-app notifications for eligible members", async () => {
     vi.mocked(prisma.communityMemberRecord.findMany).mockResolvedValue([
-      { userId: "u1" },
-      { userId: "u2" },
+      { userId: "u1", user: { email: "a@example.com" } },
+      { userId: "u2", user: { email: "b@example.com" } },
     ] as never);
     vi.mocked(getUserNotificationPreferences)
       .mockResolvedValueOnce(DEFAULT_NOTIFICATION_PREFERENCES)
@@ -63,26 +86,76 @@ describe("prepareNewsletterMemberNotifications", () => {
         newsletters: false,
       });
 
-    const result = await prepareNewsletterMemberNotifications(sampleNewsletter);
+    const result = await deliverNewsletterPublishNotifications(sampleNewsletter, deliveryOptions);
 
-    expect(result.deliveryEnabled).toBe(false);
-    expect(result.totalMembersWithAccounts).toBe(2);
-    expect(result.emailRecipientsPrepared).toBe(1);
-    expect(result.inAppRecipientsPrepared).toBe(1);
-    expect(result.skippedMutedOrDisabled).toBe(1);
+    expect(result.inAppNotificationsSent).toBe(1);
+    expect(result.inAppNotificationsUpdated).toBe(0);
+    expect(upsertNewsletterPublishedNotification).toHaveBeenCalledTimes(1);
+    expect(upsertNewsletterPublishedNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserId: "u1",
+        newsletterId: "nl_1",
+        sourcePostId: "post-newsletter-1",
+        body: "Highlights from March.",
+      }),
+    );
   });
 
-  it("excludes email only when email channel is off", async () => {
+  it("excludes users with newsletters disabled", async () => {
     vi.mocked(prisma.communityMemberRecord.findMany).mockResolvedValue([
-      { userId: "u1" },
+      { userId: "u1", user: { email: "a@example.com" } },
     ] as never);
     vi.mocked(getUserNotificationPreferences).mockResolvedValue({
       ...DEFAULT_NOTIFICATION_PREFERENCES,
-      email: false,
+      newsletters: false,
     });
 
-    const result = await prepareNewsletterMemberNotifications(sampleNewsletter);
-    expect(result.emailRecipientsPrepared).toBe(0);
-    expect(result.inAppRecipientsPrepared).toBe(1);
+    const result = await deliverNewsletterPublishNotifications(sampleNewsletter, deliveryOptions);
+
+    expect(result.inAppNotificationsSent).toBe(0);
+    expect(upsertNewsletterPublishedNotification).not.toHaveBeenCalled();
+  });
+
+  it("excludes users with in-app channel disabled", async () => {
+    vi.mocked(prisma.communityMemberRecord.findMany).mockResolvedValue([
+      { userId: "u1", user: { email: "a@example.com" } },
+    ] as never);
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      inApp: false,
+    });
+
+    const result = await deliverNewsletterPublishNotifications(sampleNewsletter, deliveryOptions);
+
+    expect(result.inAppNotificationsSent).toBe(0);
+    expect(upsertNewsletterPublishedNotification).not.toHaveBeenCalled();
+  });
+
+  it("excludes users who muted the Newsletter space", async () => {
+    vi.mocked(prisma.communityMemberRecord.findMany).mockResolvedValue([
+      { userId: "u1", user: { email: "a@example.com" } },
+    ] as never);
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      mutedSpaceIds: ["space-newsletters"],
+    });
+
+    const result = await deliverNewsletterPublishNotifications(sampleNewsletter, deliveryOptions);
+
+    expect(result.inAppNotificationsSent).toBe(0);
+    expect(upsertNewsletterPublishedNotification).not.toHaveBeenCalled();
+  });
+
+  it("counts republish as update without duplicating sent count", async () => {
+    vi.mocked(prisma.communityMemberRecord.findMany).mockResolvedValue([
+      { userId: "u1", user: { email: "a@example.com" } },
+    ] as never);
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue(DEFAULT_NOTIFICATION_PREFERENCES);
+    vi.mocked(upsertNewsletterPublishedNotification).mockResolvedValue("updated");
+
+    const result = await deliverNewsletterPublishNotifications(sampleNewsletter, deliveryOptions);
+
+    expect(result.inAppNotificationsSent).toBe(0);
+    expect(result.inAppNotificationsUpdated).toBe(1);
   });
 });

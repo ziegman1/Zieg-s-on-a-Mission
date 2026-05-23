@@ -5,15 +5,16 @@ describe("uploadNewsletterDocumentFile", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          url: "https://testref.supabase.co/storage/v1/object/public/newsletter-assets/temp/documents/abc.pdf",
-          path: "temp/documents/abc.pdf",
-          storage: "supabase",
-        }),
-      }),
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            url: "https://testref.supabase.co/storage/v1/object/public/newsletter-assets/temp/documents/abc.pdf",
+            path: "temp/documents/abc.pdf",
+            storage: "supabase",
+          }),
+          { status: 200 },
+        ),
+      ),
     );
   });
 
@@ -29,6 +30,21 @@ describe("uploadNewsletterDocumentFile", () => {
     expect(fetch).toHaveBeenCalledWith(
       "/api/admin/upload-newsletter-document",
       expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("surfaces server error message from API body", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "Upload failed: Storage bucket not configured.",
+        }),
+        { status: 500 },
+      ),
+    );
+    const file = new File(["%PDF"], "x.pdf", { type: "application/pdf" });
+    await expect(uploadNewsletterDocumentFile(file)).rejects.toThrow(
+      "Storage bucket not configured",
     );
   });
 });

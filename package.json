@@ -28,6 +28,7 @@
     "db:validate:env:local": "node scripts/validate-db-env.mjs .env.local",
     "db:validate:env:production": "node scripts/validate-db-env.mjs .env.production",
     "validate:supabase-storage": "node scripts/validate-supabase-storage-env.mjs .env.local",
+    "check:newsletter-storage": "node scripts/check-newsletter-storage.mjs",
     "check:newsletter-db": "node scripts/check-newsletter-db.mjs",
     "db:migrate:deploy:production": "MIGRATE_ENV_FILE=.env.production node scripts/migrate-deploy.mjs",
     "db:migrate:status:production": "dotenv -o -e .env.production -- prisma migrate status",
@@ -58,6 +59,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^4.8.0",
+    "server-only": "^0.0.1",
     "stripe": "^17.4.0",
     "tailwind-merge": "^3.5.0",
     "zod": "^3.24.1"

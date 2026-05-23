@@ -63,6 +63,16 @@ describe("evaluateNewsletterNotificationEligibility", () => {
     expect(e.emailChannel).toBe(false);
     expect(e.skipReason).toBe("space_muted");
   });
+
+  it("still prepares newsletter notifications when ministry updates pref is off", () => {
+    const e = evaluateNewsletterNotificationEligibility({
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      ministryUpdates: false,
+    });
+    expect(e.wantsNewsletterContent).toBe(true);
+    expect(e.emailChannel).toBe(true);
+    expect(e.skipReason).toBeNull();
+  });
 });
 
 describe("memberWantsWeeklyDigest", () => {

@@ -99,6 +99,90 @@ export async function markAllNotificationsRead(userId: string): Promise<number> 
   return result.count;
 }
 
+export const NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE = "newsletter_published" as const;
+export const NEWSLETTER_PUBLISHED_NOTIFICATION_TITLE = "New newsletter published";
+
+export function newsletterPublishNotificationDedupeKey(newsletterId: string): string {
+  return `newsletter:${newsletterId}:published`;
+}
+
+export type NewsletterPublishedNotificationMetadata = {
+  sourceKind: "newsletter";
+  sourceId: string;
+  sourcePostId: string;
+  newsletterSlug: string;
+  newsletterPath: string;
+};
+
+export function buildNewsletterPublishedNotificationBody(
+  excerpt: string,
+  subtitle: string,
+): string {
+  const text = excerpt.trim() || subtitle.trim();
+  return text || "A new ministry update is available.";
+}
+
+/** Create or refresh a deduped in-app notification when a newsletter is published. */
+export async function upsertNewsletterPublishedNotification(input: {
+  recipientUserId: string;
+  newsletterId: string;
+  newsletterSlug: string;
+  newsletterPath: string;
+  body: string;
+  sourcePostId: string;
+  actorUserId?: string | null;
+}): Promise<"created" | "updated"> {
+  if (input.actorUserId && input.actorUserId === input.recipientUserId) {
+    return "updated";
+  }
+
+  const dedupeKey = newsletterPublishNotificationDedupeKey(input.newsletterId);
+  const metadata: NewsletterPublishedNotificationMetadata = {
+    sourceKind: "newsletter",
+    sourceId: input.newsletterId,
+    sourcePostId: input.sourcePostId,
+    newsletterSlug: input.newsletterSlug,
+    newsletterPath: input.newsletterPath,
+  };
+
+  const existing = await prisma.communityNotificationRecord.findFirst({
+    where: {
+      recipientUserId: input.recipientUserId,
+      dedupeKey,
+    },
+    select: { id: true },
+  });
+
+  const data = {
+    type: NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE,
+    title: NEWSLETTER_PUBLISHED_NOTIFICATION_TITLE,
+    body: input.body,
+    postId: input.sourcePostId,
+    commentId: null,
+    actorUserId: input.actorUserId ?? null,
+    actorMemberId: null,
+    dedupeKey,
+    metadata: metadata as unknown as import("@prisma/client").Prisma.InputJsonValue,
+    readAt: null,
+  };
+
+  if (existing) {
+    await prisma.communityNotificationRecord.update({
+      where: { id: existing.id },
+      data: { ...data, createdAt: new Date() },
+    });
+    return "updated";
+  }
+
+  await prisma.communityNotificationRecord.create({
+    data: {
+      recipientUserId: input.recipientUserId,
+      ...data,
+    },
+  });
+  return "created";
+}
+
 type CreateNotificationInput = {
   recipientUserId: string;
   type: CommunityNotificationType;

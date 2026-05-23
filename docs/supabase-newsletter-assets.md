@@ -27,9 +27,12 @@ Vercel Blob (`BLOB_READ_WRITE_TOKEN`) is **not** used for newsletter images.
 
 ```bash
 npm run validate:supabase-storage
+node scripts/check-newsletter-storage.mjs
 ```
 
 Exits 0 when `NEXT_PUBLIC_SUPABASE_URL` and a valid `SUPABASE_SERVICE_ROLE_KEY` are in `.env.local`.
+
+`check-newsletter-storage.mjs` also uploads a tiny test PDF — if you see `mime type application/pdf is not supported`, re-run `supabase/storage/newsletter-assets-policies.sql` (bucket was created before PDFs were allowed).
 
 ### Error messages
 
@@ -116,9 +119,34 @@ Repeat for `preview` if you use preview deployments.
 
 See also [vercel-deployment-checklist.md](./vercel-deployment-checklist.md).
 
-## 6. API reference
+## 6. PDF uploads
+
+- **POST** `/api/admin/upload-newsletter-document`
+- Form: `file` (PDF), optional `newsletterId`
+- `application/pdf` only; max **20 MB**
+- Response: `{ url, path, storage: "supabase" }`
+
+The bucket must allow `application/pdf` in `allowed_mime_types` (see `newsletter-assets-policies.sql`). Image-only buckets return HTTP 415 from Supabase.
+
+### Upload errors (admin UI)
+
+| Symptom | Likely cause |
+|---------|----------------|
+| Storage bucket not configured | Bucket `newsletter-assets` missing |
+| PDF type not allowed… `newsletter-assets-policies.sql` | Bucket exists but MIME list lacks `application/pdf` |
+| You are not authorized to upload | Not signed in as ADMIN/STAFF, or bad service role key |
+| PDF exceeds 20 MB | File too large |
+| Supabase Storage policy rejected upload | RLS/policy issue (rare with service role) |
+
+In **development**, API errors are prefixed with `Upload failed:` and may include a `detail` field with the raw Supabase message. Check the dev server log for `[upload-newsletter-document] failed` and `[newsletter-media] document upload failed`.
+
+## 7. API reference
 
 - **POST** `/api/admin/upload-newsletter-image`
 - Form: `file`, `purpose` (`header` | `featured` | `footer` | `block`), optional `newsletterId`
 - JPG, PNG, WebP; max **5 MB**
 - Response: `{ url, path, storage: "supabase" }`
+
+- **POST** `/api/admin/upload-newsletter-document`
+- Form: `file`, optional `newsletterId`
+- PDF; max **20 MB**

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import {
-  extensionForPrayerAudioMime,
-  isCommunityPrayerAudioMimeType,
-  normalizePrayerAudioMime,
-  validateCommunityPrayerAudioFile,
+  extensionForPrayerMediaMime,
+  inferPrayerMediaHasVideo,
+  isCommunityPrayerMediaMimeType,
+  normalizePrayerMediaMime,
+  validateCommunityPrayerMediaFile,
 } from "@/lib/community/media-upload";
 import { assertCanUploadPrayerAudio } from "@/lib/community/prayer-audio-auth";
 import { uploadCommunityPrayerAudio } from "@/lib/supabase/community-media";
-import { logSupabaseServiceRoleKeyDebug } from "@/lib/supabase/config";
+import { logSupabaseServiceRoleKeyDebug } from "@/lib/supabase/config-server";
 
 export async function POST(request: Request) {
   logSupabaseServiceRoleKeyDebug("upload-prayer-audio");
@@ -34,26 +35,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No audio file provided" }, { status: 400 });
   }
 
-  const validationError = validateCommunityPrayerAudioFile(file);
+  const validationError = validateCommunityPrayerMediaFile(file);
   if (validationError) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
-  const mimeType = normalizePrayerAudioMime(file.type, file.name) || "audio/webm";
-  if (!isCommunityPrayerAudioMimeType(mimeType)) {
-    return NextResponse.json({ error: "Unsupported audio type" }, { status: 400 });
+  const mimeType = normalizePrayerMediaMime(file.type, file.name) || "audio/webm";
+  if (!isCommunityPrayerMediaMimeType(mimeType)) {
+    return NextResponse.json({ error: "Unsupported media type" }, { status: 400 });
   }
+
+  const hasVideo = inferPrayerMediaHasVideo(file);
+  const originalFileName = file.name?.trim() || undefined;
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const { url, path } = await uploadCommunityPrayerAudio(buffer, mimeType);
-    const ext = extensionForPrayerAudioMime(mimeType);
-    const filename = file.name?.trim() || `voice-prayer.${ext}`;
+    const ext = extensionForPrayerMediaMime(mimeType);
+    const filename = originalFileName || `prayer.${ext}`;
     return NextResponse.json({
       url,
       path,
       mimeType,
       filename,
+      hasVideo,
+      ...(originalFileName ? { originalFileName } : {}),
     });
   } catch (e) {
     console.error("[community/upload-prayer-audio]", e);

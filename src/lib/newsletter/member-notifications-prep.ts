@@ -1,57 +1,120 @@
+import { communityPostAnchorPath } from "@/lib/community/post-url";
 import { evaluateNewsletterNotificationEligibility } from "@/lib/community/notification-preferences";
+import {
+  buildNewsletterPublishedNotificationBody,
+  upsertNewsletterPublishedNotification,
+} from "@/lib/community/notifications";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   mergeNotificationPreferences,
 } from "@/lib/community/settings-types";
 import { getUserNotificationPreferences } from "@/lib/community/user-notification-prefs";
-import { NEWSLETTER_ANNOUNCEMENT_SPACE_SLUG } from "@/lib/newsletter/mission-hub-announcement";
 import { prisma } from "@/lib/db";
+import {
+  getNewsletterPublishEmailDisabledReason,
+  queueAndSendNewsletterPublishEmail,
+} from "@/lib/mission-hub/newsletter-publish-email";
+import { isMissionHubEmailNotificationsEnabled } from "@/lib/mission-hub/email-config";
+import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
+import {
+  NEWSLETTER_SPACE_SLUG,
+  newsletterPublicPath,
+} from "@/lib/newsletter/mission-hub-announcement";
 import type { NewsletterRecord } from "./types";
 
-export type NewsletterMemberNotificationsPrep = {
-  prepared: true;
-  deliveryEnabled: false;
+export type NewsletterPublishNotificationsResult = {
+  inAppDelivered: true;
+  emailEnabled: boolean;
+  emailDisabledReason: string | null;
   totalMembersWithAccounts: number;
+  inAppNotificationsSent: number;
+  inAppNotificationsUpdated: number;
+  emailNotificationsSent: number;
+  emailNotificationsDeduped: number;
+  emailNotificationsFailed: number;
+  emailSkippedNoAddress: number;
   emailRecipientsPrepared: number;
   inAppRecipientsPrepared: number;
   pushRecipientsPrepared: number;
   skippedMutedOrDisabled: number;
 };
 
-async function resolveAnnouncementSpaceId(): Promise<string | null> {
+/** @deprecated Use {@link NewsletterPublishNotificationsResult}. */
+export type NewsletterMemberNotificationsPrep = NewsletterPublishNotificationsResult;
+
+export type DeliverNewsletterPublishNotificationsOptions = {
+  sourcePostId: string;
+  missionHubSpaceSlug: string;
+  publisherUserId?: string | null;
+  /** Admin-only: resend emails even when delivery log shows sent. */
+  resendNewsletterEmail?: boolean;
+};
+
+async function resolveNewsletterNotificationSpaceId(): Promise<string | null> {
   const space = await prisma.communitySpaceRecord.findFirst({
-    where: { slug: NEWSLETTER_ANNOUNCEMENT_SPACE_SLUG, status: "published" },
+    where: { slug: NEWSLETTER_SPACE_SLUG, status: "published" },
     select: { id: true },
   });
   return space?.id ?? null;
 }
 
 /**
- * Counts Mission Hub members who would receive newsletter publish notifications per channel.
- * Respects newsletters, ministry updates, channel toggles, and muted spaces.
- * Does not send email, in-app, or push yet.
+ * Delivers Mission Hub newsletter publish notifications (in-app + optional Resend email).
+ * Newsletter Builder remains source of truth; this is not Mail Suite.
  */
-export async function prepareNewsletterMemberNotifications(
-  _newsletter: NewsletterRecord,
-): Promise<NewsletterMemberNotificationsPrep> {
-  const [members, announcementSpaceId] = await Promise.all([
+export async function deliverNewsletterPublishNotifications(
+  newsletter: NewsletterRecord,
+  options: DeliverNewsletterPublishNotificationsOptions,
+): Promise<NewsletterPublishNotificationsResult> {
+  const [members, newsletterSpaceId] = await Promise.all([
     prisma.communityMemberRecord.findMany({
       where: { status: "active", userId: { not: null } },
-      select: { userId: true },
+      select: {
+        userId: true,
+        user: { select: { email: true } },
+      },
     }),
-    resolveAnnouncementSpaceId(),
+    resolveNewsletterNotificationSpaceId(),
   ]);
 
   const userIds = [
     ...new Set(members.map((m) => m.userId).filter((id): id is string => Boolean(id))),
   ];
+  const emailByUserId = new Map(
+    members
+      .filter((m) => m.userId && m.user?.email)
+      .map((m) => [m.userId as string, m.user!.email!.trim()]),
+  );
 
+  const notificationBody = buildNewsletterPublishedNotificationBody(
+    newsletter.excerpt,
+    newsletter.subtitle,
+  );
+  const newsletterPath = newsletterPublicPath(newsletter.slug);
+  const missionHubPostUrl = absoluteMissionHubUrl(
+    communityPostAnchorPath(options.missionHubSpaceSlug, options.sourcePostId),
+  );
+  const publisherId = options.publisherUserId ?? null;
+
+  const emailEnabled = isMissionHubEmailNotificationsEnabled();
+  const emailDisabledReason = getNewsletterPublishEmailDisabledReason();
+
+  let inAppNotificationsSent = 0;
+  let inAppNotificationsUpdated = 0;
+  let emailNotificationsSent = 0;
+  let emailNotificationsDeduped = 0;
+  let emailNotificationsFailed = 0;
+  let emailSkippedNoAddress = 0;
   let emailRecipientsPrepared = 0;
   let inAppRecipientsPrepared = 0;
   let pushRecipientsPrepared = 0;
   let skippedMutedOrDisabled = 0;
 
   for (const userId of userIds) {
+    if (publisherId && userId === publisherId) {
+      continue;
+    }
+
     let prefs = DEFAULT_NOTIFICATION_PREFERENCES;
     try {
       prefs = await getUserNotificationPreferences(userId);
@@ -60,7 +123,7 @@ export async function prepareNewsletterMemberNotifications(
     }
 
     const eligibility = evaluateNewsletterNotificationEligibility(prefs, {
-      announcementSpaceId,
+      announcementSpaceId: newsletterSpaceId,
       hasMissionHubAccess: true,
     });
 
@@ -75,26 +138,90 @@ export async function prepareNewsletterMemberNotifications(
     ) {
       skippedMutedOrDisabled += 1;
     }
+
+    if (eligibility.inAppChannel) {
+      const outcome = await upsertNewsletterPublishedNotification({
+        recipientUserId: userId,
+        newsletterId: newsletter.id,
+        newsletterSlug: newsletter.slug,
+        newsletterPath,
+        body: notificationBody,
+        sourcePostId: options.sourcePostId,
+        actorUserId: publisherId,
+      });
+
+      if (outcome === "created") inAppNotificationsSent += 1;
+      else inAppNotificationsUpdated += 1;
+    }
+
+    if (!eligibility.emailChannel) {
+      continue;
+    }
+
+    if (!emailEnabled) {
+      continue;
+    }
+
+    const recipientEmail = emailByUserId.get(userId);
+    if (!recipientEmail) {
+      emailSkippedNoAddress += 1;
+      continue;
+    }
+
+    const emailOutcome = await queueAndSendNewsletterPublishEmail({
+      recipientUserId: userId,
+      recipientEmail,
+      newsletter,
+      missionHubPostUrl,
+      forceResend: options.resendNewsletterEmail === true,
+    });
+
+    if (emailOutcome.action === "sent") emailNotificationsSent += 1;
+    else if (emailOutcome.action === "deduped") emailNotificationsDeduped += 1;
+    else emailNotificationsFailed += 1;
   }
 
   if (process.env.NODE_ENV !== "production") {
-    console.info("[newsletter] prepareNewsletterMemberNotifications", {
+    console.info("[newsletter] deliverNewsletterPublishNotifications", {
+      newsletterId: newsletter.id,
+      newsletterSpaceSlug: NEWSLETTER_SPACE_SLUG,
+      newsletterSpaceId,
+      sourcePostId: options.sourcePostId,
       totalMembersWithAccounts: userIds.length,
+      inAppNotificationsSent,
+      inAppNotificationsUpdated,
+      emailNotificationsSent,
+      emailNotificationsDeduped,
+      emailNotificationsFailed,
       emailRecipientsPrepared,
-      inAppRecipientsPrepared,
-      pushRecipientsPrepared,
+      emailEnabled,
+      emailDisabledReason,
       skippedMutedOrDisabled,
-      deliveryEnabled: false,
     });
   }
 
   return {
-    prepared: true,
-    deliveryEnabled: false,
+    inAppDelivered: true,
+    emailEnabled,
+    emailDisabledReason,
     totalMembersWithAccounts: userIds.length,
+    inAppNotificationsSent,
+    inAppNotificationsUpdated,
+    emailNotificationsSent,
+    emailNotificationsDeduped,
+    emailNotificationsFailed,
+    emailSkippedNoAddress,
     emailRecipientsPrepared,
     inAppRecipientsPrepared,
     pushRecipientsPrepared,
     skippedMutedOrDisabled,
   };
 }
+
+/** @deprecated Use {@link deliverNewsletterPublishNotifications}. */
+export const sendNewsletterPublishInAppNotifications = deliverNewsletterPublishNotifications;
+
+/** @deprecated Use {@link deliverNewsletterPublishNotifications}. */
+export const prepareNewsletterMemberNotifications = deliverNewsletterPublishNotifications;
+
+export { formatMissionHubNotificationDeliveryLines } from "@/lib/mission-hub/notification-delivery-message";

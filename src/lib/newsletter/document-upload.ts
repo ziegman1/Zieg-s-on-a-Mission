@@ -1,3 +1,8 @@
+import {
+  parseNewsletterUploadApiError,
+  UNAUTHORIZED_UPLOAD_MESSAGE,
+} from "./newsletter-upload-errors-client";
+
 export const NEWSLETTER_PDF_ACCEPT = "application/pdf,.pdf";
 
 export const NEWSLETTER_PDF_MAX_BYTES = 20 * 1024 * 1024; // 20 MB
@@ -43,12 +48,24 @@ export async function uploadNewsletterDocumentFile(
     body: fd,
   });
 
-  const data = (await res.json()) as { url?: string; path?: string; storage?: string; error?: string };
+  const text = await res.text();
+  let data: { url?: string; path?: string; storage?: string; error?: string; detail?: string } = {};
+  try {
+    data = text ? (JSON.parse(text) as typeof data) : {};
+  } catch {
+    if (process.env.NODE_ENV === "development" && text) {
+      throw new Error(
+        `Upload failed: invalid JSON response (${res.status}): ${text.slice(0, 240)}`,
+      );
+    }
+    throw new Error(parseNewsletterUploadApiError(res.status, null, "pdf"));
+  }
+
   if (res.status === 401) {
-    throw new Error("Upload failed. Sign in as an admin.");
+    throw new Error(UNAUTHORIZED_UPLOAD_MESSAGE);
   }
   if (!res.ok || !data.url) {
-    throw new Error(data.error ?? "Upload failed.");
+    throw new Error(parseNewsletterUploadApiError(res.status, data, "pdf"));
   }
 
   return { url: data.url, path: data.path, storage: data.storage };

@@ -10,7 +10,7 @@ import { uploadCommunityMemberProfile } from "@/lib/supabase/community-media";
 import {
   getSupabaseStorageConfigProblems,
   supabaseStorageNotConfiguredMessage,
-} from "@/lib/supabase/config";
+} from "@/lib/supabase/config-env";
 import { revalidateCommunityFeeds } from "@/lib/community/post-author";
 import { getOrSetVisitorKey } from "@/lib/community/visitor-key";
 import { prisma } from "@/lib/db";

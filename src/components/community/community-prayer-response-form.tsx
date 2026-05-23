@@ -95,6 +95,8 @@ export function CommunityPrayerResponseForm({
               durationSeconds: voiceReady.durationSeconds,
               mimeType: voiceReady.mimeType,
               filename: voiceReady.filename,
+              hasVideo: voiceReady.hasVideo,
+              originalFileName: voiceReady.originalFileName,
             }),
           );
           resetVoice();
@@ -171,7 +173,7 @@ export function CommunityPrayerResponseForm({
             )}
           >
             <Mic className="h-3.5 w-3.5" aria-hidden />
-            Voice Prayer
+            Voice / Video Prayer
           </button>
         </div>
       ) : null}

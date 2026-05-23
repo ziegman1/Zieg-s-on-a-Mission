@@ -7,7 +7,7 @@ import {
   validateCommunityCoverFile,
 } from "@/lib/community/media-upload";
 import { uploadBlogFeaturedImage } from "@/lib/supabase/community-media";
-import { assertSupabaseStorageReady } from "@/lib/supabase/config";
+import { assertSupabaseStorageReady } from "@/lib/supabase/config-env";
 
 export async function POST(req: Request) {
   const session = await auth();

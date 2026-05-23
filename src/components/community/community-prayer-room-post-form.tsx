@@ -110,6 +110,8 @@ export function CommunityPrayerRoomPostForm({
           durationSeconds: voiceReady.durationSeconds,
           mimeType: voiceReady.mimeType,
           filename: voiceReady.filename,
+          hasVideo: voiceReady.hasVideo,
+          originalFileName: voiceReady.originalFileName,
         });
       } else {
         const text = body.trim();

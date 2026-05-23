@@ -1,21 +1,32 @@
 /**
- * Browser voice recording helpers (client-safe; no Node APIs).
+ * Browser prayer recording helpers (client-safe; no Node APIs).
  */
 
-/** MIME types to try for MediaRecorder, in preference order. */
+/** Video MIME types for MediaRecorder, in preference order (Safari: video/mp4). */
+export const PRAYER_VIDEO_RECORDER_MIME_CANDIDATES = [
+  "video/mp4",
+  "video/mp4;codecs=avc1,mp4a",
+  "video/webm;codecs=vp9,opus",
+  "video/webm;codecs=vp8,opus",
+  "video/webm",
+] as const;
+
+/** Audio MIME types for MediaRecorder, in preference order. */
 export const PRAYER_AUDIO_RECORDER_MIME_CANDIDATES = [
-  "audio/webm;codecs=opus",
-  "audio/webm",
   "audio/mp4",
   "audio/mp4;codecs=mp4a",
-  "audio/aac",
-  "audio/ogg;codecs=opus",
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mpeg",
   "audio/wav",
 ] as const;
 
-export function pickRecorderMimeType(): string | undefined {
+/** @deprecated Use {@link PRAYER_AUDIO_RECORDER_MIME_CANDIDATES}. */
+export const PRAYER_AUDIO_RECORDER_MIME_CANDIDATES_LEGACY = PRAYER_AUDIO_RECORDER_MIME_CANDIDATES;
+
+function pickFirstSupportedMime(candidates: readonly string[]): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
-  for (const type of PRAYER_AUDIO_RECORDER_MIME_CANDIDATES) {
+  for (const type of candidates) {
     try {
       if (MediaRecorder.isTypeSupported(type)) return type;
     } catch {
@@ -23,6 +34,25 @@ export function pickRecorderMimeType(): string | undefined {
     }
   }
   return undefined;
+}
+
+export function pickVideoRecorderMimeType(): string | undefined {
+  return pickFirstSupportedMime(PRAYER_VIDEO_RECORDER_MIME_CANDIDATES);
+}
+
+export function pickAudioRecorderMimeType(): string | undefined {
+  return pickFirstSupportedMime(PRAYER_AUDIO_RECORDER_MIME_CANDIDATES);
+}
+
+/** @deprecated Use {@link pickAudioRecorderMimeType}. */
+export function pickRecorderMimeType(): string | undefined {
+  return pickAudioRecorderMimeType();
+}
+
+export type PrayerRecordingMode = "audio" | "video";
+
+export function pickRecorderMimeTypeForMode(mode: PrayerRecordingMode): string | undefined {
+  return mode === "video" ? pickVideoRecorderMimeType() : pickAudioRecorderMimeType();
 }
 
 /** True when in-browser recording may be attempted (mic + MediaRecorder). */
@@ -33,11 +63,30 @@ export function supportsBrowserVoiceRecording(): boolean {
   return true;
 }
 
-export function extensionFromRecorderBlob(blob: Blob, preferredMime?: string): string {
+/** True when camera + mic recording may be attempted. */
+export function supportsBrowserVideoPrayerRecording(): boolean {
+  return supportsBrowserVoiceRecording();
+}
+
+export function extensionFromRecorderBlob(
+  blob: Blob,
+  preferredMime?: string,
+  mode: PrayerRecordingMode = "audio",
+): string {
   const type = (blob.type || preferredMime || "").toLowerCase();
+  if (type.startsWith("video/") || mode === "video") {
+    if (type.includes("mp4")) return "mp4";
+    return "webm";
+  }
   if (type.includes("mp4") || type.includes("aac") || type.includes("m4a")) return "m4a";
   if (type.includes("mpeg") || type.includes("mp3")) return "mp3";
   if (type.includes("wav")) return "wav";
   if (type.includes("ogg")) return "ogg";
   return "webm";
+}
+
+export function recordingModeFromMime(mimeType: string): PrayerRecordingMode {
+  return mimeType.split(";")[0]?.trim().toLowerCase().startsWith("video/")
+    ? "video"
+    : "audio";
 }

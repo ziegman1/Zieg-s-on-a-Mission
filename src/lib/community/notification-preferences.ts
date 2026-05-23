@@ -21,7 +21,6 @@ export type NewsletterNotificationSkipReason =
 
 /**
  * Whether a member should receive newsletter publish notifications (per channel).
- * Does not send — used for recipient preparation counts only.
  */
 export function evaluateNewsletterNotificationEligibility(
   prefs: NotificationPreferences,
@@ -36,8 +35,7 @@ export function evaluateNewsletterNotificationEligibility(
     options.announcementSpaceId && muted.has(options.announcementSpaceId),
   );
 
-  const wantsNewsletterContent =
-    prefs.newsletters !== false && prefs.ministryUpdates !== false && !spaceMuted;
+  const wantsNewsletterContent = prefs.newsletters !== false && !spaceMuted;
 
   const emailChannel = wantsNewsletterContent && prefs.email === true;
   const inAppChannel = wantsNewsletterContent && prefs.inApp === true;
@@ -46,7 +44,6 @@ export function evaluateNewsletterNotificationEligibility(
   let skipReason: NewsletterNotificationSkipReason | null = null;
   if (!hasMissionHubAccess) skipReason = "no_hub_access";
   else if (prefs.newsletters === false) skipReason = "newsletters_disabled";
-  else if (prefs.ministryUpdates === false) skipReason = "ministry_updates_disabled";
   else if (spaceMuted) skipReason = "space_muted";
   else if (!emailChannel && !inAppChannel && !pushChannel) skipReason = "all_channels_off";
 

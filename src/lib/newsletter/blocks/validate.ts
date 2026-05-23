@@ -1,9 +1,6 @@
-import {
-  isValidNewsletterLinkUrl,
-  normalizeNewsletterLinkUrl,
-  validateNewsletterLinkUrl,
-} from "@/lib/newsletter/cta-url";
+import { isValidNewsletterLinkUrl, normalizeNewsletterLinkUrl } from "@/lib/newsletter/cta-url";
 import { validateNewsletterDocumentUrl } from "@/lib/newsletter/document-url";
+import { validateNewsletterPdfLinkUrl } from "@/lib/newsletter/pdf-link-url";
 import type { NewsletterBlocks } from "./types";
 import { hasVisibleNewsletterContent, isBlockVisible } from "./visible";
 
@@ -35,7 +32,7 @@ export function validateNewsletterBlocks(
           issues.push({ blockId: block.id, message: "Image blocks require alt text." });
         }
         if (block.imageUrl.trim()) {
-          const imageUrlError = validateNewsletterLinkUrl(block.imageUrl);
+          const imageUrlError = validateNewsletterPdfLinkUrl(block.imageUrl);
           if (imageUrlError) {
             issues.push({ blockId: block.id, message: imageUrlError });
           }
@@ -52,14 +49,14 @@ export function validateNewsletterBlocks(
               message: "Button label and URL are both required.",
             });
           } else {
-            const buttonUrlError = validateNewsletterLinkUrl(block.buttonUrl);
+            const buttonUrlError = validateNewsletterPdfLinkUrl(block.buttonUrl);
             if (buttonUrlError) {
               issues.push({ blockId: block.id, message: buttonUrlError });
             }
           }
         }
         if (block.imageUrl.trim()) {
-          const imageUrlError = validateNewsletterLinkUrl(block.imageUrl);
+          const imageUrlError = validateNewsletterPdfLinkUrl(block.imageUrl);
           if (imageUrlError) {
             issues.push({ blockId: block.id, message: imageUrlError });
           }
@@ -93,7 +90,7 @@ export function validateNewsletterBlocks(
               message: "Button blocks require label and URL.",
             });
           } else {
-            const urlError = validateNewsletterLinkUrl(block.url);
+            const urlError = validateNewsletterPdfLinkUrl(block.url);
             if (urlError) {
               issues.push({ blockId: block.id, message: urlError });
             }

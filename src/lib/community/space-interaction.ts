@@ -100,7 +100,7 @@ const PRAYER_PRESET: SpaceInteractionPreset = {
     countSingular: "prayer shared",
     countPlural: "prayers shared",
     composerWrittenLabel: "Written Prayer",
-    composerVoiceLabel: "Voice Prayer",
+    composerVoiceLabel: "Voice / Video Prayer",
     submitWritten: "Share your prayer",
     submitVoice: "Share Voice Prayer",
     placeholder: "How is God leading you to pray for this request?",

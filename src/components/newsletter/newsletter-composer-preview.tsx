@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { NewsletterBlocksRenderer } from "@/components/newsletter/newsletter-blocks-renderer";
 import { NewsletterBrandedFooter } from "@/components/newsletter/newsletter-branded-footer";
 import { NewsletterBrandedHeader } from "@/components/newsletter/newsletter-branded-header";
@@ -17,7 +18,7 @@ import {
 import type { NewsletterBlocks } from "@/lib/newsletter/blocks/types";
 import { cn } from "@/lib/utils";
 
-export function NewsletterComposerPreview({
+function NewsletterComposerPreviewInner({
   blocks,
   meta,
   brand,
@@ -219,3 +220,5 @@ function PreviewMeta({
     </>
   );
 }
+
+export const NewsletterComposerPreview = memo(NewsletterComposerPreviewInner);
