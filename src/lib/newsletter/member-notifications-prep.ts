@@ -45,6 +45,9 @@ export type NewsletterMemberNotificationsPrep = NewsletterPublishNotificationsRe
 export type DeliverNewsletterPublishNotificationsOptions = {
   sourcePostId: string;
   missionHubSpaceSlug: string;
+  ministryUpdatesPostId: string;
+  ministryUpdatesSpaceSlug: string;
+  newsletterSpacePostId?: string | null;
   publisherUserId?: string | null;
   /** Admin-only: resend emails even when delivery log shows sent. */
   resendNewsletterEmail?: boolean;
@@ -147,6 +150,10 @@ export async function deliverNewsletterPublishNotifications(
         newsletterPath,
         body: notificationBody,
         sourcePostId: options.sourcePostId,
+        missionHubSpaceSlug: options.missionHubSpaceSlug,
+        ministryUpdatesPostId: options.ministryUpdatesPostId,
+        ministryUpdatesSpaceSlug: options.ministryUpdatesSpaceSlug,
+        newsletterSpacePostId: options.newsletterSpacePostId,
         actorUserId: publisherId,
       });
 
@@ -181,15 +188,20 @@ export async function deliverNewsletterPublishNotifications(
     else emailNotificationsFailed += 1;
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (
+    process.env.NEWSLETTER_HUB_DEBUG === "1" ||
+    process.env.NODE_ENV !== "production"
+  ) {
     console.info("[newsletter] deliverNewsletterPublishNotifications", {
       newsletterId: newsletter.id,
       newsletterSpaceSlug: NEWSLETTER_SPACE_SLUG,
       newsletterSpaceId,
       sourcePostId: options.sourcePostId,
+      eligibleUserIds: userIds.filter((id) => !publisherId || id !== publisherId),
       totalMembersWithAccounts: userIds.length,
       inAppNotificationsSent,
       inAppNotificationsUpdated,
+      inAppRecipientsPrepared,
       emailNotificationsSent,
       emailNotificationsDeduped,
       emailNotificationsFailed,

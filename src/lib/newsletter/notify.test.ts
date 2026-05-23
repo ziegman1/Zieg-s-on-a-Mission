@@ -17,6 +17,10 @@ vi.mock("./mission-hub-announcement", () => ({
   upsertMissionHubNewsletterAnnouncements: vi.fn(),
 }));
 
+vi.mock("./mission-hub-lifecycle", () => ({
+  logNewsletterPublishFanOut: vi.fn(),
+}));
+
 import { deliverNewsletterPublishNotifications } from "./member-notifications-prep";
 import { upsertMissionHubNewsletterAnnouncements } from "./mission-hub-announcement";
 import { notifyMissionHubMembersOfNewsletterPublish } from "./notify";
@@ -96,6 +100,9 @@ describe("notifyMissionHubMembersOfNewsletterPublish", () => {
     expect(deliverNewsletterPublishNotifications).toHaveBeenCalledWith(sample, {
       sourcePostId: "post-newsletter",
       missionHubSpaceSlug: "newsletters",
+      ministryUpdatesPostId: "post-ministry",
+      ministryUpdatesSpaceSlug: "ministry-updates",
+      newsletterSpacePostId: "post-newsletter",
       publisherUserId: "admin-1",
       resendNewsletterEmail: undefined,
     });

@@ -7,6 +7,7 @@ import {
   prayerResponseNotificationExcerpt,
 } from "@/lib/community/prayer-response-body";
 import { prisma } from "@/lib/db";
+import { newsletterPublishNotificationDedupeKey } from "@/lib/newsletter/mission-hub-dedupe";
 
 const OWNER_ROLES = ["ADMIN", "STAFF"] as const;
 
@@ -35,6 +36,60 @@ function buildNotificationHref(spaceSlug: string | null, postId: string | null):
   return "/community";
 }
 
+function parseNewsletterPublishedMetadata(
+  metadata: unknown,
+): NewsletterPublishedNotificationMetadata | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const m = metadata as Record<string, unknown>;
+  if (m.sourceKind !== "newsletter") return null;
+  const newsletterPath =
+    typeof m.newsletterPath === "string" && m.newsletterPath.trim()
+      ? m.newsletterPath.trim()
+      : null;
+  if (!newsletterPath) return null;
+  return {
+    sourceKind: "newsletter",
+    sourceId: typeof m.sourceId === "string" ? m.sourceId : "",
+    sourcePostId: typeof m.sourcePostId === "string" ? m.sourcePostId : "",
+    newsletterSlug: typeof m.newsletterSlug === "string" ? m.newsletterSlug : "",
+    newsletterPath,
+    missionHubSpaceSlug:
+      typeof m.missionHubSpaceSlug === "string" ? m.missionHubSpaceSlug : "",
+    ministryUpdatesPostId:
+      typeof m.ministryUpdatesPostId === "string" ? m.ministryUpdatesPostId : undefined,
+    ministryUpdatesSpaceSlug:
+      typeof m.ministryUpdatesSpaceSlug === "string"
+        ? m.ministryUpdatesSpaceSlug
+        : undefined,
+    newsletterSpacePostId:
+      typeof m.newsletterSpacePostId === "string" ? m.newsletterSpacePostId : undefined,
+  };
+}
+
+function buildNewsletterNotificationHref(
+  row: {
+    postId: string | null;
+    post: { status: string; space: { slug: string } } | null;
+    metadata: unknown;
+  },
+): string {
+  const meta = parseNewsletterPublishedMetadata(row.metadata);
+  if (row.post?.status === "published" && row.post.space.slug && row.postId) {
+    return buildNotificationHref(row.post.space.slug, row.postId);
+  }
+  if (
+    meta?.ministryUpdatesSpaceSlug &&
+    meta.ministryUpdatesPostId &&
+    row.postId === meta.ministryUpdatesPostId
+  ) {
+    return buildNotificationHref(meta.ministryUpdatesSpaceSlug, meta.ministryUpdatesPostId);
+  }
+  if (meta?.missionHubSpaceSlug && meta.sourcePostId) {
+    return buildNotificationHref(meta.missionHubSpaceSlug, meta.sourcePostId);
+  }
+  return meta?.newsletterPath ?? "/community";
+}
+
 function recordToItem(row: {
   id: string;
   type: string;
@@ -44,10 +99,15 @@ function recordToItem(row: {
   createdAt: Date;
   postId: string | null;
   commentId: string | null;
-  post: { space: { slug: string } } | null;
+  metadata: unknown;
+  post: { status: string; space: { slug: string } } | null;
 }): import("@/lib/community/notification-types").CommunityNotificationItem | null {
   if (!isCommunityNotificationType(row.type)) return null;
   const spaceSlug = row.post?.space.slug ?? null;
+  const href =
+    row.type === NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE
+      ? buildNewsletterNotificationHref(row)
+      : buildNotificationHref(spaceSlug, row.postId);
   return {
     id: row.id,
     type: row.type,
@@ -58,26 +118,89 @@ function recordToItem(row: {
     postId: row.postId,
     commentId: row.commentId,
     spaceSlug,
-    href: buildNotificationHref(spaceSlug, row.postId),
+    href,
   };
 }
 
+export type NotificationsListForUser = {
+  unread: import("@/lib/community/notification-types").CommunityNotificationItem[];
+  read: import("@/lib/community/notification-types").CommunityNotificationItem[];
+};
+
 export async function listRecentNotificationsForUser(
   userId: string,
-  limit = 30,
+  limit = 50,
 ): Promise<import("@/lib/community/notification-types").CommunityNotificationItem[]> {
+  const grouped = await listNotificationsGroupedForUser(userId, limit);
+  return [...grouped.unread, ...grouped.read];
+}
+
+/** Unread first, then read — for bell panel sections. */
+export async function listNotificationsGroupedForUser(
+  userId: string,
+  limit = 50,
+): Promise<NotificationsListForUser> {
+  await pruneStaleReadNotifications(userId);
+
   const rows = await prisma.communityNotificationRecord.findMany({
     where: { recipientUserId: userId },
     orderBy: { createdAt: "desc" },
     take: limit,
     include: {
-      post: { select: { space: { select: { slug: true } } } },
+      post: { select: { status: true, space: { select: { slug: true } } } },
     },
   });
 
-  return rows
+  const items = rows
     .map(recordToItem)
     .filter((n): n is NonNullable<typeof n> => n !== null);
+
+  const unread: NotificationsListForUser["unread"] = [];
+  const read: NotificationsListForUser["read"] = [];
+  for (const item of items) {
+    if (item.readAt) read.push(item);
+    else unread.push(item);
+  }
+
+  if (
+    process.env.NEWSLETTER_HUB_DEBUG === "1" ||
+    process.env.NODE_ENV !== "production"
+  ) {
+    console.info("[notifications] listNotificationsGroupedForUser", {
+      userId,
+      unreadCount: unread.length,
+      readCount: read.length,
+      totalRows: rows.length,
+    });
+  }
+
+  return { unread, read };
+}
+
+const READ_NOTIFICATION_RETENTION_DAYS = 30;
+
+async function pruneStaleReadNotifications(userId: string): Promise<void> {
+  const cutoff = new Date(
+    Date.now() - READ_NOTIFICATION_RETENTION_DAYS * 86_400_000,
+  );
+  await prisma.communityNotificationRecord
+    .deleteMany({
+      where: {
+        recipientUserId: userId,
+        readAt: { not: null, lt: cutoff },
+      },
+    })
+    .catch(() => {});
+}
+
+export async function deleteReadNotificationsForUser(userId: string): Promise<number> {
+  const result = await prisma.communityNotificationRecord.deleteMany({
+    where: {
+      recipientUserId: userId,
+      readAt: { not: null },
+    },
+  });
+  return result.count;
 }
 
 export async function markNotificationRead(
@@ -102,9 +225,7 @@ export async function markAllNotificationsRead(userId: string): Promise<number> 
 export const NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE = "newsletter_published" as const;
 export const NEWSLETTER_PUBLISHED_NOTIFICATION_TITLE = "New newsletter published";
 
-export function newsletterPublishNotificationDedupeKey(newsletterId: string): string {
-  return `newsletter:${newsletterId}:published`;
-}
+export { newsletterPublishNotificationDedupeKey } from "@/lib/newsletter/mission-hub-dedupe";
 
 export type NewsletterPublishedNotificationMetadata = {
   sourceKind: "newsletter";
@@ -112,6 +233,10 @@ export type NewsletterPublishedNotificationMetadata = {
   sourcePostId: string;
   newsletterSlug: string;
   newsletterPath: string;
+  missionHubSpaceSlug: string;
+  ministryUpdatesPostId?: string;
+  ministryUpdatesSpaceSlug?: string;
+  newsletterSpacePostId?: string | null;
 };
 
 export function buildNewsletterPublishedNotificationBody(
@@ -130,6 +255,10 @@ export async function upsertNewsletterPublishedNotification(input: {
   newsletterPath: string;
   body: string;
   sourcePostId: string;
+  missionHubSpaceSlug: string;
+  ministryUpdatesPostId: string;
+  ministryUpdatesSpaceSlug: string;
+  newsletterSpacePostId?: string | null;
   actorUserId?: string | null;
 }): Promise<"created" | "updated"> {
   if (input.actorUserId && input.actorUserId === input.recipientUserId) {
@@ -143,6 +272,10 @@ export async function upsertNewsletterPublishedNotification(input: {
     sourcePostId: input.sourcePostId,
     newsletterSlug: input.newsletterSlug,
     newsletterPath: input.newsletterPath,
+    missionHubSpaceSlug: input.missionHubSpaceSlug,
+    ministryUpdatesPostId: input.ministryUpdatesPostId,
+    ministryUpdatesSpaceSlug: input.ministryUpdatesSpaceSlug,
+    newsletterSpacePostId: input.newsletterSpacePostId ?? null,
   };
 
   const existing = await prisma.communityNotificationRecord.findFirst({
@@ -169,9 +302,31 @@ export async function upsertNewsletterPublishedNotification(input: {
   if (existing) {
     await prisma.communityNotificationRecord.update({
       where: { id: existing.id },
-      data: { ...data, createdAt: new Date() },
+      data: { ...data, readAt: null, createdAt: new Date() },
     });
+    if (
+      process.env.NEWSLETTER_HUB_DEBUG === "1" ||
+      process.env.NODE_ENV !== "production"
+    ) {
+      console.info("[notifications] upsertNewsletterPublishedNotification updated", {
+        recipientUserId: input.recipientUserId,
+        newsletterId: input.newsletterId,
+        dedupeKey,
+      });
+    }
     return "updated";
+  }
+
+  if (
+    process.env.NEWSLETTER_HUB_DEBUG === "1" ||
+    process.env.NODE_ENV !== "production"
+  ) {
+    console.info("[notifications] upsertNewsletterPublishedNotification created", {
+      recipientUserId: input.recipientUserId,
+      newsletterId: input.newsletterId,
+      dedupeKey,
+      sourcePostId: input.sourcePostId,
+    });
   }
 
   await prisma.communityNotificationRecord.create({

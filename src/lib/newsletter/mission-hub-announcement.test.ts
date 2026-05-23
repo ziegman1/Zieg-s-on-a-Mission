@@ -176,12 +176,12 @@ describe("archiveMissionHubNewsletterAnnouncement", () => {
     vi.mocked(prisma.communityPostRecord.updateMany).mockResolvedValue({ count: 2 });
 
     const archived = await archiveMissionHubNewsletterAnnouncement("nl_test_1");
-    expect(archived).toBe(true);
+    expect(archived).toBe(2);
     expect(prisma.communityPostRecord.updateMany).toHaveBeenCalledWith({
       where: {
         sourceKind: NEWSLETTER_SOURCE_KIND,
         sourceId: "nl_test_1",
-        status: "published",
+        status: { not: "archived" },
       },
       data: { status: "archived" },
     });

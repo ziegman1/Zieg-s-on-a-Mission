@@ -291,8 +291,32 @@ export async function upsertMissionHubNewsletterAnnouncements(
       {
         newsletterId: newsletter.id,
         expectedSlug: NEWSLETTER_SPACE_SLUG,
+        skippedReason: "no_published_space",
       },
     );
+  }
+
+  if (
+    process.env.NEWSLETTER_HUB_DEBUG === "1" ||
+    process.env.NODE_ENV !== "production"
+  ) {
+    console.info("[newsletter] upsertMissionHubNewsletterAnnouncements", {
+      newsletterId: newsletter.id,
+      ministryUpdates: {
+        spaceId: ministryUpdates.spaceId,
+        spaceSlug: ministryUpdates.spaceSlug,
+        postId: ministryUpdates.postId,
+        created: ministryUpdates.created,
+      },
+      newsletterSpace: newsletterSpace
+        ? {
+            spaceId: newsletterSpace.spaceId,
+            spaceSlug: newsletterSpace.spaceSlug,
+            postId: newsletterSpace.postId,
+            created: newsletterSpace.created,
+          }
+        : { skipped: true, reason: "newsletters_space_missing" },
+    });
   }
 
   return { ministryUpdates, newsletterSpace };
@@ -310,19 +334,19 @@ export async function upsertMissionHubNewsletterAnnouncement(
   return ministryUpdates;
 }
 
-/** Hide Mission Hub announcements when newsletter is no longer published. */
+/** Hide Mission Hub announcements (any non-archived status) for a newsletter. */
 export async function archiveMissionHubNewsletterAnnouncement(
   newsletterId: string,
-): Promise<boolean> {
+): Promise<number> {
   const result = await prisma.communityPostRecord.updateMany({
     where: {
       sourceKind: NEWSLETTER_SOURCE_KIND,
       sourceId: newsletterId,
-      status: "published",
+      status: { not: "archived" },
     },
     data: { status: "archived" },
   });
-  return result.count > 0;
+  return result.count;
 }
 
 function announcementStatusLine(

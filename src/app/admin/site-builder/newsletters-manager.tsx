@@ -32,6 +32,7 @@ import {
   type NewsletterComposerMeta,
 } from "@/components/newsletter/newsletter-editor-workspace";
 import { NewsletterBrandingPanel } from "@/components/newsletter/newsletter-branding-panel";
+import { NewsletterMissionHubPanel } from "@/components/newsletter/newsletter-mission-hub-panel";
 import { NewsletterSettingsPanel } from "@/components/newsletter/newsletter-settings-panel";
 import type { CtaAlign } from "@/lib/newsletter/align";
 import type { NewsletterBrandSettings } from "@/lib/newsletter/brand-types";
@@ -42,6 +43,7 @@ import {
   createNewsletterDraftAction,
   listAdminNewsletters,
   publishNewsletterAction,
+  removeNewsletterFromMissionHubAction,
   unpublishNewsletterAction,
   updateNewsletterDraftAction,
 } from "./newsletter-actions";
@@ -722,6 +724,26 @@ export function NewslettersManager({
     });
   }
 
+  function quickRemoveFromHub(id: string) {
+    const confirmed = window.confirm(
+      "Remove this newsletter from Mission Hub and clear notification delivery history?\n\n" +
+        "The newsletter itself will not be deleted.",
+    );
+    if (!confirmed) return;
+
+    startSaveTransition(async () => {
+      const res = await removeNewsletterFromMissionHubAction(id);
+      if (!res.ok) {
+        setError(res.error);
+        onError?.(res.error);
+        return;
+      }
+      setSuccess(res.message);
+      setError(null);
+      onSuccess?.(res.message);
+    });
+  }
+
   function quickArchive(id: string) {
     startSaveTransition(async () => {
       const res = await archiveNewsletterAction(id);
@@ -952,6 +974,22 @@ export function NewslettersManager({
                       editingId && editingId !== "new" ? editingId : undefined
                     }
                   />
+                  {editingId && editingId !== "new" ? (
+                    <div className="px-4 pb-4">
+                      <NewsletterMissionHubPanel
+                        newsletterId={editingId}
+                        newsletterStatus={form.status}
+                        onMessage={(message) => {
+                          setSuccess(message);
+                          setError(null);
+                        }}
+                        onError={(message) => {
+                          setError(message);
+                          setSuccess(null);
+                        }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
                 <div className="shrink-0 px-4 py-3 border-t border-zinc-800">
                   <Button
@@ -1059,16 +1097,28 @@ export function NewslettersManager({
                             Publish
                           </Button>
                         ) : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-[10px]"
-                            disabled={savePending}
-                            onClick={() => quickUnpublish(n.id)}
-                          >
-                            Unpublish
-                          </Button>
+                          <>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-[10px]"
+                              disabled={savePending}
+                              onClick={() => quickUnpublish(n.id)}
+                            >
+                              Unpublish
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-[10px] text-amber-500/90"
+                              disabled={savePending}
+                              onClick={() => quickRemoveFromHub(n.id)}
+                            >
+                              Remove from Hub
+                            </Button>
+                          </>
                         )}
                         {n.status !== "ARCHIVED" ? (
                           <Button

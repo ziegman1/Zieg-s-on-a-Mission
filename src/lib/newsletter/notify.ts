@@ -3,6 +3,7 @@ import {
   deliverNewsletterPublishNotifications,
   formatMissionHubNotificationDeliveryLines,
 } from "./member-notifications-prep";
+import { logNewsletterPublishFanOut } from "./mission-hub-lifecycle";
 import {
   upsertMissionHubNewsletterAnnouncements,
   type MissionHubNewsletterAnnouncementsResult,
@@ -78,9 +79,17 @@ export async function notifyMissionHubMembersOfNewsletterPublish(
     announcements.newsletterSpace?.spaceSlug ??
     announcements.ministryUpdates.spaceSlug;
 
+  logNewsletterPublishFanOut(newsletter.id, announcements, {
+    sourcePostId,
+    missionHubSpaceSlug,
+  });
+
   const notifications = await deliverNewsletterPublishNotifications(newsletter, {
     sourcePostId,
     missionHubSpaceSlug,
+    ministryUpdatesPostId: announcements.ministryUpdates.postId,
+    ministryUpdatesSpaceSlug: announcements.ministryUpdates.spaceSlug,
+    newsletterSpacePostId: announcements.newsletterSpace?.postId ?? null,
     publisherUserId: options.publisherUserId ?? null,
     resendNewsletterEmail: options.resendNewsletterEmail,
   });

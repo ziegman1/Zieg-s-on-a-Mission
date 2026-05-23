@@ -37,6 +37,10 @@ describe("upsertNewsletterPublishedNotification", () => {
       newsletterPath: "/newsletters/march",
       body: "Highlights",
       sourcePostId: "post-1",
+      missionHubSpaceSlug: "newsletters",
+      ministryUpdatesPostId: "post-ministry",
+      ministryUpdatesSpaceSlug: "ministry-updates",
+      newsletterSpacePostId: "post-1",
     });
 
     expect(outcome).toBe("created");
@@ -70,6 +74,10 @@ describe("upsertNewsletterPublishedNotification", () => {
       newsletterPath: "/newsletters/march",
       body: "Updated excerpt",
       sourcePostId: "post-1",
+      missionHubSpaceSlug: "newsletters",
+      ministryUpdatesPostId: "post-ministry",
+      ministryUpdatesSpaceSlug: "ministry-updates",
+      newsletterSpacePostId: "post-1",
     });
 
     expect(outcome).toBe("updated");

@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, Loader2 } from "lucide-react";
+import { Bell, CheckCheck, ChevronDown, ChevronUp, Loader2, Trash2 } from "lucide-react";
 import {
+  clearReadNotificationsAction,
   fetchUnreadNotificationCountAction,
   listNotificationsAction,
   markAllNotificationsReadAction,
@@ -12,25 +13,6 @@ import {
 import type { CommunityNotificationItem } from "@/lib/community/notification-types";
 import { formatCommunityPostDate } from "@/lib/community/format-post-date";
 import { cn } from "@/lib/utils";
-
-function groupNotificationsByRecency(
-  items: CommunityNotificationItem[],
-): { label: string; items: CommunityNotificationItem[] }[] {
-  const now = Date.now();
-  const today: CommunityNotificationItem[] = [];
-  const earlier: CommunityNotificationItem[] = [];
-
-  for (const item of items) {
-    const age = now - new Date(item.createdAt).getTime();
-    if (age < 86_400_000) today.push(item);
-    else earlier.push(item);
-  }
-
-  const groups: { label: string; items: CommunityNotificationItem[] }[] = [];
-  if (today.length > 0) groups.push({ label: "Today", items: today });
-  if (earlier.length > 0) groups.push({ label: "Earlier", items: earlier });
-  return groups;
-}
 
 function formatNotificationTime(iso: string): string {
   const d = new Date(iso);
@@ -42,6 +24,48 @@ function formatNotificationTime(iso: string): string {
   return formatCommunityPostDate(iso);
 }
 
+function NotificationRow({
+  item,
+  onClick,
+}: {
+  item: CommunityNotificationItem;
+  onClick: (item: CommunityNotificationItem) => void;
+}) {
+  return (
+    <li>
+      <Link
+        href={item.href}
+        prefetch
+        onClick={() => onClick(item)}
+        className={cn(
+          "block px-3 py-2.5 hover:bg-brand-surface/50",
+          "transition-[transform,background-color] duration-100 touch-manipulation",
+          "active:scale-[0.99] active:bg-black/[0.03]",
+          !item.readAt && "bg-brand-primary/[0.05]",
+        )}
+      >
+        <p className="text-xs font-medium text-brand-ink leading-snug pr-1">
+          {!item.readAt ? (
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary mr-1.5 align-middle"
+              aria-hidden
+            />
+          ) : null}
+          {item.title}
+        </p>
+        {item.body ? (
+          <p className="mt-0.5 text-[11px] text-brand-ink/55 line-clamp-2 pl-3.5">
+            {item.body}
+          </p>
+        ) : null}
+        <p className="mt-1 text-[10px] text-brand-ink/38 pl-3.5">
+          {formatNotificationTime(item.createdAt)}
+        </p>
+      </Link>
+    </li>
+  );
+}
+
 export function CommunityNotificationsBell({
   recipientUserId,
   initialUnreadCount = 0,
@@ -51,7 +75,9 @@ export function CommunityNotificationsBell({
 }) {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
-  const [items, setItems] = useState<CommunityNotificationItem[]>([]);
+  const [unreadItems, setUnreadItems] = useState<CommunityNotificationItem[]>([]);
+  const [readItems, setReadItems] = useState<CommunityNotificationItem[]>([]);
+  const [readExpanded, setReadExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -71,8 +97,10 @@ export function CommunityNotificationsBell({
       setError(result.error);
       return;
     }
-    setItems(result.items);
+    setUnreadItems(result.unread);
+    setReadItems(result.read);
     setUnreadCount(result.unreadCount);
+    if (result.read.length === 0) setReadExpanded(false);
   }, []);
 
   useEffect(() => {
@@ -83,6 +111,14 @@ export function CommunityNotificationsBell({
     if (!open) return;
     void loadPanel();
   }, [open, loadPanel]);
+
+  useEffect(() => {
+    function onFocus() {
+      void refreshCount();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshCount]);
 
   useEffect(() => {
     if (!open) return;
@@ -106,10 +142,25 @@ export function CommunityNotificationsBell({
     startTransition(async () => {
       const result = await markAllNotificationsReadAction();
       if (result.ok) {
+        const now = new Date().toISOString();
         setUnreadCount(0);
-        setItems((prev) =>
-          prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
-        );
+        setReadItems((prev) => [
+          ...unreadItems.map((n) => ({ ...n, readAt: now })),
+          ...prev,
+        ]);
+        setUnreadItems([]);
+        setReadExpanded(true);
+      }
+    });
+  };
+
+  const handleClearRead = () => {
+    startTransition(async () => {
+      const result = await clearReadNotificationsAction();
+      if (result.ok) {
+        setReadItems([]);
+        setUnreadCount(result.unreadCount);
+        setReadExpanded(false);
       }
     });
   };
@@ -120,16 +171,21 @@ export function CommunityNotificationsBell({
         const result = await markNotificationReadAction(item.id);
         if (result.ok) {
           setUnreadCount(result.unreadCount);
-          setItems((prev) =>
-            prev.map((n) =>
-              n.id === item.id ? { ...n, readAt: new Date().toISOString() } : n,
-            ),
-          );
+          setUnreadItems((prev) => prev.filter((n) => n.id !== item.id));
+          setReadItems((prev) => [
+            { ...item, readAt: new Date().toISOString() },
+            ...prev.filter((n) => n.id !== item.id),
+          ]);
+          setReadExpanded(true);
         }
       });
     }
     setOpen(false);
   };
+
+  const hasAny = unreadItems.length > 0 || readItems.length > 0;
+  const readPreview = readExpanded ? readItems : readItems.slice(0, 3);
+  const readHiddenCount = readExpanded ? 0 : Math.max(0, readItems.length - 3);
 
   return (
     <div ref={rootRef} className="relative">
@@ -179,17 +235,30 @@ export function CommunityNotificationsBell({
         >
           <div className="flex items-center justify-between gap-2 border-b border-black/[0.06] px-3 py-2.5">
             <p className="text-sm font-semibold text-brand-ink">Activity</p>
-            {unreadCount > 0 ? (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={handleMarkAllRead}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-primary hover:underline disabled:opacity-50"
-              >
-                <CheckCheck className="h-3.5 w-3.5" aria-hidden />
-                Mark all read
-              </button>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {readItems.length > 0 ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={handleClearRead}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-ink/45 hover:text-brand-ink/70 disabled:opacity-50"
+                >
+                  <Trash2 className="h-3 w-3" aria-hidden />
+                  Clear read
+                </button>
+              ) : null}
+              {unreadCount > 0 ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={handleMarkAllRead}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-primary hover:underline disabled:opacity-50"
+                >
+                  <CheckCheck className="h-3.5 w-3.5" aria-hidden />
+                  Mark all read
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="max-h-[min(20rem,50dvh)] overflow-y-auto">
@@ -199,55 +268,65 @@ export function CommunityNotificationsBell({
               </div>
             ) : error ? (
               <p className="px-3 py-6 text-center text-xs text-brand-ink/60">{error}</p>
-            ) : items.length === 0 ? (
+            ) : !hasAny ? (
               <p className="px-3 py-8 text-center text-xs text-brand-ink/55 leading-relaxed">
                 No activity yet. When someone comments, reacts, or joins, you&apos;ll see it
                 here.
               </p>
             ) : (
               <div className="py-1">
-                {groupNotificationsByRecency(items).map((group) => (
-                  <div key={group.label}>
+                {unreadItems.length > 0 ? (
+                  <div>
                     <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-brand-ink/38">
-                      {group.label}
+                      Unread
                     </p>
                     <ul className="divide-y divide-black/[0.04]">
-                      {group.items.map((item) => (
-                        <li key={item.id}>
-                          <Link
-                            href={item.href}
-                            prefetch
-                            onClick={() => handleItemClick(item)}
-                            className={cn(
-                              "block px-3 py-2.5 hover:bg-brand-surface/50",
-                              "transition-[transform,background-color] duration-100 touch-manipulation",
-                              "active:scale-[0.99] active:bg-black/[0.03]",
-                              !item.readAt && "bg-brand-primary/[0.05]",
-                            )}
-                          >
-                            <p className="text-xs font-medium text-brand-ink leading-snug pr-1">
-                              {!item.readAt ? (
-                                <span
-                                  className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary mr-1.5 align-middle"
-                                  aria-hidden
-                                />
-                              ) : null}
-                              {item.title}
-                            </p>
-                            {item.body ? (
-                              <p className="mt-0.5 text-[11px] text-brand-ink/55 line-clamp-2 pl-3.5">
-                                {item.body}
-                              </p>
-                            ) : null}
-                            <p className="mt-1 text-[10px] text-brand-ink/38 pl-3.5">
-                              {formatNotificationTime(item.createdAt)}
-                            </p>
-                          </Link>
-                        </li>
+                      {unreadItems.map((item) => (
+                        <NotificationRow key={item.id} item={item} onClick={handleItemClick} />
                       ))}
                     </ul>
                   </div>
-                ))}
+                ) : null}
+
+                {readItems.length > 0 ? (
+                  <div>
+                    <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-ink/38">
+                        Read
+                      </p>
+                      {readItems.length > 3 ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-0.5 text-[10px] font-medium text-brand-ink/45 hover:text-brand-ink/65"
+                          onClick={() => setReadExpanded((v) => !v)}
+                        >
+                          {readExpanded ? (
+                            <>
+                              <ChevronUp className="h-3 w-3" />
+                              Show less
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-3 w-3" />
+                              {readHiddenCount > 0
+                                ? `Show ${readHiddenCount} more`
+                                : "Show all"}
+                            </>
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
+                    <ul className="divide-y divide-black/[0.04] opacity-80">
+                      {readPreview.map((item) => (
+                        <NotificationRow key={item.id} item={item} onClick={handleItemClick} />
+                      ))}
+                    </ul>
+                  </div>
+                ) : unreadItems.length === 0 ? (
+                  <p className="px-3 py-4 text-center text-xs text-brand-ink/50">
+                    You&apos;re all caught up.
+                  </p>
+                ) : null}
               </div>
             )}
           </div>

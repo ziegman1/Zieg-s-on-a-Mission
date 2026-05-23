@@ -14,9 +14,16 @@ import {
   formatNewsletterPublishSuccessMessage,
 } from "@/lib/newsletter/mission-hub-announcement";
 import {
+  getNewsletterMissionHubDiagnostics,
+  removeNewsletterFromMissionHub,
+  type NewsletterMissionHubDiagnostics,
+  type RemoveNewsletterFromMissionHubResult,
+} from "@/lib/newsletter/mission-hub-lifecycle";
+import {
   notifyMissionHubMembersOfNewsletterPublish,
   type NewsletterNotifyResult,
 } from "@/lib/newsletter/notify";
+import { revalidatePath } from "next/cache";
 import { revalidateNewsletterPaths } from "@/lib/newsletter/revalidate";
 import { parseNewsletterBlocks } from "@/lib/newsletter/blocks/parse";
 import { parseCtaAlign, type CtaAlign } from "@/lib/newsletter/align";
@@ -361,6 +368,116 @@ export async function archiveNewsletterAction(
       },
       "archive",
     );
+  } catch (e) {
+    return { ok: false, error: formatNewsletterError(e) };
+  }
+}
+
+export async function removeNewsletterFromMissionHubAction(
+  id: string,
+  options?: { clearNotifications?: boolean; clearEmailDeliveries?: boolean },
+): Promise<
+  | { ok: true; result: RemoveNewsletterFromMissionHubResult; message: string }
+  | { ok: false; error: string }
+> {
+  const session = await requireAdminSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  try {
+    const existing = await getNewsletterById(id);
+    if (!existing) return { ok: false, error: "Newsletter not found" };
+
+    const result = await removeNewsletterFromMissionHub(id, options);
+    revalidateNewsletterPaths(existing.slug);
+    revalidatePath("/community", "page");
+    const message = [
+      "Removed from Mission Hub.",
+      `Posts archived: ${result.postsArchived}.`,
+      `In-app notifications cleared: ${result.notificationsDeleted}.`,
+      `Email delivery log cleared: ${result.emailDeliveriesDeleted}.`,
+      "You can publish again for a clean test run.",
+    ].join(" ");
+
+    return { ok: true, result, message };
+  } catch (e) {
+    return { ok: false, error: formatNewsletterError(e) };
+  }
+}
+
+export async function getNewsletterMissionHubDiagnosticsAction(
+  id: string,
+): Promise<
+  | { ok: true; diagnostics: NewsletterMissionHubDiagnostics }
+  | { ok: false; error: string }
+> {
+  const session = await requireAdminSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  try {
+    const existing = await getNewsletterById(id);
+    if (!existing) return { ok: false, error: "Newsletter not found" };
+    const diagnostics = await getNewsletterMissionHubDiagnostics(id);
+    return { ok: true, diagnostics };
+  } catch (e) {
+    return { ok: false, error: formatNewsletterError(e) };
+  }
+}
+
+export async function republishNewsletterToMissionHubAction(
+  id: string,
+  options?: { resendNewsletterEmail?: boolean },
+): Promise<SaveResult> {
+  const session = await requireAdminSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  try {
+    const existing = await getNewsletterById(id);
+    if (!existing) return { ok: false, error: "Newsletter not found" };
+    if (existing.status !== "PUBLISHED") {
+      return { ok: false, error: "Newsletter must be published before Mission Hub delivery." };
+    }
+
+    const notify = await notifyMissionHubMembersOfNewsletterPublish(existing, {
+      publisherUserId: session.id,
+      resendNewsletterEmail: options?.resendNewsletterEmail === true,
+    });
+
+    revalidateNewsletterPaths(existing.slug);
+    revalidatePath("/community", "page");
+
+    const message = formatNewsletterPublishSuccessMessage({
+      newsletterSlug: existing.slug,
+      hub: {
+        ministryUpdates: notify.ministryUpdates,
+        newsletterSpace: notify.newsletterSpace,
+        inAppNotificationsSent: notify.notifications.inAppNotificationsSent,
+        inAppNotificationsUpdated: notify.notifications.inAppNotificationsUpdated,
+        emailNotificationsSent: notify.notifications.emailNotificationsSent,
+        emailNotificationsDeduped: notify.notifications.emailNotificationsDeduped,
+        emailNotificationsFailed: notify.notifications.emailNotificationsFailed,
+        emailEnabled: notify.notifications.emailEnabled,
+        emailDisabledReason: notify.notifications.emailDisabledReason,
+        emailRecipientsPrepared: notify.notifications.emailRecipientsPrepared,
+        skippedMutedOrDisabled: notify.notifications.skippedMutedOrDisabled,
+      },
+    });
+
+    return {
+      ok: true,
+      newsletter: existing,
+      message,
+      hub: {
+        ministryUpdatesPostId: notify.ministryUpdates.postId,
+        ministryUpdatesSpaceSlug: notify.ministryUpdates.spaceSlug,
+        ministryUpdatesCreated: notify.ministryUpdatesCreated,
+        newsletterSpacePostId: notify.newsletterSpace?.postId ?? null,
+        newsletterSpaceSlug: notify.newsletterSpace?.spaceSlug ?? null,
+        newsletterSpaceCreated: notify.newsletterSpaceCreated,
+        announcementPostId: notify.ministryUpdates.postId,
+        announcementSpaceSlug: notify.ministryUpdates.spaceSlug,
+        announcementCreated: notify.ministryUpdatesCreated,
+        newsletterPublicPath: notify.ministryUpdates.newsletterPath,
+        notificationsPrepared: notify.notifications.inAppDelivered,
+        notify,
+      },
+    };
   } catch (e) {
     return { ok: false, error: formatNewsletterError(e) };
   }

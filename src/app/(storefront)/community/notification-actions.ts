@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import type { CommunityNotificationItem } from "@/lib/community/notification-types";
 import {
   countUnreadNotifications,
-  listRecentNotificationsForUser,
+  deleteReadNotificationsForUser,
+  listNotificationsGroupedForUser,
   markAllNotificationsRead,
   markNotificationRead,
   requireNotificationRecipientUserId,
@@ -34,20 +35,51 @@ export async function fetchUnreadNotificationCountAction(): Promise<
 }
 
 export async function listNotificationsAction(): Promise<
-  { ok: true; items: CommunityNotificationItem[]; unreadCount: number } | { ok: false; error: string }
+  | {
+      ok: true;
+      items: CommunityNotificationItem[];
+      unread: CommunityNotificationItem[];
+      read: CommunityNotificationItem[];
+      unreadCount: number;
+    }
+  | { ok: false; error: string }
 > {
   const authResult = await requireUser();
   if (!authResult.ok) return authResult;
 
   try {
-    const [items, unreadCount] = await Promise.all([
-      listRecentNotificationsForUser(authResult.userId),
+    const [grouped, unreadCount] = await Promise.all([
+      listNotificationsGroupedForUser(authResult.userId),
       countUnreadNotifications(authResult.userId),
     ]);
-    return { ok: true, items, unreadCount };
+    const items = [...grouped.unread, ...grouped.read];
+    return {
+      ok: true,
+      items,
+      unread: grouped.unread,
+      read: grouped.read,
+      unreadCount,
+    };
   } catch (e) {
     console.error(e);
     return { ok: false, error: "Could not load notifications" };
+  }
+}
+
+export async function clearReadNotificationsAction(): Promise<
+  { ok: true; unreadCount: number } | { ok: false; error: string }
+> {
+  const authResult = await requireUser();
+  if (!authResult.ok) return authResult;
+
+  try {
+    await deleteReadNotificationsForUser(authResult.userId);
+    const unreadCount = await countUnreadNotifications(authResult.userId);
+    revalidatePath("/community");
+    return { ok: true, unreadCount };
+  } catch (e) {
+    console.error(e);
+    return { ok: false, error: "Could not clear read notifications" };
   }
 }
 

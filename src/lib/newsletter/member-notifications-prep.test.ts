@@ -63,6 +63,9 @@ const sampleNewsletter: NewsletterRecord = {
 const deliveryOptions = {
   sourcePostId: "post-newsletter-1",
   missionHubSpaceSlug: "newsletters",
+  ministryUpdatesPostId: "post-ministry-1",
+  ministryUpdatesSpaceSlug: "ministry-updates",
+  newsletterSpacePostId: "post-newsletter-1",
 };
 
 describe("deliverNewsletterPublishNotifications", () => {
