@@ -11,6 +11,7 @@ import type { PrayerRoomComposerKind } from "@/lib/community/prayer-room-compose
 import { PRAYER_ROOM_COMPOSER_PRESETS } from "@/lib/community/prayer-room-composer";
 import type { CommunityReactionType } from "@/lib/community/types";
 import type { CommunitySpaceType } from "@/lib/community/space-experience";
+import { PRAYER_RECORDER_COPY } from "@/lib/community/prayer-recorder-copy";
 import { COMMUNITY_REACTION_TYPES } from "@/lib/community/types";
 
 /** Canonical space types for Mission Hub presets (stored in `community_spaces.space_type`). */
@@ -100,9 +101,9 @@ const PRAYER_PRESET: SpaceInteractionPreset = {
     countSingular: "prayer shared",
     countPlural: "prayers shared",
     composerWrittenLabel: "Written Prayer",
-    composerVoiceLabel: "Voice / Video Prayer",
+    composerVoiceLabel: PRAYER_RECORDER_COPY.voiceVideoTabLabel,
     submitWritten: "Share your prayer",
-    submitVoice: "Share Voice Prayer",
+    submitVoice: PRAYER_RECORDER_COPY.submitShare,
     placeholder: "How is God leading you to pray for this request?",
     emptyTitle: "No prayers have been shared yet.",
     emptyBody: "Be the first to stand with this request in prayer.",

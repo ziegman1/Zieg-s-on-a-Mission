@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { createPrayerRoomPostAction } from "@/app/(storefront)/community/post-actions";
 import type { CommentAuthorContext } from "@/lib/community/members";
 import { encodeVoicePrayerBody } from "@/lib/community/prayer-response-body";
+import { PRAYER_RECORDER_COPY } from "@/lib/community/prayer-recorder-copy";
 import type { PrayerRoomComposerPreset } from "@/lib/community/prayer-room-composer";
 import {
   CommunityVoicePrayerRecorder,
@@ -100,8 +101,8 @@ export function CommunityPrayerRoomPostForm({
         if (!voiceReady) {
           setError(
             canRecord
-              ? "Record or upload a voice prayer first."
-              : "Upload an audio file to share your voice prayer.",
+              ? PRAYER_RECORDER_COPY.recordOrUploadFirst
+              : PRAYER_RECORDER_COPY.uploadHelper,
           );
           return;
         }
@@ -211,7 +212,7 @@ export function CommunityPrayerRoomPostForm({
           />
           {!canRecord ? (
             <p className="text-xs text-center text-brand-ink/55 leading-relaxed">
-              Recording is not supported in this browser. You can upload an audio file instead.
+              {PRAYER_RECORDER_COPY.browserNoRecord}
             </p>
           ) : null}
         </div>

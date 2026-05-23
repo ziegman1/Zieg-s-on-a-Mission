@@ -1,5 +1,7 @@
 /** Mission Hub post cover uploads — Supabase Storage `community-media` bucket */
 
+import { PRAYER_RECORDER_COPY } from "@/lib/community/prayer-recorder-copy";
+
 export const COMMUNITY_COVER_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export const COMMUNITY_COVER_ALLOWED_TYPES = [
@@ -88,8 +90,7 @@ export const COMMUNITY_PRAYER_MEDIA_EXTENSIONS = [
   "mp4",
 ] as const;
 
-export const PRAYER_MEDIA_VALIDATION_MESSAGE =
-  "Use MP3, M4A, WebM, WAV, AAC, or MP4.";
+export const PRAYER_MEDIA_VALIDATION_MESSAGE = PRAYER_RECORDER_COPY.validationMessage;
 
 const MEDIA_EXT_BY_MIME: Record<string, string> = {
   "audio/mpeg": "mp3",

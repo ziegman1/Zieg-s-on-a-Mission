@@ -2,6 +2,7 @@
 
 import { Mic, Video } from "lucide-react";
 import { formatPrayerDuration } from "@/lib/community/prayer-response-body";
+import { PRAYER_RECORDER_COPY } from "@/lib/community/prayer-recorder-copy";
 import { shouldUseVideoPrayerPlayer } from "@/lib/community/prayer-media-playback";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +23,9 @@ export function CommunityVoicePrayerPlayer({
 }) {
   const isVideo = shouldUseVideoPrayerPlayer({ mimeType, hasVideo });
   const durationLabel = formatPrayerDuration(durationSeconds);
-  const label = isVideo ? "Video Prayer" : "Voice Prayer";
+  const label = isVideo
+    ? PRAYER_RECORDER_COPY.playerVideoLabel
+    : PRAYER_RECORDER_COPY.playerVoiceLabel;
 
   return (
     <div

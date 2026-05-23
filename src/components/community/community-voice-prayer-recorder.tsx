@@ -11,11 +11,14 @@ import {
 } from "lucide-react";
 import {
   COMMUNITY_PRAYER_AUDIO_MAX_DURATION_SECONDS,
-  PRAYER_MEDIA_VALIDATION_MESSAGE,
   inferPrayerMediaHasVideo,
   prayerMediaFileFromBlob,
   validateCommunityPrayerMediaFile,
 } from "@/lib/community/media-upload";
+import {
+  PRAYER_RECORDER_COPY,
+  PRAYER_RECORDER_VERSION,
+} from "@/lib/community/prayer-recorder-copy";
 import {
   extensionFromRecorderBlob,
   pickRecorderMimeTypeForMode,
@@ -466,7 +469,10 @@ export function CommunityVoicePrayerRecorder({
   );
 
   return (
-    <div className="space-y-3">
+    <div
+      className="space-y-3"
+      data-prayer-recorder-version={PRAYER_RECORDER_VERSION}
+    >
       {canRecord ? (
         <div className="space-y-3">
           {canRecordVideo ? (
@@ -564,7 +570,9 @@ export function CommunityVoicePrayerRecorder({
                 <Mic className="h-7 w-7" aria-hidden />
               )}
               <span className="text-sm font-semibold">
-                {captureMode === "video" ? "Start video recording" : "Start recording"}
+                {captureMode === "video"
+                  ? PRAYER_RECORDER_COPY.startRecordingVideo
+                  : PRAYER_RECORDER_COPY.startRecordingAudio}
               </span>
               <span className="text-[11px] text-white/75 font-normal">
                 Up to {formatTimer(maxSeconds)}
@@ -629,7 +637,7 @@ export function CommunityVoicePrayerRecorder({
         </div>
       ) : (
         <p className="text-xs text-brand-ink/55 rounded-xl bg-brand-surface/40 px-3 py-2.5 ring-1 ring-black/[0.04]">
-          Recording is not supported in this browser. You can upload a file instead.
+          {PRAYER_RECORDER_COPY.browserNoRecord}
         </p>
       )}
 
@@ -655,7 +663,7 @@ export function CommunityVoicePrayerRecorder({
             )}
           >
             <Upload className="h-4 w-4 shrink-0" aria-hidden />
-            Upload ({PRAYER_MEDIA_VALIDATION_MESSAGE.replace(/\.$/, "")})
+            {PRAYER_RECORDER_COPY.uploadHelper}
           </button>
         </>
       ) : (
@@ -667,8 +675,11 @@ export function CommunityVoicePrayerRecorder({
             onClick={() => fileRef.current?.click()}
             className="text-[12px] text-brand-primary/80 font-medium hover:underline min-h-[2.75rem]"
           >
-            Upload a file instead
+            {PRAYER_RECORDER_COPY.uploadFileInstead}
           </button>
+          <p className="text-[11px] text-center text-brand-ink/50 leading-relaxed px-1">
+            {PRAYER_RECORDER_COPY.uploadHelper}
+          </p>
         </>
       )}
 

@@ -4,6 +4,7 @@ import { useEffect, useId, useState, useTransition } from "react";
 import { Loader2, Mic, PenLine } from "lucide-react";
 import type { CommentAuthorContext } from "@/lib/community/members";
 import { encodeVoicePrayerBody } from "@/lib/community/prayer-response-body";
+import { PRAYER_RECORDER_COPY } from "@/lib/community/prayer-recorder-copy";
 import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
 import type { VoicePrayerUploadResult } from "./community-voice-prayer-recorder";
 import { CommunityVoicePrayerRecorder } from "./community-voice-prayer-recorder";
@@ -86,7 +87,7 @@ export function CommunityPrayerResponseForm({
       try {
         if (mode === "voice" && showVoice) {
           if (!voiceReady) {
-            setError("Record or upload a voice prayer first.");
+            setError(PRAYER_RECORDER_COPY.recordOrUploadFirst);
             return;
           }
           await onSubmit(
@@ -155,7 +156,7 @@ export function CommunityPrayerResponseForm({
             )}
           >
             <PenLine className="h-3.5 w-3.5" aria-hidden />
-            Written Prayer
+            {copy.composerWrittenLabel}
           </button>
           <button
             type="button"
@@ -173,7 +174,7 @@ export function CommunityPrayerResponseForm({
             )}
           >
             <Mic className="h-3.5 w-3.5" aria-hidden />
-            Voice / Video Prayer
+            {copy.composerVoiceLabel}
           </button>
         </div>
       ) : null}
@@ -214,7 +215,7 @@ export function CommunityPrayerResponseForm({
 
       {voiceReady && mode === "voice" && showVoice ? (
         <p className="text-xs text-brand-primary/80 font-medium">
-          Voice prayer ready — tap Share Voice Prayer when you are ready.
+          {PRAYER_RECORDER_COPY.readyHint}
         </p>
       ) : null}
 
@@ -233,10 +234,8 @@ export function CommunityPrayerResponseForm({
             <Loader2 className="h-4 w-4 animate-spin mr-1.5" aria-hidden />
             Sharing…
           </>
-        ) : mode === "voice" && showVoice ? (
-          copy.submitVoice
         ) : (
-          "Share Prayer"
+          copy.submitVoice
         )}
       </Button>
     </form>

@@ -5,6 +5,7 @@ import {
   PRAYER_ROOM_COMPOSER_PRESETS,
   type PrayerRoomComposerKind,
 } from "@/lib/community/prayer-room-composer";
+import { PRAYER_RECORDER_COPY } from "@/lib/community/prayer-recorder-copy";
 import { cn } from "@/lib/utils";
 
 const TEXT_KINDS: PrayerRoomComposerKind[] = [
@@ -81,7 +82,7 @@ export function CommunityPrayerRoomParticipationPicker({
       {allowVoice ? (
         <div className="space-y-1.5 pt-0.5">
           <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-brand-ink/38">
-            Voice
+            {PRAYER_RECORDER_COPY.participationSectionVoice}
           </p>
           <button
             type="button"

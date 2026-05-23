@@ -1,3 +1,5 @@
+import { PRAYER_RECORDER_COPY } from "@/lib/community/prayer-recorder-copy";
+
 export type PrayerRoomComposerKind =
   | "prayer_request"
   | "praise_report"
@@ -73,7 +75,7 @@ export const PRAYER_ROOM_COMPOSER_PRESETS: Record<
     sheetDescription: "Record or upload a short voice or video prayer for the room.",
     titlePlaceholder: "What can we pray for?",
     bodyPlaceholder: "Optional note with your voice prayer…",
-    submitLabel: "Share Voice Prayer",
+    submitLabel: PRAYER_RECORDER_COPY.submitShare,
     successMessage: "Your voice prayer was shared.",
     initialMode: "voice",
   },
