@@ -7,6 +7,14 @@ import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-section
 import { getSiteCopy, homeHeroWithHrefs } from "@/lib/site-copy";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 import { Button } from "@/components/ui/button";
+import {
+  HOME_HERO_BODY,
+  HOME_HERO_CONTENT,
+  HOME_HERO_HEADLINE,
+  HOME_HERO_IMAGE,
+  HOME_HERO_OVERLAY,
+  homeHeroButtonClasses,
+} from "@/components/site-builder/sections/home-hero-visual";
 
 const heroTitle = Dancing_Script({
   subsets: ["latin"],
@@ -30,46 +38,27 @@ async function LegacyHomeContent() {
       <section className="relative min-h-[min(90vh,52rem)] flex items-stretch border-b border-brand-primary/20">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={heroSrc}
-            alt=""
-            className="w-full h-full object-cover object-[center_22%] sm:object-center"
-            fetchPriority="high"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgb(234_229_225/0.48)_0%,rgb(234_229_225/0.09)_28%,transparent_52%)] sm:bg-[linear-gradient(to_right,rgb(234_229_225/0.4)_0%,rgb(234_229_225/0.05)_26%,transparent_48%)]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-surface/22 via-transparent to-transparent sm:from-brand-surface/12 pointer-events-none" />
+          <img src={heroSrc} alt="" className={HOME_HERO_IMAGE} fetchPriority="high" />
+          <div className={HOME_HERO_OVERLAY} aria-hidden />
         </div>
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 py-12 sm:py-16 flex flex-col justify-center min-h-[min(90vh,52rem)]">
-          <div className="max-w-[min(100%,calc(36rem-75px))] text-left -translate-y-[50px]">
+          <div className={HOME_HERO_CONTENT}>
             <h1
-              className={`${heroTitle.className} text-[2.25rem] sm:text-4xl md:text-5xl lg:text-[3.25rem] text-brand-ink font-bold tracking-normal leading-[1.15] [text-shadow:0_1px_0_rgba(255,255,255,0.65),0_2px_12px_rgba(255,255,255,0.45),0_0.5px_0_rgba(30,54,68,0.55)]`}
+              className={`${heroTitle.className} text-[2.25rem] sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-normal leading-[1.15] ${HOME_HERO_HEADLINE}`}
             >
               {hero.headline}
             </h1>
-            <p className="mt-5 text-base sm:text-lg text-brand-ink leading-relaxed max-w-prose [text-shadow:0_1px_2px_rgba(255,255,255,0.85),0_0_1px_rgba(255,255,255,0.5)]">
-              {hero.body}
-            </p>
+            <p className={HOME_HERO_BODY}>{hero.body}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button
-                asChild
-                className="rounded-full px-7 h-12 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold shadow-md"
-              >
-                <Link href={hero.primaryCta.href}>{hero.primaryCta.label}</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="rounded-full px-7 h-12 border-brand-primary/50 text-brand-ink bg-white/80 hover:bg-white"
-              >
-                <Link href={hero.secondaryCta.href}>{hero.secondaryCta.label}</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                className="rounded-full px-5 h-12 text-brand-ink/90 bg-white/50 hover:bg-white/70"
-              >
-                <Link href="/mission">{guided.heroLearnMoreLabel}</Link>
-              </Button>
+              <Link href={hero.primaryCta.href} className={homeHeroButtonClasses("primary")}>
+                {hero.primaryCta.label}
+              </Link>
+              <Link href={hero.secondaryCta.href} className={homeHeroButtonClasses("secondary")}>
+                {hero.secondaryCta.label}
+              </Link>
+              <Link href={hero.tertiaryCta.href} className={homeHeroButtonClasses("tertiary")}>
+                {hero.tertiaryCta.label}
+              </Link>
             </div>
           </div>
         </div>

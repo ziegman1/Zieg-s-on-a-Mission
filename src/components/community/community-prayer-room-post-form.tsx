@@ -209,7 +209,7 @@ export function CommunityPrayerRoomPostForm({
           />
           {!canRecord ? (
             <p className="text-xs text-center text-brand-ink/55 leading-relaxed">
-              Recording is not available in this browser — upload a file instead.
+              Recording is not supported in this browser. You can upload an audio file instead.
             </p>
           ) : null}
         </div>

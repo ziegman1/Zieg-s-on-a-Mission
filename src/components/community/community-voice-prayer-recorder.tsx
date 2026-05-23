@@ -10,8 +10,14 @@ import {
 } from "lucide-react";
 import {
   COMMUNITY_PRAYER_AUDIO_MAX_DURATION_SECONDS,
+  prayerAudioFileFromBlob,
   validateCommunityPrayerAudioFile,
 } from "@/lib/community/media-upload";
+import {
+  extensionFromRecorderBlob,
+  pickRecorderMimeType,
+  supportsBrowserVoiceRecording as browserSupportsVoiceRecording,
+} from "@/lib/community/voice-recording";
 import { cn } from "@/lib/utils";
 
 const UPLOAD_ENDPOINT = "/api/community/upload-prayer-audio";
@@ -28,6 +34,7 @@ type UploadApiResponse = {
   mimeType?: string;
   filename?: string;
   error?: string;
+  detail?: string;
 };
 
 function formatTimer(seconds: number): string {
@@ -37,27 +44,40 @@ function formatTimer(seconds: number): string {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-function pickRecorderMimeType(): string | undefined {
-  if (typeof MediaRecorder === "undefined") return undefined;
-  const candidates = [
-    "audio/webm;codecs=opus",
-    "audio/webm",
-    "audio/mp4",
-    "audio/ogg;codecs=opus",
-  ];
-  for (const type of candidates) {
-    if (MediaRecorder.isTypeSupported(type)) return type;
-  }
-  return undefined;
+export function supportsBrowserVoiceRecording(): boolean {
+  return browserSupportsVoiceRecording();
 }
 
-export function supportsBrowserVoiceRecording(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof MediaRecorder !== "undefined" &&
-    Boolean(navigator.mediaDevices?.getUserMedia) &&
-    Boolean(pickRecorderMimeType())
-  );
+function uploadErrorMessage(data: UploadApiResponse, status: number): string {
+  const base = data.error ?? `Upload failed (${status})`;
+  if (process.env.NODE_ENV === "development" && data.detail) {
+    return `${base} — ${data.detail}`;
+  }
+  return base;
+}
+
+/** Resolve duration from a local object URL (iOS often delays loadedmetadata). */
+function measureAudioDurationSeconds(objectUrl: string, maxSeconds: number): Promise<number> {
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    let settled = false;
+    const finish = (seconds: number) => {
+      if (settled) return;
+      settled = true;
+      audio.src = "";
+      resolve(Math.min(maxSeconds, Math.max(0, Math.round(seconds))));
+    };
+    audio.addEventListener(
+      "loadedmetadata",
+      () => {
+        finish(Number.isFinite(audio.duration) ? audio.duration : 0);
+      },
+      { once: true },
+    );
+    audio.addEventListener("error", () => finish(0), { once: true });
+    audio.src = objectUrl;
+    window.setTimeout(() => finish(0), 3000);
+  });
 }
 
 export function CommunityVoicePrayerRecorder({
@@ -89,6 +109,8 @@ export function CommunityVoicePrayerRecorder({
   const [elapsed, setElapsed] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [localBlob, setLocalBlob] = useState<Blob | null>(null);
+  const [localFilename, setLocalFilename] = useState<string>("voice-prayer.webm");
+  const [durationSeconds, setDurationSeconds] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
 
@@ -98,6 +120,7 @@ export function CommunityVoicePrayerRecorder({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number>(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
 
   const remaining = Math.max(0, maxSeconds - elapsed);
 
@@ -113,26 +136,89 @@ export function CommunityVoicePrayerRecorder({
     }
   }, []);
 
-  const resetAll = useCallback(() => {
-    clearTimer();
-    stopTracks();
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  const revokePreview = useCallback(() => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
     setPreviewUrl(null);
-    setLocalBlob(null);
-    setElapsed(0);
-    setUploadError(null);
-    setMicError(null);
-    setPhase("idle");
-    mediaRecorderRef.current = null;
-    chunksRef.current = [];
-    onClear();
-  }, [clearTimer, stopTracks, previewUrl, onClear]);
+  }, []);
 
-  useEffect(() => () => {
-    clearTimer();
-    stopTracks();
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-  }, [clearTimer, stopTracks, previewUrl]);
+  const resetLocal = useCallback(
+    (notifyParent: boolean) => {
+      clearTimer();
+      stopTracks();
+      revokePreview();
+      setLocalBlob(null);
+      setLocalFilename("voice-prayer.webm");
+      setDurationSeconds(0);
+      setElapsed(0);
+      setUploadError(null);
+      setMicError(null);
+      setPhase("idle");
+      mediaRecorderRef.current = null;
+      chunksRef.current = [];
+      if (notifyParent) onClear();
+    },
+    [clearTimer, stopTracks, revokePreview, onClear],
+  );
+
+  useEffect(
+    () => () => {
+      clearTimer();
+      stopTracks();
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    },
+    [clearTimer, stopTracks],
+  );
+
+  const uploadBlob = useCallback(
+    async (blob: Blob, filename: string, duration: number) => {
+      setUploadError(null);
+      setPhase("uploading");
+      const file = prayerAudioFileFromBlob(blob, filename);
+      const validationErr = validateCommunityPrayerAudioFile(file);
+      if (validationErr) {
+        setUploadError(validationErr);
+        setPhase("preview");
+        return;
+      }
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        if (postId) fd.append("postId", postId);
+        else if (spaceSlug) fd.append("spaceSlug", spaceSlug);
+
+        const res = await fetch(UPLOAD_ENDPOINT, { method: "POST", body: fd });
+        const data = (await res.json()) as UploadApiResponse;
+        if (!res.ok || !data.url) {
+          setUploadError(uploadErrorMessage(data, res.status));
+          setPhase("preview");
+          return;
+        }
+        onReady({
+          audioUrl: data.url,
+          durationSeconds: duration,
+          mimeType: data.mimeType ?? file.type,
+          filename: data.filename ?? filename,
+        });
+        setPhase("ready");
+      } catch (err) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "Could not upload audio. Check your connection and try again.";
+        setUploadError(msg);
+        setPhase("preview");
+      }
+    },
+    [postId, spaceSlug, onReady],
+  );
+
+  const retryUpload = useCallback(() => {
+    if (!localBlob) return;
+    void uploadBlob(localBlob, localFilename, durationSeconds);
+  }, [localBlob, localFilename, durationSeconds, uploadBlob]);
 
   const autoStartedRef = useRef(false);
 
@@ -144,82 +230,47 @@ export function CommunityVoicePrayerRecorder({
       void startRecording();
     }, 280);
     return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- startRecording is stable enough for one-shot auto-start
   }, [autoStartRecording, canRecord, disabled, phase]);
-
-  async function uploadBlob(blob: Blob, filename: string, durationSeconds: number) {
-    setUploadError(null);
-    setPhase("uploading");
-    const file = new File([blob], filename, { type: blob.type || "audio/webm" });
-    const err = validateCommunityPrayerAudioFile(file);
-    if (err) {
-      setUploadError(err);
-      setPhase(localBlob ? "preview" : "idle");
-      return;
-    }
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      if (postId) fd.append("postId", postId);
-      else if (spaceSlug) fd.append("spaceSlug", spaceSlug);
-      const res = await fetch(UPLOAD_ENDPOINT, { method: "POST", body: fd });
-      const data = (await res.json()) as UploadApiResponse;
-      if (!res.ok || !data.url) {
-        setUploadError(data.error ?? "Upload failed");
-        setPhase(localBlob ? "preview" : "idle");
-        return;
-      }
-      onReady({
-        audioUrl: data.url,
-        durationSeconds,
-        mimeType: data.mimeType ?? file.type,
-        filename: data.filename ?? filename,
-      });
-      setPhase("ready");
-    } catch {
-      setUploadError("Could not upload audio. Check your connection and try again.");
-      setPhase(localBlob ? "preview" : "idle");
-    }
-  }
 
   async function handleUploadedFile(file: File) {
     setUploadError(null);
+    setMicError(null);
     const err = validateCommunityPrayerAudioFile(file);
     if (err) {
       setUploadError(err);
       return;
     }
+    revokePreview();
     const url = URL.createObjectURL(file);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrlRef.current = url;
     setPreviewUrl(url);
     setLocalBlob(file);
+    setLocalFilename(file.name);
     setPhase("preview");
-    const audio = new Audio(url);
-    audio.addEventListener(
-      "loadedmetadata",
-      () => {
-        const dur = Number.isFinite(audio.duration) ? audio.duration : 0;
-        void uploadBlob(file, file.name, Math.min(Math.round(dur), maxSeconds));
-      },
-      { once: true },
-    );
-    audio.addEventListener(
-      "error",
-      () => {
-        void uploadBlob(file, file.name, 0);
-      },
-      { once: true },
-    );
+    const dur = await measureAudioDurationSeconds(url, maxSeconds);
+    const duration = dur > 0 ? dur : 1;
+    setDurationSeconds(duration);
+    setElapsed(duration);
+    void uploadBlob(file, file.name, duration);
   }
 
   async function startRecording() {
     setMicError(null);
     setUploadError(null);
-    resetAll();
+    resetLocal(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      const mimeType = pickRecorderMimeType();
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const preferredMime = pickRecorderMimeType();
+      let recorder: MediaRecorder;
+      try {
+        recorder = preferredMime
+          ? new MediaRecorder(stream, { mimeType: preferredMime })
+          : new MediaRecorder(stream);
+      } catch {
+        recorder = new MediaRecorder(stream);
+      }
       chunksRef.current = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -227,24 +278,39 @@ export function CommunityVoicePrayerRecorder({
       recorder.onstop = () => {
         clearTimer();
         stopTracks();
-        const blob = new Blob(chunksRef.current, {
-          type: recorder.mimeType || mimeType || "audio/webm",
-        });
+        const blobType =
+          recorder.mimeType || preferredMime || chunksRef.current[0]?.type || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type: blobType });
+        if (blob.size < 1) {
+          setMicError("Recording was empty. Try again or upload an audio file.");
+          setPhase("idle");
+          return;
+        }
         const url = URL.createObjectURL(blob);
+        previewUrlRef.current = url;
         setPreviewUrl(url);
         setLocalBlob(blob);
-        const durationSeconds = Math.min(
+        const duration = Math.min(
           maxSeconds,
           Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000)),
         );
-        setElapsed(durationSeconds);
+        setDurationSeconds(duration);
+        setElapsed(duration);
         setPhase("preview");
-        const ext = blob.type.includes("mp4") ? "m4a" : "webm";
-        void uploadBlob(blob, `voice-prayer.${ext}`, durationSeconds);
+        const ext = extensionFromRecorderBlob(blob, preferredMime);
+        const filename = `voice-prayer.${ext}`;
+        setLocalFilename(filename);
+        void uploadBlob(blob, filename, duration);
+      };
+      recorder.onerror = () => {
+        setMicError("Recording failed. Try again or upload an audio file.");
+        clearTimer();
+        stopTracks();
+        setPhase("idle");
       };
       mediaRecorderRef.current = recorder;
       startedAtRef.current = Date.now();
-      recorder.start(250);
+      recorder.start(500);
       setPhase("recording");
       setElapsed(0);
       timerRef.current = setInterval(() => {
@@ -254,9 +320,12 @@ export function CommunityVoicePrayerRecorder({
           stopRecording();
         }
       }, 200);
-    } catch {
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : "";
       setMicError(
-        "Microphone access was denied or unavailable. You can upload an audio file instead.",
+        name === "NotAllowedError" || name === "PermissionDeniedError"
+          ? "Microphone access was denied. Allow the mic in Settings, or upload an audio file instead."
+          : "Microphone is unavailable. You can upload an audio file instead.",
       );
       setPhase("idle");
     }
@@ -266,11 +335,34 @@ export function CommunityVoicePrayerRecorder({
     clearTimer();
     const rec = mediaRecorderRef.current;
     if (rec && rec.state !== "inactive") {
-      rec.stop();
+      try {
+        rec.stop();
+      } catch {
+        setMicError("Could not stop recording. Try uploading a file instead.");
+        stopTracks();
+        setPhase("idle");
+      }
     }
   }
 
   const busy = disabled || phase === "uploading";
+  const hasLocalAudio = Boolean(localBlob && previewUrl);
+  const showPreview = hasLocalAudio && (phase === "preview" || phase === "uploading" || phase === "ready");
+
+  const fileInput = (
+    <input
+      ref={fileRef}
+      type="file"
+      accept="audio/*,.mp3,.m4a,.webm,.wav,.aac,.ogg"
+      className="sr-only"
+      disabled={busy}
+      onChange={(e) => {
+        const f = e.target.files?.[0];
+        if (f) void handleUploadedFile(f);
+        e.target.value = "";
+      }}
+    />
+  );
 
   return (
     <div className="space-y-3">
@@ -321,26 +413,36 @@ export function CommunityVoicePrayerRecorder({
             </button>
           )}
 
-          {(phase === "preview" || phase === "uploading" || phase === "ready") &&
-          previewUrl ? (
+          {showPreview ? (
             <div className="rounded-xl bg-white ring-1 ring-brand-primary/15 px-3 py-3 space-y-2">
               <p className="text-xs font-medium text-brand-ink/60">Preview</p>
               <audio
                 controls
-                src={previewUrl}
+                src={previewUrl ?? undefined}
                 className="w-full h-11 rounded-lg"
                 preload="metadata"
+                playsInline
               />
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={resetAll}
+                  onClick={() => resetLocal(true)}
                   className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-brand-ink/70 ring-1 ring-black/[0.08] hover:bg-black/[0.03]"
                 >
                   <RotateCcw className="h-3.5 w-3.5" aria-hidden />
                   Re-record
                 </button>
+                {uploadError && localBlob ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={retryUpload}
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-brand-primary ring-1 ring-brand-primary/25 hover:bg-brand-primary/5"
+                  >
+                    Retry upload
+                  </button>
+                ) : null}
               </div>
               {phase === "uploading" ? (
                 <p className="text-xs text-brand-ink/50 inline-flex items-center gap-1.5">
@@ -348,12 +450,17 @@ export function CommunityVoicePrayerRecorder({
                   Uploading voice prayer…
                 </p>
               ) : null}
+              {phase === "ready" ? (
+                <p className="text-xs text-brand-primary font-medium">
+                  Upload complete — you can share your voice prayer.
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
       ) : (
         <p className="text-xs text-brand-ink/55 rounded-xl bg-brand-surface/40 px-3 py-2.5 ring-1 ring-black/[0.04]">
-          Recording is not supported in this browser. Upload an audio file below.
+          Recording is not supported in this browser. You can upload an audio file instead.
         </p>
       )}
 
@@ -367,19 +474,7 @@ export function CommunityVoicePrayerRecorder({
               <span className="bg-white/90 px-2 text-brand-ink/40">or upload</span>
             </div>
           </div>
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="audio/mpeg,audio/mp4,audio/webm,audio/wav,audio/aac,audio/x-m4a,audio/*"
-            className="sr-only"
-            disabled={busy}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleUploadedFile(f);
-              e.target.value = "";
-            }}
-          />
+          {fileInput}
           <button
             type="button"
             disabled={busy}
@@ -391,30 +486,19 @@ export function CommunityVoicePrayerRecorder({
             )}
           >
             <Upload className="h-4 w-4 shrink-0" aria-hidden />
-            Upload audio file (MP3, M4A, WebM, WAV…)
+            Upload audio (MP3, M4A, WebM, WAV, AAC)
           </button>
         </>
       ) : (
         <>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="audio/mpeg,audio/mp4,audio/webm,audio/wav,audio/aac,audio/x-m4a,audio/*"
-            className="sr-only"
-            disabled={busy}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleUploadedFile(f);
-              e.target.value = "";
-            }}
-          />
+          {fileInput}
           <button
             type="button"
             disabled={busy}
             onClick={() => fileRef.current?.click()}
-            className="text-[12px] text-brand-primary/80 font-medium hover:underline"
+            className="text-[12px] text-brand-primary/80 font-medium hover:underline min-h-[2.75rem]"
           >
-            Upload a file instead
+            Upload an audio file instead
           </button>
         </>
       )}

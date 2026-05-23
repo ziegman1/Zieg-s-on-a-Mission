@@ -53,26 +53,37 @@ export function TextSectionBlock({
     );
   }
 
+  const show = (key: string, text: string) =>
+    ctx?.editMode || (text.trim().length > 0 && fieldVisible(c, key));
+
   const inner = (
     <>
-      {eyebrow.trim() && fieldVisible(c, "eyebrow") ? (
+      {show("eyebrow", eyebrow) ? (
         <EditableElement sectionId={section.id} elementId="eyebrow" style={getFieldStyle(c, "eyebrow")}>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">{eyebrow}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">
+            {eyebrow.trim() || (ctx?.editMode ? "Eyebrow (empty)" : "")}
+          </p>
         </EditableElement>
       ) : null}
-      {headline.trim() && fieldVisible(c, "headline") ? (
+      {show("headline", headline) ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-          <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{headline}</h2>
+          <h2 className="font-serif text-2xl text-brand-primary tracking-wide">
+            {headline.trim() || (ctx?.editMode ? "Heading (empty)" : "")}
+          </h2>
         </EditableElement>
       ) : null}
-      {sub.trim() && fieldVisible(c, "subheadline") ? (
+      {show("subheadline", sub) ? (
         <EditableElement sectionId={section.id} elementId="subheadline" style={getFieldStyle(c, "subheadline")}>
-          <p className="mt-2 text-lg text-brand-ink/80">{sub}</p>
+          <p className="mt-2 text-lg text-brand-ink/80">
+            {sub.trim() || (ctx?.editMode ? "Subheadline (empty)" : "")}
+          </p>
         </EditableElement>
       ) : null}
-      {body.trim() && fieldVisible(c, "body") ? (
+      {show("body", body) ? (
         <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-          <div className="mt-4 space-y-4 text-brand-ink/88 leading-relaxed whitespace-pre-wrap">{body}</div>
+          <div className="mt-4 space-y-4 text-brand-ink/88 leading-relaxed whitespace-pre-wrap">
+            {body.trim() || (ctx?.editMode ? "Body (empty)" : "")}
+          </div>
         </EditableElement>
       ) : null}
       {bullets.length > 0 ? (

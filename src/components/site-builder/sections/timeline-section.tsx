@@ -1,36 +1,78 @@
-import { contentStr, visibleListItems } from "@/lib/site-builder/content-utils";
+"use client";
+
+import { contentStr, fieldVisible, sortedListItems } from "@/lib/site-builder/content-utils";
+import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
+import { EditableElement } from "../editable-element";
+import { ContentElementsBlock } from "../content-elements-block";
+import { useBuilderPreview } from "../builder-preview-context";
+import { isElementVisible } from "@/lib/site-builder/element-style-utils";
+import { cn } from "@/lib/utils";
 
 export function TimelineSection({ section }: { section: PageSection }) {
+  const ctx = useBuilderPreview();
   const c = section.content;
   const headline = contentStr(c, "headline");
   const intro = contentStr(c, "intro");
-  const items = visibleListItems(c.items);
+  const items = ctx?.editMode
+    ? sortedListItems(c.items, { includeHidden: true })
+    : sortedListItems(c.items).filter(
+        (x) => x.visible && isElementVisible(x.style, true) && x.text.trim(),
+      );
 
-  if (!headline.trim() && items.length === 0) return null;
+  const show = (key: string, text: string) =>
+    ctx?.editMode || (text.trim().length > 0 && fieldVisible(c, key));
+
+  if (!ctx?.editMode && !headline.trim() && items.length === 0) return null;
 
   return (
     <section className="border-t border-brand-primary/15 px-4 py-16 sm:py-20">
       <div className="mx-auto max-w-3xl">
-        {headline.trim() ? (
-          <h2 className="font-serif text-2xl text-brand-primary tracking-wide text-center">{headline}</h2>
+        {show("headline", headline) ? (
+          <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
+            <h2 className="font-serif text-2xl text-brand-primary tracking-wide text-center">
+              {headline.trim() || (ctx?.editMode ? "Headline (empty)" : "")}
+            </h2>
+          </EditableElement>
         ) : null}
-        {intro.trim() ? (
-          <p className="mt-3 text-center text-brand-ink/80 leading-relaxed">{intro}</p>
+        {show("intro", intro) ? (
+          <EditableElement sectionId={section.id} elementId="intro" style={getFieldStyle(c, "intro")}>
+            <p className="mt-3 text-center text-brand-ink/80 leading-relaxed">
+              {intro.trim() || (ctx?.editMode ? "Intro (empty)" : "")}
+            </p>
+          </EditableElement>
         ) : null}
         <ul className="mt-10 space-y-8">
-          {items.map((item) => (
-            <li key={item.id} className="border-l-2 border-brand-primary/30 pl-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary/80">
-                {String(item.metadata?.when ?? "")}
-              </p>
-              <h3 className="mt-1 font-serif text-lg text-brand-ink">{item.text}</h3>
-              <p className="mt-2 text-sm text-brand-ink/80 leading-relaxed">
-                {String(item.metadata?.description ?? "")}
-              </p>
-            </li>
-          ))}
+          {items.map((item) => {
+            if (!ctx?.editMode && (!item.visible || !isElementVisible(item.style, true))) return null;
+            return (
+              <li
+                key={item.id}
+                className={cn(
+                  "border-l-2 border-brand-primary/30 pl-5",
+                  !item.visible && ctx?.editMode && "opacity-50",
+                )}
+              >
+                <EditableElement
+                  sectionId={section.id}
+                  elementId={`item:${item.id}`}
+                  style={item.style}
+                  visible={item.visible}
+                  layout="block"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary/80">
+                    {String(item.metadata?.when ?? "")}
+                  </p>
+                  <h3 className="mt-1 font-serif text-lg text-brand-ink">{item.text}</h3>
+                  <p className="mt-2 text-sm text-brand-ink/80 leading-relaxed">
+                    {String(item.metadata?.description ?? "")}
+                  </p>
+                </EditableElement>
+              </li>
+            );
+          })}
         </ul>
+        <ContentElementsBlock section={section} />
       </div>
     </section>
   );

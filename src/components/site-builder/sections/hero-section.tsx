@@ -3,15 +3,22 @@
 import Link from "next/link";
 import { Dancing_Script } from "next/font/google";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
-import { contentStr, fieldVisible } from "@/lib/site-builder/content-utils";
-import { getFieldStyle } from "@/lib/site-builder/content-utils";
+import { contentStr, fieldVisible, getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
 import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
+import {
+  HOME_HERO_BODY,
+  HOME_HERO_CONTENT,
+  HOME_HERO_EYEBROW,
+  HOME_HERO_HEADLINE,
+  HOME_HERO_IMAGE,
+  HOME_HERO_OVERLAY,
+  homeHeroButtonClasses,
+} from "./home-hero-visual";
 
 const heroTitle = Dancing_Script({
   subsets: ["latin"],
@@ -23,16 +30,20 @@ function HeroButton({
   slot,
   label,
   url,
+  isHome,
 }: {
   section: PageSection;
   slot: "primary" | "secondary" | "tertiary";
   label: string;
   url: string;
+  isHome: boolean;
 }) {
   const elementId = `cta:${slot}`;
   const style = getFieldStyle(section.content, elementId);
   if (!label.trim()) return null;
-  const btnCls = buttonClassesFromStyle(style);
+  const btnCls = isHome
+    ? homeHeroButtonClasses(slot, style)
+    : buttonClassesFromStyle(style);
   const { className: wrapCls, style: wrapStyle } = elementStyleProps(style);
 
   return (
@@ -70,13 +81,16 @@ export function HeroSection({
   const primaryLabel = contentStr(c, "primaryCtaLabel");
   const primaryUrl = contentStr(c, "primaryCtaUrl") || "/partner";
   const secondaryLabel = contentStr(c, "secondaryCtaLabel");
-  const secondaryUrl = contentStr(c, "secondaryCtaUrl") || "/give";
+  const secondaryUrl = contentStr(c, "secondaryCtaUrl") || (section.pageKey === "home" ? "/mission" : "/give");
   const tertiaryLabel = contentStr(c, "tertiaryCtaLabel");
-  const tertiaryUrl = contentStr(c, "tertiaryCtaUrl") || "/mission";
+  const tertiaryUrl = contentStr(c, "tertiaryCtaUrl") || "/give";
 
   const isHome = section.pageKey === "home";
   const imgStyle = getFieldStyle(c, "image");
   const { className: imgCls, style: imgInline } = elementStyleProps(imgStyle);
+
+  const show = (key: string, text: string) =>
+    ctx?.editMode || (text.trim().length > 0 && fieldVisible(c, key));
 
   if (!ctx?.editMode && !headline.trim() && !body.trim()) return null;
 
@@ -101,10 +115,10 @@ export function HeroSection({
             <img
               src={src}
               alt={contentStr(c, "imageAlt")}
-              className={cn("w-full h-full object-cover object-center", imgCls)}
+              className={cn(HOME_HERO_IMAGE, imgCls)}
               style={imgInline}
             />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgb(234_229_225/0.4)_0%,transparent_48%)]" />
+            <div className={HOME_HERO_OVERLAY} aria-hidden />
           </div>
         </EditableElement>
       ) : null}
@@ -114,35 +128,66 @@ export function HeroSection({
           isHome ? "max-w-7xl py-12 sm:py-16 min-h-[min(90vh,52rem)]" : "max-w-3xl text-center",
         )}
       >
-        {eyebrow.trim() && fieldVisible(c, "eyebrow") ? (
-          <EditableElement sectionId={section.id} elementId="eyebrow" style={getFieldStyle(c, "eyebrow")}>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">{eyebrow}</p>
-          </EditableElement>
-        ) : null}
-        {headline.trim() && fieldVisible(c, "headline") ? (
-          <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-            <h1
-              className={cn(
-                useScriptTitle || isHome
-                  ? `${heroTitle.className} text-[2.25rem] sm:text-4xl md:text-5xl font-bold text-brand-ink leading-[1.15]`
-                  : "mt-4 font-serif text-3xl sm:text-4xl text-brand-ink tracking-wide",
-              )}
-            >
-              {headline}
-            </h1>
-          </EditableElement>
-        ) : null}
-        {body.trim() && fieldVisible(c, "body") ? (
-          <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-            <p className={cn("mt-5 text-lg text-brand-ink/85 leading-relaxed", isHome && "max-w-prose")}>
-              {body}
-            </p>
-          </EditableElement>
-        ) : null}
-        <div className="mt-8 flex flex-wrap gap-3 justify-center sm:justify-start">
-          <HeroButton section={section} slot="primary" label={primaryLabel} url={primaryUrl} />
-          <HeroButton section={section} slot="secondary" label={secondaryLabel} url={secondaryUrl} />
-          <HeroButton section={section} slot="tertiary" label={tertiaryLabel} url={tertiaryUrl} />
+        <div className={cn(isHome && HOME_HERO_CONTENT)}>
+          {show("eyebrow", eyebrow) ? (
+            <EditableElement sectionId={section.id} elementId="eyebrow" style={getFieldStyle(c, "eyebrow")}>
+              <p
+                className={cn(
+                  "text-xs font-semibold uppercase tracking-[0.2em]",
+                  isHome ? HOME_HERO_EYEBROW : "text-brand-primary",
+                )}
+              >
+                {eyebrow.trim() || (ctx?.editMode ? "Eyebrow (empty)" : "")}
+              </p>
+            </EditableElement>
+          ) : null}
+          {show("headline", headline) ? (
+            <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
+              <h1
+                className={cn(
+                  useScriptTitle || isHome
+                    ? `${heroTitle.className} text-[2.25rem] sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold leading-[1.15]`
+                    : "mt-4 font-serif text-3xl sm:text-4xl text-brand-ink tracking-wide",
+                  isHome ? HOME_HERO_HEADLINE : "text-brand-ink",
+                )}
+              >
+                {headline.trim() || (ctx?.editMode ? "Headline (empty)" : "")}
+              </h1>
+            </EditableElement>
+          ) : null}
+          {show("body", body) ? (
+            <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
+              <p
+                className={cn(
+                  isHome ? HOME_HERO_BODY : "mt-5 text-lg text-brand-ink/85 leading-relaxed max-w-prose",
+                )}
+              >
+                {body.trim() || (ctx?.editMode ? "Body (empty)" : "")}
+              </p>
+            </EditableElement>
+          ) : null}
+          <div
+            className={cn(
+              "mt-8 flex flex-wrap gap-3",
+              isHome ? "justify-start" : "justify-center sm:justify-start",
+            )}
+          >
+            <HeroButton section={section} slot="primary" label={primaryLabel} url={primaryUrl} isHome={isHome} />
+            <HeroButton
+              section={section}
+              slot="secondary"
+              label={secondaryLabel}
+              url={secondaryUrl}
+              isHome={isHome}
+            />
+            <HeroButton
+              section={section}
+              slot="tertiary"
+              label={tertiaryLabel}
+              url={tertiaryUrl}
+              isHome={isHome}
+            />
+          </div>
         </div>
         <ContentElementsBlock section={section} />
       </div>

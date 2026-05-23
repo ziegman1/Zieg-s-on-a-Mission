@@ -22,6 +22,8 @@ import {
   SectionPropertiesPanel,
 } from "./section-properties-panel";
 import { ElementPropertiesPanel } from "./element-properties-panel";
+import { BlogPostsManager } from "./blog-posts-manager";
+import type { BlogPostRecord } from "@/lib/blog/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -39,16 +41,34 @@ type PageData = Record<
   { sections: PageSection[]; hasCustom: boolean }
 >;
 
-export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) {
+export function SiteBuilderEditor({
+  initialPages,
+  initialBlogPosts = [],
+  blogLoadError = null,
+}: {
+  initialPages: PageData;
+  initialBlogPosts?: BlogPostRecord[];
+  blogLoadError?: string | null;
+}) {
   const [pages, setPages] = useState<PageData>(initialPages);
   const [activePage, setActivePage] = useState("home");
+  const [blogTab, setBlogTab] = useState<"intro" | "posts">("posts");
+  const [blogPosts, setBlogPosts] = useState(initialBlogPosts);
+
+  useEffect(() => {
+    setBlogPosts(initialBlogPosts);
+  }, [initialBlogPosts]);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [pageSuccessMessage, setPageSuccessMessage] = useState<string | null>(null);
+  const [blogSuccessMessage, setBlogSuccessMessage] = useState<string | null>(null);
   const [saveDiagnostics, setSaveDiagnostics] = useState<string | null>(null);
+
+  const isBlogPostsTab = activePage === "blog" && blogTab === "posts";
+  const isBlogIntroTab = activePage === "blog" && blogTab === "intro";
   const [confirmRestore, setConfirmRestore] = useState(false);
 
   const sections = pages[activePage]?.sections ?? [];
@@ -201,7 +221,7 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
     if (!res.ok) {
       setStatus("error");
       setError(res.error);
-      setSuccessMessage(null);
+      setPageSuccessMessage(null);
       setSaveDiagnostics(null);
       return false;
     }
@@ -224,7 +244,8 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
     setDirty(false);
     setStatus("saved");
     setError(null);
-    setSuccessMessage(res.message);
+    setPageSuccessMessage(res.message);
+    setBlogSuccessMessage(null);
     const diag = res.diagnostics;
     setSaveDiagnostics(
       `page_key=${res.pageKey} · saved=${res.savedCount} · visible=${diag.visibleCount} · updated=${diag.latestUpdatedAt ?? "—"}`,
@@ -234,17 +255,19 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
   }
 
   async function handleSave() {
+    if (isBlogPostsTab) return;
     setStatus("saving");
     setError(null);
-    setSuccessMessage(null);
+    setPageSuccessMessage(null);
     const toSave = sectionsRef.current;
     await applySaveResult(await saveBuilderPageAction(activePage, toSave));
   }
 
   async function handlePublishAll() {
+    if (isBlogPostsTab) return;
     setStatus("saving");
     setError(null);
-    setSuccessMessage(null);
+    setPageSuccessMessage(null);
     const toSave = sectionsRef.current;
     const res = await publishAllBuilderPagesAction(activePage, toSave);
     if (!res.ok) {
@@ -261,7 +284,8 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
     }
     setDirty(false);
     setStatus("saved");
-    setSuccessMessage(`Saved and revalidated — ${res.message}`);
+    setPageSuccessMessage(res.message);
+    setBlogSuccessMessage(null);
     setSaveDiagnostics(`Revalidated ${res.revalidated.length} paths`);
     setTimeout(() => setStatus("idle"), 5000);
   }
@@ -305,12 +329,29 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
     <div className="flex flex-col h-[calc(100vh-6rem)] min-h-[32rem] -mx-4 sm:-mx-6">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-zinc-800 bg-zinc-950/90 shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <Button type="button" size="sm" onClick={() => void handleSave()} disabled={status === "saving"}>
-            {status === "saving" ? "Saving…" : dirty ? "Save page" : "Saved"}
-          </Button>
-          <Button type="button" size="sm" variant="outline" onClick={() => void handlePublishAll()}>
-            Publish & refresh
-          </Button>
+          {isBlogPostsTab ? (
+            <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
+              <span className="text-zinc-300 font-medium">Blog posts</span> — use{" "}
+              <span className="text-zinc-200">Save Draft</span> and{" "}
+              <span className="text-zinc-200">Publish Blog Post</span> in the editor below. Top buttons do not save
+              stories.
+            </p>
+          ) : (
+            <>
+              <Button type="button" size="sm" onClick={() => void handleSave()} disabled={status === "saving"}>
+                {status === "saving"
+                  ? "Saving…"
+                  : dirty
+                    ? isBlogIntroTab
+                      ? "Save page intro"
+                      : "Save page"
+                    : "Saved"}
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => void handlePublishAll()}>
+                {isBlogIntroTab ? "Publish intro & refresh" : "Publish & refresh"}
+              </Button>
+            </>
+          )}
           {pageMeta?.path ? (
             <Button type="button" size="sm" variant="ghost" asChild>
               <Link href={pageMeta.path} target="_blank" rel="noopener noreferrer">
@@ -342,14 +383,69 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
       {error ? (
         <p className="px-4 py-2 text-sm text-red-400 whitespace-pre-wrap">{error}</p>
       ) : null}
-      {successMessage ? (
-        <p className="px-4 py-1 text-sm text-emerald-400">{successMessage}</p>
+      {pageSuccessMessage && !isBlogPostsTab ? (
+        <p className="px-4 py-1 text-sm text-emerald-400" role="status">
+          {pageSuccessMessage}
+        </p>
+      ) : null}
+      {blogSuccessMessage && isBlogPostsTab ? (
+        <p className="px-4 py-1 text-sm text-emerald-400" role="status">
+          {blogSuccessMessage}
+        </p>
       ) : null}
       {saveDiagnostics ? (
         <p className="px-4 pb-2 text-[11px] text-zinc-500 font-mono">{saveDiagnostics}</p>
       ) : null}
 
       <div className="flex flex-1 min-h-0">
+        {activePage === "blog" ? (
+          <div className="shrink-0 flex flex-col border-r border-zinc-800 bg-zinc-950 w-40">
+            <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+              Blog
+            </p>
+            <button
+              type="button"
+              onClick={() => setBlogTab("posts")}
+              className={cn(
+                "mx-2 mb-1 rounded-md px-2.5 py-2 text-left text-sm",
+                blogTab === "posts" ? "bg-brand-primary/20 text-brand-primary" : "text-zinc-400 hover:bg-zinc-900",
+              )}
+            >
+              Blog posts
+            </button>
+            <button
+              type="button"
+              onClick={() => setBlogTab("intro")}
+              className={cn(
+                "mx-2 mb-2 rounded-md px-2.5 py-2 text-left text-sm",
+                blogTab === "intro" ? "bg-brand-primary/20 text-brand-primary" : "text-zinc-400 hover:bg-zinc-900",
+              )}
+            >
+              Page intro
+            </button>
+          </div>
+        ) : null}
+
+        {activePage === "blog" && blogTab === "posts" ? (
+          <div className="flex-1 min-w-0 min-h-0">
+            <BlogPostsManager
+              initialPosts={blogPosts}
+              loadError={blogLoadError}
+              onPostsChange={setBlogPosts}
+              onSuccess={(msg) => {
+                setBlogSuccessMessage(msg);
+                setPageSuccessMessage(null);
+                setSaveDiagnostics(null);
+                setError(null);
+              }}
+              onError={(msg) => {
+                setBlogSuccessMessage(null);
+                if (msg) setError(msg);
+              }}
+            />
+          </div>
+        ) : (
+        <>
         <aside className="w-56 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col">
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
             Pages
@@ -363,6 +459,7 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
                   setActivePage(p.pageKey);
                   setSelectedSectionId(null);
                   setSelectedElementId(null);
+                  if (p.pageKey === "blog") setBlogTab("posts");
                 }}
                 className={cn(
                   "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors",
@@ -525,6 +622,8 @@ export function SiteBuilderEditor({ initialPages }: { initialPages: PageData }) 
             />
           )}
         </aside>
+        </>
+        )}
       </div>
     </div>
   );

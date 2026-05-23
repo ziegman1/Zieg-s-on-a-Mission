@@ -56,10 +56,20 @@ export const COMMUNITY_PRAYER_AUDIO_TYPES = [
   "audio/ogg",
   "audio/wav",
   "audio/x-m4a",
+  "audio/m4a",
   "audio/aac",
 ] as const;
 
 export type CommunityPrayerAudioMimeType = (typeof COMMUNITY_PRAYER_AUDIO_TYPES)[number];
+
+export const COMMUNITY_PRAYER_AUDIO_EXTENSIONS = [
+  "mp3",
+  "m4a",
+  "webm",
+  "wav",
+  "aac",
+  "ogg",
+] as const;
 
 const AUDIO_EXT_BY_MIME: Record<string, string> = {
   "audio/mpeg": "mp3",
@@ -68,29 +78,19 @@ const AUDIO_EXT_BY_MIME: Record<string, string> = {
   "audio/ogg": "ogg",
   "audio/wav": "wav",
   "audio/x-m4a": "m4a",
+  "audio/m4a": "m4a",
   "audio/aac": "aac",
 };
 
-export function isCommunityPrayerAudioMimeType(type: string): type is CommunityPrayerAudioMimeType {
-  return (COMMUNITY_PRAYER_AUDIO_TYPES as readonly string[]).includes(type);
-}
+/** iOS / mobile browsers sometimes report video/* for .m4a uploads. */
+const PRAYER_AUDIO_MIME_ALIASES: Record<string, string> = {
+  "video/mp4": "audio/mp4",
+  "video/quicktime": "audio/mp4",
+  "audio/x-m4a": "audio/mp4",
+  "audio/m4a": "audio/mp4",
+};
 
-export function extensionForPrayerAudioMime(type: string): string {
-  return AUDIO_EXT_BY_MIME[type] ?? "webm";
-}
-
-export function validateCommunityPrayerAudioFile(file: File): string | null {
-  if (file.size > COMMUNITY_PRAYER_AUDIO_MAX_BYTES) {
-    return "Audio must be 10 MB or smaller.";
-  }
-  const type = file.type || guessAudioMimeFromName(file.name);
-  if (!type || !isCommunityPrayerAudioMimeType(type)) {
-    return "Use MP3, M4A, WebM, WAV, or AAC audio.";
-  }
-  return null;
-}
-
-function guessAudioMimeFromName(name: string): string {
+export function guessAudioMimeFromName(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase();
   const map: Record<string, string> = {
     mp3: "audio/mpeg",
@@ -103,8 +103,67 @@ function guessAudioMimeFromName(name: string): string {
   return ext ? (map[ext] ?? "") : "";
 }
 
+/** Strip codec parameters and map mobile aliases to canonical prayer audio MIME. */
+export function normalizePrayerAudioMime(type: string, filename?: string): string {
+  const raw = (type || "").split(";")[0]?.trim().toLowerCase() ?? "";
+  const aliased = PRAYER_AUDIO_MIME_ALIASES[raw] ?? raw;
+  if (aliased && isCommunityPrayerAudioMimeType(aliased)) return aliased;
+  const fromName = guessAudioMimeFromName(filename ?? "");
+  return fromName || aliased;
+}
+
+export function isCommunityPrayerAudioMimeType(type: string): type is CommunityPrayerAudioMimeType {
+  const base = type.split(";")[0]?.trim().toLowerCase() ?? "";
+  const normalized = PRAYER_AUDIO_MIME_ALIASES[base] ?? base;
+  return (COMMUNITY_PRAYER_AUDIO_TYPES as readonly string[]).includes(normalized);
+}
+
+export function isAllowedPrayerAudioExtension(filename: string): boolean {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  return (COMMUNITY_PRAYER_AUDIO_EXTENSIONS as readonly string[]).includes(ext);
+}
+
+export function isAllowedPrayerAudioFile(file: File): boolean {
+  if (file.size < 1) return false;
+  const mime = normalizePrayerAudioMime(file.type, file.name);
+  if (mime && isCommunityPrayerAudioMimeType(mime)) return true;
+  return isAllowedPrayerAudioExtension(file.name);
+}
+
+export function extensionForPrayerAudioMime(type: string): string {
+  const normalized = normalizePrayerAudioMime(type);
+  return AUDIO_EXT_BY_MIME[normalized] ?? "webm";
+}
+
+export function validateCommunityPrayerAudioFile(file: File): string | null {
+  if (file.size > COMMUNITY_PRAYER_AUDIO_MAX_BYTES) {
+    return "Audio must be 10 MB or smaller.";
+  }
+  if (file.size < 1) {
+    return "Audio file is empty.";
+  }
+  if (!isAllowedPrayerAudioFile(file)) {
+    return "Use MP3, M4A, WebM, WAV, or AAC audio.";
+  }
+  return null;
+}
+
+/** Build a File with a normalized MIME for upload validation and storage. */
+export function prayerAudioFileFromBlob(
+  blob: Blob,
+  filename: string,
+): File {
+  const mime = normalizePrayerAudioMime(blob.type, filename) || guessAudioMimeFromName(filename) || "audio/webm";
+  return new File([blob], filename, { type: mime });
+}
+
+/** `blog/2026/05/<uuid>.jpg` */
+export function buildBlogFeaturedImagePath(ext: string): string {
+  return buildCommunityMediaPath("blog", ext);
+}
+
 function buildCommunityMediaPath(
-  folder: "posts" | "profiles" | "spaces" | "prayers",
+  folder: "posts" | "profiles" | "spaces" | "prayers" | "blog",
   ext: string,
 ): string {
   const now = new Date();

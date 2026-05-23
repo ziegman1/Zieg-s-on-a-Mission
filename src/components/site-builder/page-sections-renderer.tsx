@@ -10,10 +10,11 @@ import { ImageTextSplitSection } from "./sections/image-text-split-section";
 import { QuoteSection } from "./sections/quote-section";
 import { TextSectionBlock } from "./sections/text-section";
 import { TimelineSection } from "./sections/timeline-section";
-import { visibleListItems, contentStr } from "@/lib/site-builder/content-utils";
+import { FeaturedPostsSection } from "./sections/featured-posts-section";
+import { contentStr } from "@/lib/site-builder/content-utils";
 import { EditableSectionShell } from "./editable-element";
+import { MinistryPageHeader } from "./ministry-page-header";
 import { useBuilderPreview } from "./builder-preview-context";
-import { EDITABLE_SECTION_TYPES } from "@/lib/site-builder/section-elements";
 
 export function PageSectionsRenderer({
   pageKey,
@@ -129,6 +130,9 @@ function renderGenericSection(section: PageSection, siteTagline: string) {
   }
 }
 
+const MINISTRY_PROSE_CLASS =
+  "prose prose-slate max-w-none text-brand-ink/90 space-y-6 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-brand-ink [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:tracking-tight [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_a]:text-brand-primary [&_a]:font-medium [&_a]:no-underline hover:[&_a]:underline";
+
 function MinistrySectionsPage({
   pageKey,
   sections,
@@ -141,83 +145,60 @@ function MinistrySectionsPage({
   wrap: (section: PageSection, node: React.ReactNode) => React.ReactNode;
 }) {
   const header = sections.find((s) => s.sectionKey === "header");
-  const rest = sections.filter((s) => s.sectionKey !== "header" && s.sectionKey !== "footer-nav");
+  const footer = sections.find((s) => s.sectionKey === "footer-nav");
+  const middle = sections.filter(
+    (s) => s.sectionKey !== "header" && s.sectionKey !== "footer-nav",
+  );
 
   const title = header ? contentStr(header.content, "headline") : "";
   const lede = header
     ? contentStr(header.content, "body") || contentStr(header.content, "subheadline")
     : "";
 
-  const useRich =
-    inEditor && rest.some((s) => EDITABLE_SECTION_TYPES.includes(s.sectionType));
-
-  if (useRich) {
+  if (inEditor) {
     return (
-      <MinistryPageShell title={title || pageKey} lede={lede}>
-        {rest.map((section) => {
-          const inner = renderMinistrySection(section);
-          return inner ? wrap(section, inner) : null;
-        })}
-      </MinistryPageShell>
+      <article className="max-w-3xl mx-auto px-4 py-12 sm:py-16">
+        {header ? wrap(header, <MinistryPageHeader section={header} />) : null}
+        <div className={MINISTRY_PROSE_CLASS}>
+          {middle.map((section) => {
+            const inner = renderMinistrySection(section);
+            return inner ? wrap(section, inner) : null;
+          })}
+        </div>
+        {footer ? wrap(footer, <CtaSection section={footer} />) : null}
+      </article>
     );
   }
 
   return (
     <MinistryPageShell title={title || pageKey} lede={lede}>
-      {rest.map((section) => {
-        if (section.sectionType === "text_section") {
-          return (
-            <section key={section.id}>
-              {contentStr(section.content, "headline").trim() ? (
-                <h2>{contentStr(section.content, "headline")}</h2>
-              ) : null}
-              {contentStr(section.content, "body").trim() ? (
-                <p className="whitespace-pre-wrap">{contentStr(section.content, "body")}</p>
-              ) : null}
-              {visibleListItems(section.content.bullets).length > 0 ? (
-                <ul>
-                  {visibleListItems(section.content.bullets).map((b) => (
-                    <li key={b.id}>{b.text}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </section>
-          );
-        }
-        if (section.sectionType === "featured_posts") {
-          const topics = visibleListItems(section.content.topics);
-          return (
-            <section key={section.id}>
-              {contentStr(section.content, "headline").trim() ? (
-                <h2>{contentStr(section.content, "headline")}</h2>
-              ) : null}
-              {contentStr(section.content, "body").trim() ? (
-                <p>{contentStr(section.content, "body")}</p>
-              ) : null}
-              {topics.length > 0 ? (
-                <ul>
-                  {topics.map((t) => (
-                    <li key={t.id}>{t.text}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </section>
-          );
-        }
-        return null;
+      {middle.map((section) => {
+        const inner = renderMinistrySection(section);
+        return inner ? <Fragment key={section.id}>{inner}</Fragment> : null;
       })}
+      {footer ? <CtaSection section={footer} /> : null}
     </MinistryPageShell>
   );
 }
 
 function renderMinistrySection(section: PageSection) {
   switch (section.sectionType) {
+    case "hero":
+      return <HeroSection section={section} />;
     case "text_section":
       return <TextSectionBlock section={section} />;
     case "quote":
       return <QuoteSection section={section} />;
     case "cta":
       return <CtaSection section={section} />;
+    case "card_grid":
+      return <CardGridSection section={section} />;
+    case "timeline":
+      return <TimelineSection section={section} />;
+    case "featured_posts":
+      return <FeaturedPostsSection section={section} />;
+    case "image_text_split":
+      return <ImageTextSplitSection section={section} index={0} />;
     default:
       return null;
   }

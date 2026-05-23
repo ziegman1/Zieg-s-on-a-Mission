@@ -86,7 +86,9 @@ npm run dev
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:push` | Push schema (no migrations) |
 | `npm run db:migrate` | Create + apply migrations locally (`migrate dev`) |
-| `npm run db:migrate:deploy` | Apply pending migrations to target DB (`migrate deploy`) |
+| `npm run db:migrate:deploy` | Apply pending migrations locally (uses session pooler if direct `:5432` is unreachable) |
+| `npm run db:migrate:deploy:production` | Apply migrations on production env (unchanged; uses `.env.production`) |
+| `npm run db:migrate:deploy:direct` | Raw `prisma migrate deploy` with `.env.local` (no fallback) |
 | `npm run db:seed` | Seed database |
 | `npm run db:seed:admin` | Upsert admin user only (fix production login) |
 | `npm run db:studio` | Open Prisma Studio |

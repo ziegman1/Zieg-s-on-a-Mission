@@ -67,6 +67,57 @@ function cardsFrom(content: Record<string, unknown>): ListItem[] {
   return sortedListItems(content.cards, { includeHidden: true });
 }
 
+const CONTENT_LIST_KEYS: { prefix: string; key: string }[] = [
+  { prefix: "bullet:", key: "bullets" },
+  { prefix: "topic:", key: "topics" },
+  { prefix: "item:", key: "items" },
+];
+
+export function findListItemByElementId(
+  content: Record<string, unknown>,
+  elementId: string,
+): ListItem | undefined {
+  for (const { prefix, key } of CONTENT_LIST_KEYS) {
+    if (!elementId.startsWith(prefix)) continue;
+    const id = elementId.slice(prefix.length);
+    return sortedListItems(content[key], { includeHidden: true }).find((x) => x.id === id);
+  }
+  return undefined;
+}
+
+function patchContentListItem(
+  section: PageSection,
+  elementId: string,
+  patch: {
+    text?: string;
+    style?: ElementStyle;
+    stylePatch?: Partial<ElementStyle>;
+    visible?: boolean;
+  },
+): PageSection | null {
+  for (const { prefix, key } of CONTENT_LIST_KEYS) {
+    if (!elementId.startsWith(prefix)) continue;
+    const itemId = elementId.slice(prefix.length);
+    const list = sortedListItems(section.content[key], { includeHidden: true }).map((item) =>
+      item.id === itemId
+        ? {
+            ...item,
+            text: patch.text ?? item.text,
+            visible: patch.visible ?? item.visible,
+            style: patch.stylePatch
+              ? { ...item.style, ...patch.stylePatch }
+              : patch.style ?? item.style,
+          }
+        : item,
+    );
+    return {
+      ...section,
+      content: { ...section.content, [key]: list.map((x, i) => ({ ...x, sortOrder: i })) },
+    };
+  }
+  return null;
+}
+
 function setCards(section: PageSection, cards: ListItem[]): PageSection {
   return {
     ...section,
@@ -107,7 +158,13 @@ export function selectionFromElement(
 
 function elementTypeForId(section: PageSection, elementId: string): BuilderElementType | null {
   if (elementId.startsWith("card:")) return "card";
-  if (elementId.startsWith("bullet:")) return "list_item";
+  if (
+    elementId.startsWith("bullet:") ||
+    elementId.startsWith("topic:") ||
+    elementId.startsWith("item:")
+  ) {
+    return "list_item";
+  }
   if (elementId.startsWith("cta:")) return "button";
   if (elementId.startsWith("el:")) return "custom";
   if (elementId === "image") return "image";
@@ -151,6 +208,22 @@ export function listEditableElements(section: PageSection): string[] {
       ids.push(`bullet:${b.id}`);
     }
   }
+  if (t === "featured_posts") {
+    for (const key of ["headline", "body"]) {
+      if (key in c || contentStr(c, key)) ids.push(key);
+    }
+    for (const topic of sortedListItems(c.topics, { includeHidden: true })) {
+      ids.push(`topic:${topic.id}`);
+    }
+  }
+  if (t === "timeline") {
+    for (const key of ["headline", "intro"]) {
+      if (key in c || contentStr(c, key)) ids.push(key);
+    }
+    for (const item of sortedListItems(c.items, { includeHidden: true })) {
+      ids.push(`item:${item.id}`);
+    }
+  }
   for (const el of getContentElements(c)) ids.push(`el:${el.id}`);
   return ids;
 }
@@ -182,25 +255,8 @@ export function updateSectionElement(
     return setCards(section, cards);
   }
 
-  if (elementId.startsWith("bullet:")) {
-    const bulletId = elementId.slice(7);
-    const bullets = sortedListItems(section.content.bullets, { includeHidden: true }).map((b) =>
-      b.id === bulletId
-        ? {
-            ...b,
-            text: patch.text ?? b.text,
-            visible: patch.visible ?? b.visible,
-            style: patch.stylePatch
-              ? { ...b.style, ...patch.stylePatch }
-              : patch.style ?? b.style,
-          }
-        : b,
-    );
-    return {
-      ...section,
-      content: { ...section.content, bullets },
-    };
-  }
+  const listPatch = patchContentListItem(section, elementId, patch);
+  if (listPatch) return listPatch;
 
   if (elementId.startsWith("el:")) {
     const elId = elementId.slice(3);
@@ -349,12 +405,13 @@ export function deleteSectionElement(section: PageSection, elementId: string): P
       cardsFrom(section.content).filter((c) => c.id !== cardId),
     );
   }
-  if (elementId.startsWith("bullet:")) {
-    const bulletId = elementId.slice(7);
-    const bullets = sortedListItems(section.content.bullets, { includeHidden: true }).filter(
-      (b) => b.id !== bulletId,
+  for (const { prefix, key } of CONTENT_LIST_KEYS) {
+    if (!elementId.startsWith(prefix)) continue;
+    const itemId = elementId.slice(prefix.length);
+    const list = sortedListItems(section.content[key], { includeHidden: true }).filter(
+      (x) => x.id !== itemId,
     );
-    return { ...section, content: { ...section.content, bullets } };
+    return { ...section, content: { ...section.content, [key]: list } };
   }
   if (elementId.startsWith("el:")) {
     const elId = elementId.slice(3);
@@ -502,4 +559,6 @@ export const EDITABLE_SECTION_TYPES: SectionType[] = [
   "card_grid",
   "quote",
   "cta",
+  "timeline",
+  "featured_posts",
 ];

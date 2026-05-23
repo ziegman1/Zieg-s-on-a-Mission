@@ -114,10 +114,10 @@ function defaultHomeSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       imageUrl: g.heroImageUrl || DEFAULT_HOME_HERO_IMAGE_PATH,
       primaryCtaLabel: c.homeHero.primaryCtaLabel,
       primaryCtaUrl: "/partner",
-      secondaryCtaLabel: c.homeHero.secondaryCtaLabel,
-      secondaryCtaUrl: "/give",
-      tertiaryCtaLabel: g.heroLearnMoreLabel,
-      tertiaryCtaUrl: "/mission",
+      secondaryCtaLabel: g.heroLearnMoreLabel,
+      secondaryCtaUrl: "/mission",
+      tertiaryCtaLabel: "Give",
+      tertiaryCtaUrl: "/give",
     }),
   ];
 

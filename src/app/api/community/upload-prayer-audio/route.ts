@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   extensionForPrayerAudioMime,
   isCommunityPrayerAudioMimeType,
+  normalizePrayerAudioMime,
   validateCommunityPrayerAudioFile,
 } from "@/lib/community/media-upload";
 import { assertCanUploadPrayerAudio } from "@/lib/community/prayer-audio-auth";
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
-  const mimeType = file.type || "audio/webm";
+  const mimeType = normalizePrayerAudioMime(file.type, file.name) || "audio/webm";
   if (!isCommunityPrayerAudioMimeType(mimeType)) {
     return NextResponse.json({ error: "Unsupported audio type" }, { status: 400 });
   }
@@ -57,6 +58,13 @@ export async function POST(request: Request) {
   } catch (e) {
     console.error("[community/upload-prayer-audio]", e);
     const message = e instanceof Error ? e.message : "Upload failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const isDev = process.env.NODE_ENV === "development";
+    return NextResponse.json(
+      {
+        error: isDev ? message : "Could not upload audio. Try again or use a different file format.",
+        ...(isDev && e instanceof Error ? { detail: e.message } : {}),
+      },
+      { status: 500 },
+    );
   }
 }

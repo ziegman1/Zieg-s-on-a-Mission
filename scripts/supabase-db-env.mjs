@@ -110,6 +110,24 @@ export function validateSupabaseDbUrls(databaseUrl, directUrl) {
   return { ok: errors.length === 0, errors, warnings };
 }
 
+/**
+ * Session-mode pooler (:5432, no pgbouncer) — use for Prisma migrate when direct :5432 is unreachable.
+ * Built from DATABASE_URL (transaction pooler :6543).
+ */
+export function sessionPoolerUrlFromDatabaseUrl(databaseUrl) {
+  const normalized = normalizeDbUrl(databaseUrl);
+  if (!normalized) return "";
+  try {
+    const httpish = normalized.replace(/^postgresql:\/\//, "http://");
+    const u = new URL(httpish);
+    u.port = "5432";
+    u.search = "";
+    return u.toString().replace(/^http:\/\//, "postgresql://");
+  } catch {
+    return "";
+  }
+}
+
 export function loadEnvFile(path, fs, existsSync) {
   if (!existsSync(path)) return {};
   const content = fs.readFileSync(path, "utf-8");

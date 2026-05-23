@@ -535,3 +535,25 @@ model CommunityHubSettingsRecord {
 
   @@map("community_hub_settings")
 }
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model BlogPost {
+  id               String         @id @default(cuid())
+  title            String
+  slug             String         @unique
+  excerpt          String         @default("")
+  body             String         @default("")
+  featuredImageUrl String?        @map("featured_image_url")
+  featuredImageAlt String         @default("") @map("featured_image_alt")
+  status           BlogPostStatus @default(DRAFT)
+  publishedAt      DateTime?      @map("published_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@map("blog_posts")
+}

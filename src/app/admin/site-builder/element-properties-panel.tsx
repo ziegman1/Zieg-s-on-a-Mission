@@ -17,6 +17,7 @@ import {
   reorderContentElements,
   restoreElementFromDefaults,
   updateSectionElement,
+  findListItemByElementId,
 } from "@/lib/site-builder/section-elements";
 import { contentStr, getFieldStyle, sortedListItems } from "@/lib/site-builder/content-utils";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
@@ -633,7 +634,7 @@ export function ElementPropertiesPanel({
     }
 
     if (elementType === "list_item") {
-      const item = sortedListItems(c.bullets, { includeHidden: true }).find((b) => `bullet:${b.id}` === elementId);
+      const item = findListItemByElementId(c, elementId);
       if (!item) return null;
       return (
         <Field
@@ -688,12 +689,14 @@ function toggleElementVisible(section: PageSection, elementId: string): PageSect
     if (!card) return section;
     return updateSectionElement(section, elementId, { visible: !card.visible });
   }
-  if (elementId.startsWith("bullet:")) {
-    const item = sortedListItems(section.content.bullets, { includeHidden: true }).find(
-      (b) => `bullet:${b.id}` === elementId,
-    );
-    if (!item) return section;
-    return updateSectionElement(section, elementId, { visible: !item.visible });
+  const listItem = findListItemByElementId(section.content, elementId);
+  if (
+    listItem &&
+    (elementId.startsWith("bullet:") ||
+      elementId.startsWith("topic:") ||
+      elementId.startsWith("item:"))
+  ) {
+    return updateSectionElement(section, elementId, { visible: !listItem.visible });
   }
   if (elementId.startsWith("el:")) {
     const el = getContentElements(section.content).find((e) => `el:${e.id}` === elementId);
