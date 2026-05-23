@@ -12,7 +12,11 @@ import {
   formatNewsletterBrandSettingsError,
   logNewsletterBrandSettingsAction,
 } from "@/lib/newsletter/errors";
-import { isValidOptionalUrl } from "@/lib/newsletter/blocks/validate";
+import {
+  isValidNewsletterLinkUrl,
+  NEWSLETTER_LINK_URL_ERROR,
+  normalizeNewsletterLinkUrl,
+} from "@/lib/newsletter/cta-url";
 import { revalidatePath } from "next/cache";
 
 export async function loadNewsletterBrandSettingsAction(): Promise<
@@ -40,12 +44,12 @@ export async function saveNewsletterBrandSettingsAction(
   if (!session) return { ok: false, error: "Unauthorized" };
 
   const url = input.defaultHeaderImageUrl?.trim();
-  if (url && !isValidOptionalUrl(url)) {
-    return { ok: false, error: "Header image URL must be http(s) or a site path starting with /." };
+  if (url && !isValidNewsletterLinkUrl(url)) {
+    return { ok: false, error: NEWSLETTER_LINK_URL_ERROR };
   }
-  const ctaUrl = input.defaultCtaUrl.trim();
-  if (ctaUrl && !isValidOptionalUrl(ctaUrl)) {
-    return { ok: false, error: "Default CTA URL must be http(s) or a site path starting with /." };
+  const ctaUrl = normalizeNewsletterLinkUrl(input.defaultCtaUrl);
+  if (ctaUrl && !isValidNewsletterLinkUrl(ctaUrl)) {
+    return { ok: false, error: NEWSLETTER_LINK_URL_ERROR };
   }
   if (!input.headerAltText.trim() && url) {
     return { ok: false, error: "Header alt text is required when a header image is set." };

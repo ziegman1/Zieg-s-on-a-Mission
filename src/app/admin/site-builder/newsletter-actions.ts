@@ -19,7 +19,11 @@ import {
 import { revalidateNewsletterPaths } from "@/lib/newsletter/revalidate";
 import { parseNewsletterBlocks } from "@/lib/newsletter/blocks/parse";
 import { parseCtaAlign, type CtaAlign } from "@/lib/newsletter/align";
-import { isValidOptionalUrl } from "@/lib/newsletter/blocks/validate";
+import {
+  isValidNewsletterLinkUrl,
+  NEWSLETTER_LINK_URL_ERROR,
+  normalizeNewsletterLinkUrl,
+} from "@/lib/newsletter/cta-url";
 import type { NewsletterBlocks } from "@/lib/newsletter/blocks/types";
 import type { NewsletterInput, NewsletterRecord, NewsletterStatus } from "@/lib/newsletter/types";
 import { requireAdminSession } from "@/lib/admin-auth";
@@ -49,9 +53,9 @@ export type NewsletterFormInput = {
 };
 
 function normalizeInput(input: NewsletterFormInput): NewsletterInput {
-  const ctaUrl = input.ctaUrl.trim();
-  if (ctaUrl && !isValidOptionalUrl(ctaUrl)) {
-    throw new Error("CTA URL must be http(s) or a site path starting with /.");
+  const ctaUrl = normalizeNewsletterLinkUrl(input.ctaUrl);
+  if (ctaUrl && !isValidNewsletterLinkUrl(ctaUrl)) {
+    throw new Error(NEWSLETTER_LINK_URL_ERROR);
   }
   return {
     id: input.id?.trim() || undefined,
@@ -66,7 +70,7 @@ function normalizeInput(input: NewsletterFormInput): NewsletterInput {
     body: input.body,
     bodyBlocks: parseNewsletterBlocks(input.bodyBlocks),
     ctaLabel: input.ctaLabel.trim(),
-    ctaUrl: input.ctaUrl.trim(),
+    ctaUrl,
     ctaAlign: parseCtaAlign(input.ctaAlign),
     footerImageUrl: input.footerImageUrl?.trim() || null,
     footerAltText: input.footerAltText.trim(),

@@ -1,22 +1,20 @@
+import {
+  isValidNewsletterLinkUrl,
+  NEWSLETTER_LINK_URL_ERROR,
+  normalizeNewsletterLinkUrl,
+} from "@/lib/newsletter/cta-url";
 import type { NewsletterBlocks } from "./types";
 import { hasVisibleNewsletterContent, isBlockVisible } from "./visible";
 
+/** @deprecated Use isValidNewsletterLinkUrl — kept for existing imports. */
 export function isValidOptionalUrl(url: string): boolean {
-  const t = url.trim();
-  if (!t) return true;
-  if (t.startsWith("/")) return true;
-  try {
-    const u = new URL(t);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return isValidNewsletterLinkUrl(url);
 }
 
 export function isValidRequiredUrl(url: string): boolean {
-  const t = url.trim();
+  const t = normalizeNewsletterLinkUrl(url);
   if (!t) return false;
-  return isValidOptionalUrl(t);
+  return isValidNewsletterLinkUrl(t);
 }
 
 export type BlockValidationIssue = { blockId: string; message: string };
@@ -35,8 +33,8 @@ export function validateNewsletterBlocks(
         if (block.imageUrl.trim() && !block.alt.trim()) {
           issues.push({ blockId: block.id, message: "Image blocks require alt text." });
         }
-        if (block.imageUrl.trim() && !isValidOptionalUrl(block.imageUrl)) {
-          issues.push({ blockId: block.id, message: "Image URL must be http(s) or a site path." });
+        if (block.imageUrl.trim() && !isValidNewsletterLinkUrl(block.imageUrl)) {
+          issues.push({ blockId: block.id, message: NEWSLETTER_LINK_URL_ERROR });
         }
         break;
       case "image_text":
@@ -50,11 +48,11 @@ export function validateNewsletterBlocks(
               message: "Button label and URL are both required.",
             });
           } else if (!isValidRequiredUrl(block.buttonUrl)) {
-            issues.push({ blockId: block.id, message: "Button URL is invalid." });
+            issues.push({ blockId: block.id, message: NEWSLETTER_LINK_URL_ERROR });
           }
         }
-        if (block.imageUrl.trim() && !isValidOptionalUrl(block.imageUrl)) {
-          issues.push({ blockId: block.id, message: "Image URL is invalid." });
+        if (block.imageUrl.trim() && !isValidNewsletterLinkUrl(block.imageUrl)) {
+          issues.push({ blockId: block.id, message: NEWSLETTER_LINK_URL_ERROR });
         }
         break;
       case "button":
@@ -65,7 +63,7 @@ export function validateNewsletterBlocks(
               message: "Button blocks require label and URL.",
             });
           } else if (!isValidRequiredUrl(block.url)) {
-            issues.push({ blockId: block.id, message: "Button URL is invalid." });
+            issues.push({ blockId: block.id, message: NEWSLETTER_LINK_URL_ERROR });
           }
         }
         break;

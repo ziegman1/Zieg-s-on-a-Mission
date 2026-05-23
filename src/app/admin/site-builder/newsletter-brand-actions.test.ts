@@ -38,6 +38,32 @@ describe("saveNewsletterBrandSettingsAction", () => {
     }
   });
 
+  it("accepts default CTA URL with trailing slash", async () => {
+    vi.mocked(upsertNewsletterBrandSettings).mockResolvedValue({
+      ...DEFAULT_NEWSLETTER_BRAND_SETTINGS,
+      defaultCtaUrl: "https://teamexpansion.org/theziegenhorns/",
+    });
+
+    const res = await saveNewsletterBrandSettingsAction({
+      ...DEFAULT_NEWSLETTER_BRAND_SETTINGS,
+      defaultCtaUrl: "  https://teamexpansion.org/theziegenhorns/  ",
+    });
+
+    expect(res.ok).toBe(true);
+  });
+
+  it("rejects javascript: default CTA URL", async () => {
+    const res = await saveNewsletterBrandSettingsAction({
+      ...DEFAULT_NEWSLETTER_BRAND_SETTINGS,
+      defaultCtaUrl: "javascript:alert(1)",
+    });
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toMatch(/https:\/\/ or a site path/i);
+    }
+  });
+
   it("saves branding when persistence succeeds", async () => {
     vi.mocked(upsertNewsletterBrandSettings).mockResolvedValue({
       ...DEFAULT_NEWSLETTER_BRAND_SETTINGS,

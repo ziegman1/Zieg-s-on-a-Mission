@@ -129,6 +129,31 @@ describe("validateNewsletterBlocks", () => {
     const issues = validateNewsletterBlocks([btn], "publish");
     expect(issues[0]?.message).toMatch(/label and URL/i);
   });
+
+  it("accepts https external URLs with trailing slash on button blocks", () => {
+    const btn = createNewsletterBlock("button") as ButtonBlock;
+    btn.label = "Give";
+    btn.url = "https://teamexpansion.org/theziegenhorns/";
+    expect(validateNewsletterBlocks([btn], "publish")).toEqual([]);
+  });
+
+  it("accepts internal paths on image_text button URL", () => {
+    const block = createNewsletterBlock("image_text");
+    if (block.type !== "image_text") throw new Error("expected image_text");
+    block.imageUrl = "https://cdn.example.com/a.jpg";
+    block.alt = "Alt";
+    block.buttonLabel = "Partner";
+    block.buttonUrl = "/partner";
+    expect(validateNewsletterBlocks([block], "publish")).toEqual([]);
+  });
+
+  it("rejects javascript: button URLs with standard message", () => {
+    const btn = createNewsletterBlock("button") as ButtonBlock;
+    btn.label = "Bad";
+    btn.url = "javascript:alert(1)";
+    const issues = validateNewsletterBlocks([btn], "publish");
+    expect(issues[0]?.message).toMatch(/https:\/\/ or a site path/i);
+  });
 });
 
 describe("assertNewsletterContent", () => {
