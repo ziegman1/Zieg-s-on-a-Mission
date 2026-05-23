@@ -1,6 +1,11 @@
 # Supabase Storage — Newsletter Builder `newsletter-assets`
 
-Newsletter Builder image uploads (branding header/footer, featured image, image blocks) use **Supabase Storage** on the server. The browser never talks to Supabase directly — admins upload via `POST /api/admin/upload-newsletter-image` (NextAuth session + `SUPABASE_SERVICE_ROLE_KEY`).
+Newsletter Builder uploads (images and PDF documents) use **Supabase Storage** on the server. The browser never talks to Supabase directly — admins upload via:
+
+- `POST /api/admin/upload-newsletter-image` (images)
+- `POST /api/admin/upload-newsletter-document` (PDFs)
+
+Both require NextAuth session + `SUPABASE_SERVICE_ROLE_KEY`.
 
 Mission Hub post covers use the same Supabase project and env vars but the **`community-media`** bucket. See [supabase-community-media.md](./supabase-community-media.md).
 
@@ -52,8 +57,10 @@ newsletter-assets/
     footer/{uuid}.jpg
   newsletters/{newsletterId}/
     featured|header|footer|blocks/{uuid}.jpg
+    documents/{uuid}.pdf
   temp/
     {purpose}/{uuid}.jpg    # drafts before first save
+    documents/{uuid}.pdf
 ```
 
 ## 3. App architecture

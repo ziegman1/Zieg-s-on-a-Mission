@@ -49,6 +49,13 @@ describe("isValidNewsletterLinkUrl", () => {
   it("rejects protocol-relative URLs", () => {
     expect(isValidNewsletterLinkUrl("//evil.com/phish")).toBe(false);
   });
+
+  it("rejects file:// local paths", () => {
+    expect(isValidNewsletterLinkUrl("file:///Users/me/doc.pdf")).toBe(false);
+    expect(validateNewsletterLinkUrl("file:///C:/docs/guide.pdf")).toBe(
+      "Local files must be uploaded before they can be used in newsletters.",
+    );
+  });
 });
 
 describe("validateNewsletterLinkUrl", () => {

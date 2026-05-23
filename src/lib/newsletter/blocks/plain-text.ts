@@ -29,6 +29,13 @@ export function blocksToPlainBody(blocks: NewsletterBlocks): string {
       case "button":
         if (block.label.trim()) parts.push(`${block.label.trim()}: ${block.url.trim()}`);
         break;
+      case "document":
+        if (block.title.trim()) parts.push(block.title.trim());
+        if (block.description.trim()) parts.push(block.description.trim());
+        if (block.buttonLabel.trim() && block.documentUrl.trim()) {
+          parts.push(`${block.buttonLabel.trim()}: ${block.documentUrl.trim()}`);
+        }
+        break;
       default:
         break;
     }

@@ -56,6 +56,18 @@ function parseOne(raw: unknown): NewsletterBlock | null {
         align: align === "left" || align === "right" ? align : "center",
       };
     }
+    case "document": {
+      const align = str("align");
+      return {
+        id,
+        type: "document",
+        documentUrl: str("documentUrl"),
+        title: str("title"),
+        description: str("description"),
+        buttonLabel: str("buttonLabel") || "Download PDF",
+        align: align === "left" || align === "right" ? align : "center",
+      };
+    }
     case "divider":
       return { id, type: "divider" };
     case "quote":

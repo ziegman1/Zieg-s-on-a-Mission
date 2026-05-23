@@ -3,6 +3,7 @@ export const NEWSLETTER_BLOCK_TYPES = [
   "image",
   "image_text",
   "button",
+  "document",
   "divider",
   "quote",
   "heading",
@@ -42,6 +43,13 @@ export type ButtonBlock = BlockBase<"button"> & {
   url: string;
   align: ButtonAlign;
 };
+export type DocumentBlock = BlockBase<"document"> & {
+  documentUrl: string;
+  title: string;
+  description: string;
+  buttonLabel: string;
+  align: ButtonAlign;
+};
 export type DividerBlock = BlockBase<"divider">;
 export type QuoteBlock = BlockBase<"quote"> & {
   text: string;
@@ -58,6 +66,7 @@ export type NewsletterBlock =
   | ImageBlock
   | ImageTextBlock
   | ButtonBlock
+  | DocumentBlock
   | DividerBlock
   | QuoteBlock
   | HeadingBlock

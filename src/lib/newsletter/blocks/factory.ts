@@ -36,6 +36,16 @@ export function createNewsletterBlock(type: NewsletterBlockType): NewsletterBloc
       };
     case "button":
       return { id, type: "button", label: "", url: "", align: "center" as ButtonAlign };
+    case "document":
+      return {
+        id,
+        type: "document",
+        documentUrl: "",
+        title: "",
+        description: "",
+        buttonLabel: "Download PDF",
+        align: "center" as ButtonAlign,
+      };
     case "divider":
       return { id, type: "divider" };
     case "quote":
@@ -54,6 +64,7 @@ export const BLOCK_TYPE_LABELS: Record<NewsletterBlockType, string> = {
   image: "Image",
   image_text: "Image + text",
   button: "Button",
+  document: "Document / PDF",
   divider: "Divider",
   quote: "Quote",
   heading: "Heading",

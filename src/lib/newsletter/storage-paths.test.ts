@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNewsletterAssetPath } from "./storage-paths";
+import { buildNewsletterAssetPath, buildNewsletterDocumentPath } from "./storage-paths";
 
 describe("buildNewsletterAssetPath", () => {
   it("places branding header/footer without newsletter id", () => {
@@ -35,6 +35,13 @@ describe("buildNewsletterAssetPath", () => {
     expect(buildNewsletterAssetPath("block", "jpg")).toMatch(
       /^temp\/block\/[0-9a-f-]+\.jpg$/,
     );
+  });
+
+  it("places PDFs under newsletters/{id}/documents or temp/documents", () => {
+    expect(
+      buildNewsletterDocumentPath("pdf", { newsletterId: "nl_abc123" }),
+    ).toMatch(/^newsletters\/nl_abc123\/documents\/[0-9a-f-]+\.pdf$/);
+    expect(buildNewsletterDocumentPath("pdf")).toMatch(/^temp\/documents\/[0-9a-f-]+\.pdf$/);
   });
 
   it("ignores invalid newsletter ids", () => {

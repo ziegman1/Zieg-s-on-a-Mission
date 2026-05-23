@@ -1,3 +1,4 @@
+import { sanitizeNewsletterBlocksForEmail, resolveHostedUrlForEmail } from "./blocks/email-sanitize";
 import type { NewsletterBlocks } from "./blocks/types";
 import { parseCtaAlign } from "./align";
 import type { NewsletterBrandSettings } from "./brand-types";
@@ -32,12 +33,13 @@ export function buildNewsletterEmailPayload(
   const header = resolveNewsletterHeader(newsletter, brand);
   const footer = resolveNewsletterFooter(newsletter, brand);
   const label = newsletter.ctaLabel.trim() || brand.defaultCtaLabel.trim();
-  const url = newsletter.ctaUrl.trim() || brand.defaultCtaUrl.trim();
+  const rawUrl = newsletter.ctaUrl.trim() || brand.defaultCtaUrl.trim();
+  const hostedUrl = rawUrl ? resolveHostedUrlForEmail(rawUrl) : null;
   const cta =
-    label && url
+    label && hostedUrl
       ? {
           label,
-          url,
+          url: hostedUrl,
           align: parseCtaAlign(newsletter.ctaAlign),
         }
       : null;
@@ -49,7 +51,7 @@ export function buildNewsletterEmailPayload(
     header,
     footer,
     cta,
-    blocks: newsletter.bodyBlocks,
+    blocks: sanitizeNewsletterBlocksForEmail(newsletter.bodyBlocks),
     featuredImageUrl: newsletter.featuredImageUrl,
   };
 }

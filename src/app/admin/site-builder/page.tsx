@@ -5,6 +5,7 @@ import { listNewslettersForAdmin } from "@/lib/newsletter/newsletter-db";
 import { formatNewsletterError } from "@/lib/newsletter/errors";
 import { BUILDER_PAGES } from "@/lib/site-builder/types";
 import { loadPageSectionsForAdmin } from "@/lib/site-builder/sections-db";
+import { Suspense } from "react";
 import { SiteBuilderEditor } from "./site-builder-editor";
 
 export const dynamic = "force-dynamic";
@@ -47,14 +48,20 @@ export default async function AdminSiteBuilderPage() {
         header). <strong className="text-zinc-300">Community</strong> edits the Mission Hub landing above the feed.{" "}
         <strong className="text-zinc-300">Newsletters</strong> are managed separately from page sections.
       </p>
-      <SiteBuilderEditor
-        initialPages={initialPages}
-        initialBlogPosts={initialBlogPosts}
-        blogLoadError={blogLoadError}
-        initialNewsletters={initialNewsletters}
-        initialNewsletterBrand={initialNewsletterBrand}
-        newsletterLoadError={newsletterLoadError}
-      />
+      <Suspense
+        fallback={
+          <p className="text-sm text-zinc-500 py-8">Loading site builder…</p>
+        }
+      >
+        <SiteBuilderEditor
+          initialPages={initialPages}
+          initialBlogPosts={initialBlogPosts}
+          blogLoadError={blogLoadError}
+          initialNewsletters={initialNewsletters}
+          initialNewsletterBrand={initialNewsletterBrand}
+          newsletterLoadError={newsletterLoadError}
+        />
+      </Suspense>
     </div>
   );
 }

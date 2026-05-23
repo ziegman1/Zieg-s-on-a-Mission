@@ -1,6 +1,7 @@
 import type { CommunityCoverMimeType } from "@/lib/community/media-upload";
 import {
   buildNewsletterAssetPathFromMime,
+  buildNewsletterDocumentPath,
   type NewsletterImagePurpose,
 } from "@/lib/newsletter/storage-paths";
 import {
@@ -42,7 +43,7 @@ function mapStorageUploadError(message: string): string {
     );
   }
   if (lower.includes("payload too large") || lower.includes("file size")) {
-    return "Image exceeds size limit.";
+    return "File exceeds size limit.";
   }
   if (lower.includes("mime") || lower.includes("not allowed")) {
     return "Unsupported file type.";
@@ -62,6 +63,37 @@ export async function uploadNewsletterAsset(
 
   const { error } = await supabase.storage.from(NEWSLETTER_ASSETS_BUCKET).upload(path, bytes, {
     contentType,
+    cacheControl: "31536000",
+    upsert: false,
+  });
+
+  if (error) {
+    if (error.message?.toLowerCase().includes("bucket") || error.message?.includes("not found")) {
+      throw new Error(
+        `Storage bucket "${NEWSLETTER_ASSETS_BUCKET}" is missing. ` +
+          "Create it in Supabase (see docs/supabase-newsletter-assets.md).",
+      );
+    }
+    throw new Error(mapStorageUploadError(error.message || "Upload failed"));
+  }
+
+  const url = getNewsletterAssetPublicUrl(path);
+  if (!url) throw new Error("Upload failed. Could not build public URL.");
+  return { url, path };
+}
+
+const PDF_MIME = "application/pdf";
+
+/** Upload newsletter PDF to Supabase Storage (`newsletter-assets` bucket). */
+export async function uploadNewsletterDocument(
+  bytes: Buffer,
+  options?: { newsletterId?: string },
+): Promise<{ url: string; path: string }> {
+  const supabase = getSupabaseStorageAdmin();
+  const path = buildNewsletterDocumentPath("pdf", options);
+
+  const { error } = await supabase.storage.from(NEWSLETTER_ASSETS_BUCKET).upload(path, bytes, {
+    contentType: PDF_MIME,
     cacheControl: "31536000",
     upsert: false,
   });

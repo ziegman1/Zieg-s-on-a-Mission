@@ -1,7 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { NEWSLETTER_BUILDER_NAV } from "@/lib/site-builder/types";
+import {
+  clearNewsletterEditorDraft,
+  loadNewsletterEditorDraft,
+  newIssueDraftKey,
+  saveNewsletterEditorDraft,
+  shouldApplyNewsletterEditorDraft,
+  type NewsletterEditorDraftForm,
+} from "@/lib/newsletter/editor-draft";
+import { useSiteBuilderNavigation } from "./use-site-builder-navigation";
 import { ArrowLeft, ExternalLink, Loader2, Plus, X } from "lucide-react";
 import { blocksToPlainBody } from "@/lib/newsletter/blocks/plain-text";
 import { hasVisibleNewsletterContent } from "@/lib/newsletter/blocks/visible";
@@ -142,6 +152,10 @@ function statusLabel(status: NewsletterStatus): string {
   return "Draft";
 }
 
+function formToDraftForm(form: NewsletterFormState): NewsletterEditorDraftForm {
+  return { ...form, bodyBlocks: form.bodyBlocks };
+}
+
 function recordToPayload(n: NewsletterRecord) {
   return {
     id: n.id,
@@ -184,29 +198,51 @@ export function NewslettersManager({
   onError?: (message: string | null) => void;
 }) {
   const router = useRouter();
+  const { state: urlState, navigate } = useSiteBuilderNavigation();
   const [items, setItems] = useState(initialNewsletters);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [brandSettings, setBrandSettings] = useState(initialBrandSettings);
-  const [managerTab, setManagerTab] = useState<"issues" | "branding">("issues");
   const [form, setForm] = useState<NewsletterFormState>(() => emptyForm(initialBrandSettings));
   const [slugTouched, setSlugTouched] = useState(false);
   const [error, setError] = useState<string | null>(loadError ?? null);
   const [success, setSuccess] = useState<string | null>(null);
   const [listBusy, setListBusy] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [composerLayoutMode, setComposerLayoutMode] =
-    useState<NewsletterComposerLayoutMode>("split");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [recoveredDraft, setRecoveredDraft] = useState(false);
 
-  const isComposing = editingId !== null || Boolean(form.title.trim());
+  const managerTab =
+    urlState.page === NEWSLETTER_BUILDER_NAV.id ? urlState.newsletterTab : "issues";
+  const issueFromUrl =
+    urlState.page === NEWSLETTER_BUILDER_NAV.id && managerTab === "issues"
+      ? urlState.issue
+      : null;
+  const composerLayoutMode = urlState.mode;
+
+  const serverMetaRef = useRef<{
+    serverLoadedAt: number | null;
+    serverUpdatedAt: string | null;
+  }>({ serverLoadedAt: null, serverUpdatedAt: null });
+  const lastHydratedKeyRef = useRef<string | null>(null);
+  const skipDraftPersistRef = useRef(true);
+
+  const isComposing = Boolean(issueFromUrl);
 
   const resetEditor = useCallback(() => {
+    navigate({
+      page: NEWSLETTER_BUILDER_NAV.id,
+      newsletterTab: "issues",
+      issue: null,
+      mode: "split",
+    });
+    lastHydratedKeyRef.current = null;
     setEditingId(null);
     setForm(emptyForm(brandSettings));
     setSlugTouched(false);
+    setRecoveredDraft(false);
     setError(null);
     setSuccess(null);
-  }, [brandSettings]);
+  }, [brandSettings, navigate]);
 
   const reloadFromDb = useCallback(async (): Promise<boolean> => {
     setListBusy(true);
@@ -237,26 +273,174 @@ export function NewslettersManager({
     void reloadFromDb();
   }, [reloadFromDb]);
 
+  const hydrateFromUrl = useCallback(() => {
+    if (urlState.page !== NEWSLETTER_BUILDER_NAV.id) return;
+
+    if (managerTab === "branding") {
+      lastHydratedKeyRef.current = `branding`;
+      setEditingId(null);
+      setRecoveredDraft(false);
+      return;
+    }
+
+    if (!issueFromUrl) {
+      lastHydratedKeyRef.current = "issues:list";
+      setEditingId(null);
+      setRecoveredDraft(false);
+      return;
+    }
+
+    const hydrateKey = `issues:${issueFromUrl}`;
+    if (lastHydratedKeyRef.current === hydrateKey) return;
+
+    if (issueFromUrl === "new") {
+      lastHydratedKeyRef.current = hydrateKey;
+      setEditingId("new");
+      const draft = loadNewsletterEditorDraft(newIssueDraftKey());
+      if (
+        draft &&
+        shouldApplyNewsletterEditorDraft(draft, {
+          draftKey: newIssueDraftKey(),
+          serverLoadedAt: null,
+        })
+      ) {
+        setForm(draft.form as NewsletterFormState);
+        setSlugTouched(draft.slugTouched);
+        setRecoveredDraft(true);
+        skipDraftPersistRef.current = false;
+        serverMetaRef.current = { serverLoadedAt: null, serverUpdatedAt: null };
+      } else {
+        setForm(emptyForm(brandSettings));
+        setSlugTouched(false);
+        setRecoveredDraft(false);
+        skipDraftPersistRef.current = false;
+        serverMetaRef.current = { serverLoadedAt: null, serverUpdatedAt: null };
+      }
+      return;
+    }
+
+    const record =
+      items.find((n) => n.id === issueFromUrl) ??
+      initialNewsletters.find((n) => n.id === issueFromUrl);
+    if (!record) {
+      if (listBusy) return;
+      lastHydratedKeyRef.current = hydrateKey;
+      setError(`Newsletter not found (id ${issueFromUrl}).`);
+      navigate({ issue: null });
+      return;
+    }
+
+    lastHydratedKeyRef.current = hydrateKey;
+    setEditingId(record.id);
+    const serverLoadedAt = Date.now();
+    const draft = loadNewsletterEditorDraft(record.id);
+    if (
+      draft &&
+      shouldApplyNewsletterEditorDraft(draft, {
+        draftKey: record.id,
+        serverLoadedAt,
+        serverUpdatedAt: record.updatedAt,
+      })
+    ) {
+      setForm(draft.form as NewsletterFormState);
+      setSlugTouched(draft.slugTouched);
+      setRecoveredDraft(true);
+      skipDraftPersistRef.current = false;
+    } else {
+      setForm(postToForm(record));
+      setSlugTouched(true);
+      setRecoveredDraft(false);
+      skipDraftPersistRef.current = true;
+    }
+    serverMetaRef.current = {
+      serverLoadedAt,
+      serverUpdatedAt: record.updatedAt,
+    };
+  }, [
+    urlState.page,
+    managerTab,
+    issueFromUrl,
+    items,
+    initialNewsletters,
+    brandSettings,
+    listBusy,
+    navigate,
+  ]);
+
+  useEffect(() => {
+    hydrateFromUrl();
+  }, [hydrateFromUrl]);
+
+  const draftStorageKey =
+    editingId === "new" ? newIssueDraftKey() : editingId && editingId !== "new" ? editingId : null;
+
+  useEffect(() => {
+    if (!draftStorageKey || !isComposing || managerTab === "branding" || skipDraftPersistRef.current) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      saveNewsletterEditorDraft({
+        draftKey: draftStorageKey,
+        savedAt: Date.now(),
+        serverLoadedAt: serverMetaRef.current.serverLoadedAt,
+        serverUpdatedAt: serverMetaRef.current.serverUpdatedAt,
+        slugTouched,
+        composerLayoutMode,
+        form: formToDraftForm(form),
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [form, composerLayoutMode, slugTouched, draftStorageKey, isComposing, managerTab]);
+
   function patchForm(patch: Partial<NewsletterFormState>) {
+    skipDraftPersistRef.current = false;
     setForm((f) => ({ ...f, ...patch }));
   }
 
+  function discardRecoveredDraft() {
+    const key = editingId === "new" ? newIssueDraftKey() : editingId;
+    if (!key) return;
+    clearNewsletterEditorDraft(key);
+    lastHydratedKeyRef.current = null;
+    if (editingId === "new") {
+      setForm(emptyForm(brandSettings));
+      setSlugTouched(false);
+    } else {
+      const record = items.find((n) => n.id === editingId);
+      if (record) {
+        setForm(postToForm(record));
+        setSlugTouched(true);
+        serverMetaRef.current = {
+          serverLoadedAt: Date.now(),
+          serverUpdatedAt: record.updatedAt,
+        };
+      }
+    }
+    setRecoveredDraft(false);
+    hydrateFromUrl();
+  }
+
   function startNew() {
-    resetEditor();
-    setForm(emptyForm(brandSettings));
-    setEditingId("new");
-    setManagerTab("issues");
-    setComposerLayoutMode("split");
+    lastHydratedKeyRef.current = null;
     setSettingsOpen(false);
+    navigate({
+      page: NEWSLETTER_BUILDER_NAV.id,
+      newsletterTab: "issues",
+      issue: "new",
+      mode: "split",
+    });
   }
 
   function startEdit(n: NewsletterRecord) {
-    setEditingId(n.id);
-    setForm(postToForm(n));
-    setSlugTouched(true);
+    lastHydratedKeyRef.current = null;
     setError(null);
-    setComposerLayoutMode("split");
     setSettingsOpen(false);
+    navigate({
+      page: NEWSLETTER_BUILDER_NAV.id,
+      newsletterTab: "issues",
+      issue: n.id,
+      mode: "split",
+    });
   }
 
   function previewUrl(n: NewsletterRecord): string {
@@ -316,9 +500,29 @@ export function NewslettersManager({
       onError?.(res.error);
       return;
     }
+    const wasNew = editingId === "new" || !editingId;
+    clearNewsletterEditorDraft(newIssueDraftKey());
+    clearNewsletterEditorDraft(res.newsletter.id);
+    lastHydratedKeyRef.current = null;
+    setRecoveredDraft(false);
+    skipDraftPersistRef.current = true;
+    serverMetaRef.current = {
+      serverLoadedAt: Date.now(),
+      serverUpdatedAt: res.newsletter.updatedAt,
+    };
     setEditingId(res.newsletter.id);
     setForm(postToForm(res.newsletter));
     setSlugTouched(true);
+    navigate({
+      page: NEWSLETTER_BUILDER_NAV.id,
+      newsletterTab: "issues",
+      issue: res.newsletter.id,
+      mode: composerLayoutMode,
+    });
+    if (wasNew) {
+      // ensure hydration runs with new id
+      lastHydratedKeyRef.current = null;
+    }
         const detail = res.hub
           ? [
               res.message,
@@ -426,7 +630,14 @@ export function NewslettersManager({
                 "px-3 py-1 rounded-full transition-colors",
                 managerTab === "issues" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
               )}
-              onClick={() => setManagerTab("issues")}
+              onClick={() => {
+                lastHydratedKeyRef.current = null;
+                navigate({
+                  page: NEWSLETTER_BUILDER_NAV.id,
+                  newsletterTab: "issues",
+                  issue: issueFromUrl,
+                });
+              }}
             >
               Issues
             </button>
@@ -436,7 +647,14 @@ export function NewslettersManager({
                 "px-3 py-1 rounded-full transition-colors",
                 managerTab === "branding" ? "bg-zinc-800 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
               )}
-              onClick={() => setManagerTab("branding")}
+              onClick={() => {
+                lastHydratedKeyRef.current = null;
+                navigate({
+                  page: NEWSLETTER_BUILDER_NAV.id,
+                  newsletterTab: "branding",
+                  issue: null,
+                });
+              }}
             >
               Branding
             </button>
@@ -519,8 +737,22 @@ export function NewslettersManager({
             </div>
           </div>
 
-          {(error || success) && (
+          {(recoveredDraft || error || success) && (
             <div className="shrink-0 px-4 py-2 border-b border-zinc-800/80 bg-zinc-950 space-y-1">
+              {recoveredDraft ? (
+                <div className="flex flex-wrap items-center gap-2 text-sm text-amber-400/90">
+                  <span role="status">Recovered unsaved draft changes.</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-zinc-400 hover:text-zinc-200"
+                    onClick={discardRecoveredDraft}
+                  >
+                    Discard recovered changes
+                  </Button>
+                </div>
+              ) : null}
               {error ? (
                 <p className="text-sm text-red-400" role="alert">
                   {error}
@@ -539,7 +771,14 @@ export function NewslettersManager({
             onBlocksChange={(bodyBlocks) => patchForm({ bodyBlocks })}
             brand={brandSettings}
             layoutMode={composerLayoutMode}
-            onLayoutModeChange={setComposerLayoutMode}
+            onLayoutModeChange={(mode) => {
+              navigate({
+                page: NEWSLETTER_BUILDER_NAV.id,
+                newsletterTab: "issues",
+                issue: issueFromUrl ?? editingId ?? "new",
+                mode,
+              });
+            }}
             onOpenSettings={() => setSettingsOpen(true)}
             newsletterId={
               editingId && editingId !== "new" ? editingId : undefined

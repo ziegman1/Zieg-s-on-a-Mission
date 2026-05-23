@@ -43,13 +43,29 @@ function isValidAbsoluteHttpUrl(value: string): boolean {
 export function isValidNewsletterLinkUrl(url: string): boolean {
   const t = normalizeNewsletterLinkUrl(url);
   if (!t) return true;
+  if (isLocalFileNewsletterUrl(t)) return false;
   if (hasBlockedProtocol(t)) return false;
   if (t.startsWith("/")) return isValidSitePath(t);
   return isValidAbsoluteHttpUrl(t);
 }
 
+function isLocalFileNewsletterUrl(url: string): boolean {
+  if (/^file:/i.test(url)) return true;
+  try {
+    return new URL(url).protocol === "file:";
+  } catch {
+    return false;
+  }
+}
+
 /** Returns an error message when invalid, or null when valid / empty. */
 export function validateNewsletterLinkUrl(url: string): string | null {
-  if (!normalizeNewsletterLinkUrl(url)) return null;
-  return isValidNewsletterLinkUrl(url) ? null : NEWSLETTER_LINK_URL_ERROR;
+  const t = normalizeNewsletterLinkUrl(url);
+  if (!t) return null;
+  if (isLocalFileNewsletterUrl(t)) {
+    return "Local files must be uploaded before they can be used in newsletters.";
+  }
+  return isValidNewsletterLinkUrl(t) ? null : NEWSLETTER_LINK_URL_ERROR;
 }
+
+export { isLocalFileNewsletterUrl };

@@ -1,8 +1,9 @@
 import {
   isValidNewsletterLinkUrl,
-  NEWSLETTER_LINK_URL_ERROR,
   normalizeNewsletterLinkUrl,
+  validateNewsletterLinkUrl,
 } from "@/lib/newsletter/cta-url";
+import { validateNewsletterDocumentUrl } from "@/lib/newsletter/document-url";
 import type { NewsletterBlocks } from "./types";
 import { hasVisibleNewsletterContent, isBlockVisible } from "./visible";
 
@@ -33,8 +34,11 @@ export function validateNewsletterBlocks(
         if (block.imageUrl.trim() && !block.alt.trim()) {
           issues.push({ blockId: block.id, message: "Image blocks require alt text." });
         }
-        if (block.imageUrl.trim() && !isValidNewsletterLinkUrl(block.imageUrl)) {
-          issues.push({ blockId: block.id, message: NEWSLETTER_LINK_URL_ERROR });
+        if (block.imageUrl.trim()) {
+          const imageUrlError = validateNewsletterLinkUrl(block.imageUrl);
+          if (imageUrlError) {
+            issues.push({ blockId: block.id, message: imageUrlError });
+          }
         }
         break;
       case "image_text":
@@ -47,14 +51,40 @@ export function validateNewsletterBlocks(
               blockId: block.id,
               message: "Button label and URL are both required.",
             });
-          } else if (!isValidRequiredUrl(block.buttonUrl)) {
-            issues.push({ blockId: block.id, message: NEWSLETTER_LINK_URL_ERROR });
+          } else {
+            const buttonUrlError = validateNewsletterLinkUrl(block.buttonUrl);
+            if (buttonUrlError) {
+              issues.push({ blockId: block.id, message: buttonUrlError });
+            }
           }
         }
-        if (block.imageUrl.trim() && !isValidNewsletterLinkUrl(block.imageUrl)) {
-          issues.push({ blockId: block.id, message: NEWSLETTER_LINK_URL_ERROR });
+        if (block.imageUrl.trim()) {
+          const imageUrlError = validateNewsletterLinkUrl(block.imageUrl);
+          if (imageUrlError) {
+            issues.push({ blockId: block.id, message: imageUrlError });
+          }
         }
         break;
+      case "document": {
+        const hasAny =
+          block.documentUrl.trim() ||
+          block.title.trim() ||
+          block.description.trim() ||
+          block.buttonLabel.trim();
+        if (!hasAny) break;
+        if (!block.documentUrl.trim() || !block.buttonLabel.trim()) {
+          issues.push({
+            blockId: block.id,
+            message: "Document blocks require an uploaded PDF and button label.",
+          });
+        } else {
+          const docError = validateNewsletterDocumentUrl(block.documentUrl);
+          if (docError) {
+            issues.push({ blockId: block.id, message: docError });
+          }
+        }
+        break;
+      }
       case "button":
         if (block.label.trim() || block.url.trim()) {
           if (!block.label.trim() || !block.url.trim()) {
@@ -62,8 +92,11 @@ export function validateNewsletterBlocks(
               blockId: block.id,
               message: "Button blocks require label and URL.",
             });
-          } else if (!isValidRequiredUrl(block.url)) {
-            issues.push({ blockId: block.id, message: NEWSLETTER_LINK_URL_ERROR });
+          } else {
+            const urlError = validateNewsletterLinkUrl(block.url);
+            if (urlError) {
+              issues.push({ blockId: block.id, message: urlError });
+            }
           }
         }
         break;

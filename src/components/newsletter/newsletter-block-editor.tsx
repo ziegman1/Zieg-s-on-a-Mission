@@ -2,6 +2,7 @@
 
 import type { NewsletterBlock } from "@/lib/newsletter/blocks/types";
 import { CtaAlignmentControl } from "@/components/newsletter/cta-alignment-control";
+import { NewsletterDocumentUploadField } from "@/components/newsletter/newsletter-document-upload-field";
 import { NewsletterImageUploadField } from "@/components/newsletter/newsletter-image-upload-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -152,6 +153,48 @@ export function NewsletterBlockEditor({
               onChange={(buttonAlign) => onChange({ ...block, buttonAlign })}
             />
           )}
+        </div>
+      );
+    case "document":
+      return (
+        <div className="space-y-3">
+          <NewsletterDocumentUploadField
+            documentUrl={block.documentUrl}
+            onDocumentUrlChange={(documentUrl) => onChange({ ...block, documentUrl })}
+            newsletterId={newsletterId}
+          />
+          <div className="space-y-1.5">
+            <Label className="text-zinc-400 text-xs">Document title</Label>
+            <Input
+              value={block.title}
+              onChange={(e) => onChange({ ...block, title: e.target.value })}
+              className={fieldClass}
+              placeholder="Optional"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-zinc-400 text-xs">Description</Label>
+            <Textarea
+              value={block.description}
+              onChange={(e) => onChange({ ...block, description: e.target.value })}
+              rows={3}
+              className={cn(fieldClass, "resize-y")}
+              placeholder="Optional"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-zinc-400 text-xs">Button label</Label>
+            <Input
+              value={block.buttonLabel}
+              onChange={(e) => onChange({ ...block, buttonLabel: e.target.value })}
+              className={fieldClass}
+            />
+          </div>
+          <CtaAlignmentControl
+            label="Alignment"
+            value={block.align}
+            onChange={(align) => onChange({ ...block, align })}
+          />
         </div>
       );
     case "button":

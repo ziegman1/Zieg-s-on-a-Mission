@@ -176,6 +176,50 @@ export function NewsletterBlocksRenderer({
               </div>
             );
           }
+          case "document":
+            return (
+              <div key={block.id} className="space-y-3">
+                {block.title.trim() ? (
+                  <h3
+                    className={cn(
+                      "font-serif text-xl tracking-wide",
+                      !isBranded && "text-brand-primary",
+                    )}
+                    style={primaryStyle}
+                  >
+                    {block.title}
+                  </h3>
+                ) : null}
+                {block.description.trim() ? (
+                  <p className="text-brand-ink/85 leading-relaxed whitespace-pre-wrap">
+                    {block.description}
+                  </p>
+                ) : null}
+                <div className={cn("flex", alignClass(block.align))}>
+                  {isBranded ? (
+                    <Link
+                      href={block.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-sm"
+                      style={{ backgroundColor: "var(--newsletter-primary, #5a8fb8)" }}
+                    >
+                      {block.buttonLabel}
+                    </Link>
+                  ) : (
+                    <Button asChild className="rounded-full bg-brand-primary">
+                      <Link
+                        href={block.documentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {block.buttonLabel}
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
           case "button":
             return (
               <div key={block.id} className={cn("flex", alignClass(block.align))}>

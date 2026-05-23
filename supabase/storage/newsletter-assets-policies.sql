@@ -5,8 +5,8 @@ VALUES (
   'newsletter-assets',
   'newsletter-assets',
   true,
-  5242880,
-  ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+  20971520,
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
 )
 ON CONFLICT (id) DO UPDATE SET
   public = EXCLUDED.public,

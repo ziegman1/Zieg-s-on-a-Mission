@@ -59,3 +59,17 @@ export function buildNewsletterAssetPathFromMime(
 ): string {
   return buildNewsletterAssetPath(purpose, extensionForCoverMime(contentType), options);
 }
+
+/** `newsletters/{id}/documents/{uuid}.pdf` or `temp/documents/{uuid}.pdf` */
+export function buildNewsletterDocumentPath(
+  ext: string,
+  options?: { newsletterId?: string },
+): string {
+  const fileExt = ext.replace(/[^a-z0-9]/gi, "").toLowerCase() || "pdf";
+  const id = crypto.randomUUID();
+  const newsletterId = safeNewsletterId(options?.newsletterId);
+  if (newsletterId) {
+    return `newsletters/${newsletterId}/documents/${id}.${fileExt}`;
+  }
+  return `temp/documents/${id}.${fileExt}`;
+}

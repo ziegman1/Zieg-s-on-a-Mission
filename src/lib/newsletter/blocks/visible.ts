@@ -1,3 +1,8 @@
+import {
+  isLocalFileNewsletterUrl,
+  isValidNewsletterLinkUrl,
+  normalizeNewsletterLinkUrl,
+} from "@/lib/newsletter/cta-url";
 import type { NewsletterBlock, NewsletterBlocks } from "./types";
 
 function hasText(value: string | undefined | null): boolean {
@@ -19,6 +24,15 @@ export function isBlockVisible(block: NewsletterBlock): boolean {
       );
     case "button":
       return hasText(block.label) && hasText(block.url);
+    case "document": {
+      const url = normalizeNewsletterLinkUrl(block.documentUrl);
+      return (
+        hasText(url) &&
+        hasText(block.buttonLabel) &&
+        !isLocalFileNewsletterUrl(url) &&
+        isValidNewsletterLinkUrl(url)
+      );
+    }
     case "divider":
       return true;
     case "quote":

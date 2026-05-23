@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSiteBuilderNavigation } from "./use-site-builder-navigation";
 import Link from "next/link";
 import { BuilderPreviewProvider } from "@/components/site-builder/builder-preview-context";
 import { PageSectionsRenderer } from "@/components/site-builder/page-sections-renderer";
@@ -59,9 +60,11 @@ export function SiteBuilderEditor({
   initialNewsletterBrand: NewsletterBrandSettings;
   newsletterLoadError?: string | null;
 }) {
+  const { state: urlState, navigate } = useSiteBuilderNavigation();
+  const activePage = urlState.page;
+  const blogTab = urlState.blogTab;
+
   const [pages, setPages] = useState<PageData>(initialPages);
-  const [activePage, setActivePage] = useState("home");
-  const [blogTab, setBlogTab] = useState<"intro" | "posts">("posts");
   const [blogPosts, setBlogPosts] = useState(initialBlogPosts);
   const [newsletters, setNewsletters] = useState(initialNewsletters);
 
@@ -442,7 +445,7 @@ export function SiteBuilderEditor({
             </p>
             <button
               type="button"
-              onClick={() => setBlogTab("posts")}
+              onClick={() => navigate({ page: "blog", blogTab: "posts" })}
               className={cn(
                 "mx-2 mb-1 rounded-md px-2.5 py-2 text-left text-sm",
                 blogTab === "posts" ? "bg-brand-primary/20 text-brand-primary" : "text-zinc-400 hover:bg-zinc-900",
@@ -452,7 +455,7 @@ export function SiteBuilderEditor({
             </button>
             <button
               type="button"
-              onClick={() => setBlogTab("intro")}
+              onClick={() => navigate({ page: "blog", blogTab: "intro" })}
               className={cn(
                 "mx-2 mb-2 rounded-md px-2.5 py-2 text-left text-sm",
                 blogTab === "intro" ? "bg-brand-primary/20 text-brand-primary" : "text-zinc-400 hover:bg-zinc-900",
@@ -475,10 +478,12 @@ export function SiteBuilderEditor({
                   key={p.pageKey}
                   type="button"
                   onClick={() => {
-                    setActivePage(p.pageKey);
+                    navigate({
+                      page: p.pageKey,
+                      ...(p.pageKey === "blog" ? { blogTab: "posts" as const } : {}),
+                    });
                     setSelectedSectionId(null);
                     setSelectedElementId(null);
-                    if (p.pageKey === "blog") setBlogTab("posts");
                   }}
                   className={cn(
                     "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors",
@@ -549,10 +554,12 @@ export function SiteBuilderEditor({
                 key={p.pageKey}
                 type="button"
                 onClick={() => {
-                  setActivePage(p.pageKey);
+                  navigate({
+                    page: p.pageKey,
+                    ...(p.pageKey === "blog" ? { blogTab: "posts" as const } : {}),
+                  });
                   setSelectedSectionId(null);
                   setSelectedElementId(null);
-                  if (p.pageKey === "blog") setBlogTab("posts");
                 }}
                 className={cn(
                   "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors",
@@ -567,7 +574,10 @@ export function SiteBuilderEditor({
             <button
               type="button"
               onClick={() => {
-                setActivePage(NEWSLETTER_BUILDER_NAV.id);
+                navigate({
+                  page: NEWSLETTER_BUILDER_NAV.id,
+                  newsletterTab: "issues",
+                });
                 setSelectedSectionId(null);
                 setSelectedElementId(null);
               }}
