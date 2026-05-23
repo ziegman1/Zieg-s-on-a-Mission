@@ -2,7 +2,11 @@ import { listBlogPostsForAdmin } from "@/lib/blog/blog-db";
 import { formatBlogError } from "@/lib/blog/errors";
 import { getNewsletterBrandSettings } from "@/lib/newsletter/brand-settings";
 import { listNewslettersForAdmin } from "@/lib/newsletter/newsletter-db";
-import { formatNewsletterError } from "@/lib/newsletter/errors";
+import {
+  formatNewsletterDiagnosticsSummary,
+  getNewsletterDatabaseDiagnostics,
+} from "@/lib/newsletter/diagnostics";
+import { formatNewsletterError, logNewsletterAction } from "@/lib/newsletter/errors";
 import { BUILDER_PAGES } from "@/lib/site-builder/types";
 import { loadPageSectionsForAdmin } from "@/lib/site-builder/sections-db";
 import { Suspense } from "react";
@@ -35,8 +39,20 @@ export default async function AdminSiteBuilderPage() {
   try {
     initialNewsletters = await listNewslettersForAdmin();
   } catch (e) {
-    console.error("[newsletter] site-builder load", e);
+    logNewsletterAction("site-builder-load", {}, e);
     newsletterLoadError = formatNewsletterError(e);
+    if (process.env.NODE_ENV !== "production") {
+      try {
+        const diagnostics = await getNewsletterDatabaseDiagnostics();
+        logNewsletterAction("site-builder-load-diagnostics", diagnostics);
+        const summary = formatNewsletterDiagnosticsSummary(diagnostics);
+        if (summary.trim()) {
+          newsletterLoadError = `${newsletterLoadError}\n\nDiagnostic: ${summary}`;
+        }
+      } catch (diagErr) {
+        logNewsletterAction("site-builder-load-diagnostics", {}, diagErr);
+      }
+    }
   }
 
   return (

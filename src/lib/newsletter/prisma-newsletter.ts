@@ -1,17 +1,34 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { getPrismaClient, resetPrismaClient } from "@/lib/db";
 
 export type NewsletterDelegate = PrismaClient["newsletter"];
 
 const SETUP_HINT =
   "Run `npx prisma generate`, apply migrations (`npm run db:migrate:deploy`), then restart the dev server.";
 
-export function getNewsletterDelegate(): NewsletterDelegate | null {
-  const delegate = (prisma as PrismaClient & { newsletter?: NewsletterDelegate }).newsletter;
-  if (!delegate || typeof delegate.findMany !== "function") {
-    console.error(`[newsletter] prisma.newsletter is unavailable. ${SETUP_HINT}`);
-    return null;
+let loggedDelegateUnavailable = false;
+
+function resolveNewsletterDelegate(client: PrismaClient): NewsletterDelegate | null {
+  const delegate = (client as PrismaClient & { newsletter?: NewsletterDelegate }).newsletter;
+  if (!delegate || typeof delegate.findMany !== "function") return null;
+  return delegate;
+}
+
+export function getNewsletterDelegate(options?: { quiet?: boolean }): NewsletterDelegate | null {
+  let client = getPrismaClient();
+  let delegate = resolveNewsletterDelegate(client);
+
+  if (!delegate) {
+    resetPrismaClient();
+    client = getPrismaClient();
+    delegate = resolveNewsletterDelegate(client);
   }
+
+  if (!delegate && !options?.quiet && !loggedDelegateUnavailable) {
+    loggedDelegateUnavailable = true;
+    console.error(`[newsletter] prisma.newsletter is unavailable. ${SETUP_HINT}`);
+  }
+
   return delegate;
 }
 

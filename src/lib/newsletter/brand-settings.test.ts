@@ -202,10 +202,12 @@ describe("brand settings persistence", () => {
     );
   });
 
-  it("surfaces friendly admin error when delegate is unavailable", () => {
+  it("surfaces specific error when delegate is unavailable", () => {
     const err = new Error(
       "Newsletter branding Prisma client is not ready. Run npx prisma generate",
     );
-    expect(formatNewsletterBrandSettingsError(err)).toBe("Unable to save branding settings.");
+    expect(formatNewsletterBrandSettingsError(err)).toContain(
+      "Newsletter branding Prisma client is not ready",
+    );
   });
 });

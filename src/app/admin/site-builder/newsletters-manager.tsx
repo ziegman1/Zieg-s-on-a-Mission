@@ -754,7 +754,7 @@ export function NewslettersManager({
                 </div>
               ) : null}
               {error ? (
-                <p className="text-sm text-red-400" role="alert">
+                <p className="text-sm text-red-400 whitespace-pre-wrap" role="alert">
                   {error}
                 </p>
               ) : null}
