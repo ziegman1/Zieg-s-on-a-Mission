@@ -5,6 +5,8 @@ import type { NewsletterStatus } from "@/lib/newsletter/types";
 
 const STORAGE_PREFIX = "newsletter-editor-draft:v1:";
 
+import { diagLocalDraftWrite } from "@/lib/admin-builder-diagnostics";
+
 /** Serializable newsletter composer form (localStorage). */
 export type NewsletterEditorDraftForm = {
   title: string;
@@ -64,6 +66,7 @@ export function saveNewsletterEditorDraft(
 ): void {
   if (!storage) return;
   try {
+    diagLocalDraftWrite(draft.draftKey);
     storage.setItem(storageKey(draft.draftKey), JSON.stringify(draft));
   } catch {
     // quota or private mode

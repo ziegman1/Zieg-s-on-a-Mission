@@ -1,5 +1,6 @@
 "use server";
 
+import { diagServerAction } from "@/lib/admin-builder-diagnostics";
 import {
   getNewsletterById,
   getNewsletterBySlugAnyStatus,
@@ -127,6 +128,10 @@ async function persistNewsletter(
   input: NewsletterFormInput,
   intent: "draft" | "publish" | "archive",
 ): Promise<SaveResult> {
+  diagServerAction(`persistNewsletter:${intent}`, {
+    id: input.id ?? "new",
+    slug: input.slug,
+  });
   const session = await requireAdminSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
@@ -257,6 +262,7 @@ async function persistNewsletter(
 export async function listAdminNewsletters(): Promise<
   { ok: true; newsletters: NewsletterRecord[] } | { ok: false; error: string }
 > {
+  diagServerAction("listAdminNewsletters");
   const session = await requireAdminSession();
   if (!session) return { ok: false, error: "Unauthorized" };
   try {

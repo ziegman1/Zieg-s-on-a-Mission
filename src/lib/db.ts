@@ -3,9 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrismaClient(): PrismaClient {
-  return new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-  });
+  const log =
+    process.env.NODE_ENV === "development" && process.env.ADMIN_BUILDER_DIAGNOSTICS !== "0"
+      ? (["error", "warn"] as const)
+      : (["error"] as const);
+
+  return new PrismaClient({ log: [...log] });
 }
 
 function isBrandSettingsDelegateReady(
@@ -57,9 +60,7 @@ export function getPrismaClient(): PrismaClient {
 
   if (!client) {
     client = createPrismaClient();
-    if (process.env.NODE_ENV !== "production") {
-      globalForPrisma.prisma = client;
-    }
+    globalForPrisma.prisma = client;
   }
 
   return client;

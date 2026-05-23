@@ -1,5 +1,6 @@
 "use server";
 
+import { diagServerAction } from "@/lib/admin-builder-diagnostics";
 import { revalidatePath } from "next/cache";
 import { defaultSectionsForPage } from "@/lib/site-builder/defaults";
 import {
@@ -49,6 +50,7 @@ async function revalidateForPage(pageKey: string) {
 }
 
 export async function loadBuilderPageAction(pageKey: string) {
+  diagServerAction("loadBuilderPageAction", { pageKey });
   const session = await requireAdminSession();
   if (!session) return { ok: false as const, error: "Unauthorized" };
   try {
@@ -81,6 +83,7 @@ export async function saveBuilderPageAction(
   pageKey: string,
   sections: PageSection[],
 ): Promise<SaveBuilderPageSuccess | { ok: false; error: string }> {
+  diagServerAction("saveBuilderPageAction", { pageKey, sectionCount: sections.length });
   const session = await requireAdminSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 

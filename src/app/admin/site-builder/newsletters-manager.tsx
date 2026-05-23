@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { NEWSLETTER_BUILDER_NAV } from "@/lib/site-builder/types";
 import {
   clearNewsletterEditorDraftAll,
@@ -209,7 +208,6 @@ export function NewslettersManager({
   onSuccess?: (message: string) => void;
   onError?: (message: string | null) => void;
 }) {
-  const router = useRouter();
   const { state: urlState, navigate } = useSiteBuilderNavigation();
   const [items, setItems] = useState(initialNewsletters);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -219,7 +217,7 @@ export function NewslettersManager({
   const [error, setError] = useState<string | null>(loadError ?? null);
   const [success, setSuccess] = useState<string | null>(null);
   const [listBusy, setListBusy] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [savePending, startSaveTransition] = useTransition();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [recoveredDraft, setRecoveredDraft] = useState(false);
   const [recoveredLocalFileWarning, setRecoveredLocalFileWarning] = useState<string | null>(
@@ -434,7 +432,7 @@ export function NewslettersManager({
         composerLayoutMode,
         form: draftForm,
       });
-    }, 500);
+    }, 750);
     return () => window.clearTimeout(timer);
   }, [form, composerLayoutMode, slugTouched, draftStorageKey, isComposing, managerTab]);
 
@@ -663,7 +661,6 @@ export function NewslettersManager({
         setError(listErr);
         onError?.(listErr);
       }
-      router.refresh();
     })();
   }
 
@@ -687,7 +684,7 @@ export function NewslettersManager({
     const payload = buildPayload(intent);
     const isNew = !editingId || editingId === "new";
 
-    startTransition(async () => {
+    startSaveTransition(async () => {
       try {
         let res;
         if (intent === "publish") {
@@ -708,7 +705,7 @@ export function NewslettersManager({
   }
 
   function quickPublish(n: NewsletterRecord) {
-    startTransition(async () => {
+    startSaveTransition(async () => {
       const res = await publishNewsletterAction(recordToPayload(n));
       if (!res.ok) {
         setError(res.error);
@@ -719,14 +716,14 @@ export function NewslettersManager({
   }
 
   function quickUnpublish(id: string) {
-    startTransition(async () => {
+    startSaveTransition(async () => {
       const res = await unpublishNewsletterAction(id);
       applySaveResult(res);
     });
   }
 
   function quickArchive(id: string) {
-    startTransition(async () => {
+    startSaveTransition(async () => {
       const res = await archiveNewsletterAction(id);
       applySaveResult(res);
     });
@@ -751,7 +748,6 @@ export function NewslettersManager({
               )}
               onClick={() => {
                 perfMark("tab-issues");
-                lastHydratedKeyRef.current = null;
                 navigate({
                   page: NEWSLETTER_BUILDER_NAV.id,
                   newsletterTab: "issues",
@@ -769,7 +765,6 @@ export function NewslettersManager({
               )}
               onClick={() => {
                 perfMark("tab-branding");
-                lastHydratedKeyRef.current = null;
                 navigate({
                   page: NEWSLETTER_BUILDER_NAV.id,
                   newsletterTab: "branding",
@@ -823,11 +818,11 @@ export function NewslettersManager({
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={isPending || !form.title.trim() || localFileBlocked}
+                disabled={savePending || !form.title.trim() || localFileBlocked}
                 onClick={() => save("draft")}
                 className="rounded-full h-8"
               >
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                {savePending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                 Save draft
               </Button>
               {editingId && editingId !== "new" && form.slug ? (
@@ -846,7 +841,7 @@ export function NewslettersManager({
                 type="button"
                 size="sm"
                 disabled={
-                  isPending ||
+                  savePending ||
                   localFileBlocked ||
                   !form.title.trim() ||
                   !publishReady
@@ -1058,7 +1053,7 @@ export function NewslettersManager({
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2 text-[10px] text-emerald-400"
-                            disabled={isPending}
+                            disabled={savePending}
                             onClick={() => quickPublish(n)}
                           >
                             Publish
@@ -1069,7 +1064,7 @@ export function NewslettersManager({
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2 text-[10px]"
-                            disabled={isPending}
+                            disabled={savePending}
                             onClick={() => quickUnpublish(n.id)}
                           >
                             Unpublish
@@ -1081,7 +1076,7 @@ export function NewslettersManager({
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2 text-[10px] text-amber-500"
-                            disabled={isPending}
+                            disabled={savePending}
                             onClick={() => quickArchive(n.id)}
                           >
                             Archive

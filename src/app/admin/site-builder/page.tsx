@@ -11,6 +11,7 @@ import { BUILDER_PAGES } from "@/lib/site-builder/types";
 import { loadPageSectionsForAdmin } from "@/lib/site-builder/sections-db";
 import { Suspense } from "react";
 import { SiteBuilderEditor } from "./site-builder-editor";
+import { SiteBuilderUrlProvider } from "./site-builder-url-context";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,11 @@ export default async function AdminSiteBuilderPage() {
     { sections: Awaited<ReturnType<typeof loadPageSectionsForAdmin>>["sections"]; hasCustom: boolean }
   > = {};
 
-  for (const { pageKey } of BUILDER_PAGES) {
-    initialPages[pageKey] = await loadPageSectionsForAdmin(pageKey);
-  }
+  await Promise.all(
+    BUILDER_PAGES.map(async ({ pageKey }) => {
+      initialPages[pageKey] = await loadPageSectionsForAdmin(pageKey);
+    }),
+  );
 
   let initialBlogPosts: Awaited<ReturnType<typeof listBlogPostsForAdmin>> = [];
   let blogLoadError: string | null = null;
@@ -69,14 +72,16 @@ export default async function AdminSiteBuilderPage() {
           <p className="text-sm text-zinc-500 py-8">Loading site builder…</p>
         }
       >
-        <SiteBuilderEditor
-          initialPages={initialPages}
-          initialBlogPosts={initialBlogPosts}
-          blogLoadError={blogLoadError}
-          initialNewsletters={initialNewsletters}
-          initialNewsletterBrand={initialNewsletterBrand}
-          newsletterLoadError={newsletterLoadError}
-        />
+        <SiteBuilderUrlProvider>
+          <SiteBuilderEditor
+            initialPages={initialPages}
+            initialBlogPosts={initialBlogPosts}
+            blogLoadError={blogLoadError}
+            initialNewsletters={initialNewsletters}
+            initialNewsletterBrand={initialNewsletterBrand}
+            newsletterLoadError={newsletterLoadError}
+          />
+        </SiteBuilderUrlProvider>
       </Suspense>
     </div>
   );
