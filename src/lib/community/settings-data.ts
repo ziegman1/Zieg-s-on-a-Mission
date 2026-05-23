@@ -20,7 +20,7 @@ export async function loadSettingsPageData(
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const [owner, member, user, notificationPrefs] = await Promise.all([
+  const [owner, member, user, notificationPrefs, muteableSpaces] = await Promise.all([
     getCurrentCommunityOwner(),
     getCurrentCommunityMember(),
     prisma.user.findUnique({
@@ -28,6 +28,11 @@ export async function loadSettingsPageData(
       select: { email: true, name: true, image: true },
     }),
     getUserNotificationPreferences(session.user.id),
+    prisma.communitySpaceRecord.findMany({
+      where: { status: "published" },
+      orderBy: communitySpaceListOrderBy,
+      select: { id: true, title: true, slug: true },
+    }),
   ]);
 
   const isAdmin = isAdminRole(session.user.role);
@@ -92,6 +97,7 @@ export async function loadSettingsPageData(
     ownerDisplayName: owner ? (user?.name ?? owner.name) : null,
     ownerImageUrl: owner ? (user?.image ?? null) : null,
     notificationPrefs,
+    muteableSpaces,
     hubSettings,
     adminSpaces,
   };

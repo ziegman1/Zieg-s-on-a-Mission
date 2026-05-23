@@ -8,6 +8,7 @@ import {
 import { attachCommentCountsToFeedPosts } from "@/lib/community/comments";
 import { attachReactionsToFeedPosts } from "@/lib/community/reactions";
 import { interactionFromSpaceRow, spaceExperienceSelect } from "@/lib/community/space-experience";
+import { attachNewsletterAnnouncementToFeedItem } from "@/lib/newsletter/mission-hub-announcement";
 import type { CommunityPostFeedItem, CommunityPostFeedItemBase, CommunityPostType } from "@/lib/community/types";
 import { prisma } from "@/lib/db";
 
@@ -37,11 +38,13 @@ const feedPostInclude = {
   authorUser: { select: postAuthorUserSelect },
 } as const;
 
-function recordToFeedItem(row: PostWithSpace): CommunityPostFeedItemBase {
+function recordToFeedItem(
+  row: PostWithSpace & { sourceKind?: string | null; metadata?: unknown },
+): CommunityPostFeedItemBase {
   const publishedAt = row.publishedAt ?? row.createdAt;
   const author = resolvePostAuthor(row.authorUser);
   const interaction = interactionFromSpaceRow(row.space);
-  return {
+  const base: CommunityPostFeedItemBase = {
     id: row.id,
     spaceId: row.spaceId,
     spaceTitle: row.space.title,
@@ -61,6 +64,10 @@ function recordToFeedItem(row: PostWithSpace): CommunityPostFeedItemBase {
     spaceEngagementPrompt: interaction.engagementPrompt,
     spaceType: interaction.spaceType,
   };
+  return attachNewsletterAnnouncementToFeedItem(base, {
+    sourceKind: row.sourceKind ?? null,
+    metadata: row.metadata ?? {},
+  });
 }
 
 const publishedPostWhere = {

@@ -1,5 +1,8 @@
 import { listBlogPostsForAdmin } from "@/lib/blog/blog-db";
 import { formatBlogError } from "@/lib/blog/errors";
+import { getNewsletterBrandSettings } from "@/lib/newsletter/brand-settings";
+import { listNewslettersForAdmin } from "@/lib/newsletter/newsletter-db";
+import { formatNewsletterError } from "@/lib/newsletter/errors";
 import { BUILDER_PAGES } from "@/lib/site-builder/types";
 import { loadPageSectionsForAdmin } from "@/lib/site-builder/sections-db";
 import { SiteBuilderEditor } from "./site-builder-editor";
@@ -25,18 +28,32 @@ export default async function AdminSiteBuilderPage() {
     blogLoadError = formatBlogError(e);
   }
 
+  let initialNewsletters: Awaited<ReturnType<typeof listNewslettersForAdmin>> = [];
+  let newsletterLoadError: string | null = null;
+  let initialNewsletterBrand = await getNewsletterBrandSettings();
+  try {
+    initialNewsletters = await listNewslettersForAdmin();
+  } catch (e) {
+    console.error("[newsletter] site-builder load", e);
+    newsletterLoadError = formatNewsletterError(e);
+  }
+
   return (
     <div className="space-y-2">
       <h1 className="font-serif text-2xl text-brand-primary tracking-wide">Site builder</h1>
       <p className="text-sm text-zinc-400 max-w-2xl leading-relaxed">
         Visual editor for storefront pages. Save updates the live site (no separate publish step required).
-        On <strong className="text-zinc-300">Blog</strong>, use the Blog posts tab to publish stories — the page
-        intro is still edited in Page intro.
+        On <strong className="text-zinc-300">Blog</strong>, use Blog posts for stories (Page intro for the blog
+        header). <strong className="text-zinc-300">Community</strong> edits the Mission Hub landing above the feed.{" "}
+        <strong className="text-zinc-300">Newsletters</strong> are managed separately from page sections.
       </p>
       <SiteBuilderEditor
         initialPages={initialPages}
         initialBlogPosts={initialBlogPosts}
         blogLoadError={blogLoadError}
+        initialNewsletters={initialNewsletters}
+        initialNewsletterBrand={initialNewsletterBrand}
+        newsletterLoadError={newsletterLoadError}
       />
     </div>
   );

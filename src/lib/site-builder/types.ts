@@ -44,6 +44,7 @@ export const BUILDER_PAGES = [
   { pageKey: "give", label: "Give", path: "/give" },
   { pageKey: "merch", label: "Merch", path: "/merch" },
   { pageKey: "blog", label: "Blog", path: "/blog" },
+  { pageKey: "community", label: "Community", path: "/community" },
   { pageKey: "contact", label: "Contact", path: "/contact" },
   { pageKey: "global", label: "Global (nav & footer)", path: "" },
 ] as const;
@@ -58,6 +59,14 @@ export const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
   give: ["/give"],
   merch: ["/merch"],
   blog: ["/blog"],
+  community: ["/community"],
   contact: ["/contact"],
   global: ["/", "/community"],
+  newsletters: ["/newsletters"],
 };
+
+/** Site builder nav — Newsletter Builder (separate from page sections). */
+export const NEWSLETTER_BUILDER_NAV = {
+  id: "newsletters",
+  label: "Newsletters",
+} as const;

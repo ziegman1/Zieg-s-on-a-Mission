@@ -33,6 +33,8 @@ export const NOTIFICATION_PREF_KEYS = [
   "newPosts",
   "ministryUpdates",
   "praiseReports",
+  "newsletters",
+  "weeklyDigest",
 ] as const;
 
 export type NotificationPrefKey = (typeof NOTIFICATION_PREF_KEYS)[number];
@@ -40,6 +42,10 @@ export type NotificationPrefKey = (typeof NOTIFICATION_PREF_KEYS)[number];
 export type NotificationPreferences = Record<NotificationPrefKey, boolean> & {
   inApp: boolean;
   email: boolean;
+  /** Future mobile app — default off */
+  push: boolean;
+  /** Space UUIDs where the member muted notifications */
+  mutedSpaceIds: string[];
 };
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
@@ -49,8 +55,12 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   newPosts: true,
   ministryUpdates: true,
   praiseReports: true,
+  newsletters: true,
+  weeklyDigest: true,
   inApp: true,
-  email: false,
+  email: true,
+  push: false,
+  mutedSpaceIds: [],
 };
 
 export const NOTIFICATION_PREF_LABELS: Record<
@@ -77,11 +87,34 @@ export const NOTIFICATION_PREF_LABELS: Record<
     label: "Ministry updates",
     description: "Important announcements from the team.",
   },
+  newsletters: {
+    label: "Newsletters",
+    description: "When a new newsletter is published (Mission Hub announcement + email when enabled).",
+  },
+  weeklyDigest: {
+    label: "Weekly digest",
+    description: "A weekly summary of newsletters and Mission Hub highlights (email when enabled).",
+  },
   praiseReports: {
     label: "Praise reports",
     description: "Celebrations and praise shared in the community.",
   },
 };
+
+export const NOTIFICATION_CHANNEL_LABELS = {
+  inApp: {
+    label: "In-app notifications",
+    description: "Bell icon and activity list in Mission Hub.",
+  },
+  email: {
+    label: "Email notifications",
+    description: "Transactional email when delivery is enabled (newsletters, digest, and alerts).",
+  },
+  push: {
+    label: "Push notifications",
+    description: "Mobile alerts when the Mission Hub app is available.",
+  },
+} as const;
 
 export function mergeNotificationPreferences(
   raw: unknown,
@@ -94,6 +127,12 @@ export function mergeNotificationPreferences(
   }
   if (typeof o.inApp === "boolean") out.inApp = o.inApp;
   if (typeof o.email === "boolean") out.email = o.email;
+  if (typeof o.push === "boolean") out.push = o.push;
+  if (Array.isArray(o.mutedSpaceIds)) {
+    out.mutedSpaceIds = o.mutedSpaceIds.filter(
+      (id): id is string => typeof id === "string" && id.trim().length > 0,
+    );
+  }
   return out;
 }
 
@@ -174,8 +213,16 @@ export type SettingsPageData = {
   ownerDisplayName: string | null;
   ownerImageUrl: string | null;
   notificationPrefs: NotificationPreferences;
+  /** Published spaces for per-space mute toggles */
+  muteableSpaces: MuteableSpaceOption[];
   hubSettings: CommunityHubSettings | null;
   adminSpaces: AdminSpaceSettingsRow[];
+};
+
+export type MuteableSpaceOption = {
+  id: string;
+  title: string;
+  slug: string;
 };
 
 export type AdminSpaceSettingsRow = {
@@ -218,8 +265,12 @@ export const updateNotificationPrefsSchema = z.object({
   newPosts: z.boolean(),
   ministryUpdates: z.boolean(),
   praiseReports: z.boolean(),
+  newsletters: z.boolean(),
+  weeklyDigest: z.boolean(),
   inApp: z.boolean(),
   email: z.boolean(),
+  push: z.boolean(),
+  mutedSpaceIds: z.array(z.string().uuid()).default([]),
 });
 
 export const updateHubSettingsSchema = z.object({

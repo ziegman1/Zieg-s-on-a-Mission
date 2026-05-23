@@ -20,6 +20,7 @@ import type { CommunityComposerSpace } from "@/lib/community/composer-types";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import { CommunityPostOwnerMenu } from "./community-post-owner-menu";
 import { CommunityPostTypeBadge } from "./community-post-type-badge";
+import { CommunityNewsletterAnnouncementLink } from "./community-newsletter-announcement-link";
 import { cn } from "@/lib/utils";
 
 export function CommunityPostCard({
@@ -165,6 +166,12 @@ export function CommunityPostCard({
       {post.coverImageUrl ? (
         <div className={spiritual ? "px-3.5 sm:px-4 pt-2" : "px-3.5 sm:px-4 pt-2"}>
           <CommunityPostCoverImage src={post.coverImageUrl} variant="feed" />
+        </div>
+      ) : null}
+
+      {post.newsletterAnnouncement ? (
+        <div className={spiritual ? "px-3.5 sm:px-4 pt-2" : "px-3.5 sm:px-4 pt-2"}>
+          <CommunityNewsletterAnnouncementLink announcement={post.newsletterAnnouncement} />
         </div>
       ) : null}
 

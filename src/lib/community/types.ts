@@ -82,6 +82,17 @@ export type CommunityPostFeedItemBase = {
   spaceEngagementPrompt: string | null;
   /** `community_spaces.space_type` — drives interaction presets */
   spaceType: string;
+  /** Present when post is a Newsletter Builder announcement (links to /newsletters/[slug]) */
+  newsletterAnnouncement?: NewsletterAnnouncementFeedLink | null;
+};
+
+/** Parsed from `community_posts.metadata` for newsletter publish announcements */
+export type NewsletterAnnouncementFeedLink = {
+  newsletterPath: string;
+  newsletterSlug: string;
+  issueDate: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
 };
 
 export type CommunityCommentStatus = "published" | "hidden" | "archived";

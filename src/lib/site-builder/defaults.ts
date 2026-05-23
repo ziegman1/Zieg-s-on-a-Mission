@@ -76,6 +76,8 @@ export function defaultSectionsForPage(pageKey: string): PageSection[] {
       return defaultMissionSections(c);
     case "blog":
       return defaultBlogSections(c);
+    case "community":
+      return defaultCommunitySections(c);
     case "contact":
       return defaultContactSections(c);
     case "partner":
@@ -101,6 +103,7 @@ export function defaultAllPageSections(): PageSection[] {
     "give",
     "merch",
     "blog",
+    "community",
     "contact",
   ].flatMap((pageKey) => defaultSectionsForPage(pageKey));
 }
@@ -202,6 +205,30 @@ function defaultMissionSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
     sec("mission", "merch", "text_section", "Merch note", {
       headline: c.mission.merchHeading,
       body: c.mission.merchBody,
+    }),
+  ];
+}
+
+function defaultCommunitySections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
+  const intro =
+    "A private space for partners and friends — share encouragement, prayer, and updates as we serve together on mission.";
+  return [
+    sec("community", "hero", "hero", "Mission Hub hero", {
+      eyebrow: "Mission Hub",
+      headline: "Our family space",
+      body: intro,
+      primaryCtaLabel: "Join Mission Hub",
+      primaryCtaUrl: "/community/join",
+      secondaryCtaLabel: "Sign in",
+      secondaryCtaUrl: "/community/login",
+    }),
+    sec("community", "featured", "text_section", "Featured highlights", {
+      headline: "Stay connected",
+      body: "Browse spaces for prayer, updates, and conversation. Your family in Christ is here.",
+    }),
+    sec("community", "seo", "text_section", "SEO & sharing", {
+      headline: "Mission Hub",
+      body: `Community feed and spaces for ${c.site.name} — partners, prayer, and ministry updates.`,
     }),
   ];
 }

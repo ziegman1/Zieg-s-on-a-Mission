@@ -414,6 +414,9 @@ model CommunityPostRecord {
   postType      String    @default("update") @map("post_type")
   status        String    @default("draft")
   coverImageUrl String?   @map("cover_image_url")
+  sourceKind    String?   @map("source_kind")
+  sourceId      String?   @map("source_id")
+  metadata      Json      @default("{}")
   publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -424,6 +427,7 @@ model CommunityPostRecord {
   comments   CommunityPostCommentRecord[]
   notifications CommunityNotificationRecord[]
 
+  @@unique([sourceKind, sourceId])
   @@index([spaceId, status])
   @@index([status, publishedAt])
   @@index([authorUserId])
@@ -556,4 +560,59 @@ model BlogPost {
 
   @@index([status, publishedAt(sort: Desc)])
   @@map("blog_posts")
+}
+
+enum NewsletterStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model NewsletterBrandSettingsRecord {
+  id                                String   @id @default("default")
+  defaultHeaderImageUrl             String?  @map("default_header_image_url")
+  headerAltText                     String   @default("") @map("header_alt_text")
+  defaultFooterImageUrl             String?  @map("default_footer_image_url")
+  footerAltText                     String   @default("") @map("footer_alt_text")
+  brandBackgroundColor              String   @default("#F7F3EB") @map("brand_background_color")
+  accentColor                       String   @default("#D4E8F5") @map("accent_color")
+  lineAccentColor                   String   @default("#B8D4E8") @map("line_accent_color")
+  defaultFooterText                 String   @default("") @map("default_footer_text")
+  defaultCtaLabel                   String   @default("") @map("default_cta_label")
+  defaultCtaUrl                     String   @default("") @map("default_cta_url")
+  useDefaultHeaderForNew            Boolean  @default(true) @map("use_default_header_for_new")
+  useDefaultFooterImageOnNewNewsletters Boolean @default(true) @map("use_default_footer_image_on_new")
+  updatedAt                         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("newsletter_brand_settings")
+}
+
+model Newsletter {
+  id               String           @id @default(cuid())
+  title            String
+  subtitle         String           @default("")
+  slug             String           @unique
+  issueDate        DateTime?        @map("issue_date") @db.Timestamptz(6)
+  headerImageUrl   String?          @map("header_image_url")
+  useDefaultBrandedHeader Boolean   @default(true) @map("use_default_branded_header")
+  featuredImageUrl String?          @map("featured_image_url")
+  excerpt          String           @default("")
+  body             String           @default("")
+  bodyBlocks       Json             @default("[]") @map("body_blocks")
+  ctaLabel              String           @default("") @map("cta_label")
+  ctaUrl                String           @default("") @map("cta_url")
+  ctaAlign              String           @default("center") @map("cta_align")
+  footerImageUrl        String?          @map("footer_image_url")
+  footerAltText         String           @default("") @map("footer_alt_text")
+  useDefaultFooterImage Boolean          @default(true) @map("use_default_footer_image")
+  seoTitle              String           @default("") @map("seo_title")
+  seoDescription   String           @default("") @map("seo_description")
+  status           NewsletterStatus @default(DRAFT)
+  publishedAt      DateTime?        @map("published_at") @db.Timestamptz(6)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([status, issueDate(sort: Desc)])
+  @@map("newsletters")
 }

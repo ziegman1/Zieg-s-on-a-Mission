@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { BuilderPreviewProvider } from "@/components/site-builder/builder-preview-context";
 import { PageSectionsRenderer } from "@/components/site-builder/page-sections-renderer";
-import { BUILDER_PAGES } from "@/lib/site-builder/types";
+import { BUILDER_PAGES, NEWSLETTER_BUILDER_NAV } from "@/lib/site-builder/types";
 import type { PageSection, SectionType } from "@/lib/site-builder/types";
 import { registryFor } from "@/lib/site-builder/registry";
 import { newBlockId } from "@/lib/site-copy-blocks/utils";
@@ -23,7 +23,10 @@ import {
 } from "./section-properties-panel";
 import { ElementPropertiesPanel } from "./element-properties-panel";
 import { BlogPostsManager } from "./blog-posts-manager";
+import { NewslettersManager } from "./newsletters-manager";
 import type { BlogPostRecord } from "@/lib/blog/types";
+import type { NewsletterBrandSettings } from "@/lib/newsletter/brand-types";
+import type { NewsletterRecord } from "@/lib/newsletter/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -45,19 +48,30 @@ export function SiteBuilderEditor({
   initialPages,
   initialBlogPosts = [],
   blogLoadError = null,
+  initialNewsletters = [],
+  initialNewsletterBrand,
+  newsletterLoadError = null,
 }: {
   initialPages: PageData;
   initialBlogPosts?: BlogPostRecord[];
   blogLoadError?: string | null;
+  initialNewsletters?: NewsletterRecord[];
+  initialNewsletterBrand: NewsletterBrandSettings;
+  newsletterLoadError?: string | null;
 }) {
   const [pages, setPages] = useState<PageData>(initialPages);
   const [activePage, setActivePage] = useState("home");
   const [blogTab, setBlogTab] = useState<"intro" | "posts">("posts");
   const [blogPosts, setBlogPosts] = useState(initialBlogPosts);
+  const [newsletters, setNewsletters] = useState(initialNewsletters);
 
   useEffect(() => {
     setBlogPosts(initialBlogPosts);
   }, [initialBlogPosts]);
+
+  useEffect(() => {
+    setNewsletters(initialNewsletters);
+  }, [initialNewsletters]);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -65,10 +79,14 @@ export function SiteBuilderEditor({
   const [error, setError] = useState<string | null>(null);
   const [pageSuccessMessage, setPageSuccessMessage] = useState<string | null>(null);
   const [blogSuccessMessage, setBlogSuccessMessage] = useState<string | null>(null);
+  const [newsletterSuccessMessage, setNewsletterSuccessMessage] = useState<string | null>(null);
   const [saveDiagnostics, setSaveDiagnostics] = useState<string | null>(null);
 
   const isBlogPostsTab = activePage === "blog" && blogTab === "posts";
   const isBlogIntroTab = activePage === "blog" && blogTab === "intro";
+  const isNewslettersPage = activePage === NEWSLETTER_BUILDER_NAV.id;
+  const isCommunityPage = activePage === "community";
+  const isContentEditorTab = isBlogPostsTab || isNewslettersPage;
   const [confirmRestore, setConfirmRestore] = useState(false);
 
   const sections = pages[activePage]?.sections ?? [];
@@ -255,7 +273,7 @@ export function SiteBuilderEditor({
   }
 
   async function handleSave() {
-    if (isBlogPostsTab) return;
+    if (isContentEditorTab) return;
     setStatus("saving");
     setError(null);
     setPageSuccessMessage(null);
@@ -264,7 +282,7 @@ export function SiteBuilderEditor({
   }
 
   async function handlePublishAll() {
-    if (isBlogPostsTab) return;
+    if (isContentEditorTab) return;
     setStatus("saving");
     setError(null);
     setPageSuccessMessage(null);
@@ -336,6 +354,20 @@ export function SiteBuilderEditor({
               <span className="text-zinc-200">Publish Blog Post</span> in the editor below. Top buttons do not save
               stories.
             </p>
+          ) : isNewslettersPage ? (
+            <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
+              <span className="text-zinc-300 font-medium">Newsletters</span> — separate from page sections. Use Save
+              draft / Publish in the editor. Publishing will notify Mission Hub members when notifications are wired.
+            </p>
+          ) : isCommunityPage ? (
+            <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
+              <span className="text-zinc-300 font-medium">Community</span> — hero and intro above the Mission Hub
+              feed. Spaces and posts are managed in{" "}
+              <Link href="/admin/community" className="text-brand-primary hover:underline">
+                Admin → Mission Hub
+              </Link>
+              .
+            </p>
           ) : (
             <>
               <Button type="button" size="sm" onClick={() => void handleSave()} disabled={status === "saving"}>
@@ -383,7 +415,7 @@ export function SiteBuilderEditor({
       {error ? (
         <p className="px-4 py-2 text-sm text-red-400 whitespace-pre-wrap">{error}</p>
       ) : null}
-      {pageSuccessMessage && !isBlogPostsTab ? (
+      {pageSuccessMessage && !isContentEditorTab ? (
         <p className="px-4 py-1 text-sm text-emerald-400" role="status">
           {pageSuccessMessage}
         </p>
@@ -391,6 +423,11 @@ export function SiteBuilderEditor({
       {blogSuccessMessage && isBlogPostsTab ? (
         <p className="px-4 py-1 text-sm text-emerald-400" role="status">
           {blogSuccessMessage}
+        </p>
+      ) : null}
+      {newsletterSuccessMessage && isNewslettersPage ? (
+        <p className="px-4 py-1 text-sm text-emerald-400" role="status">
+          {newsletterSuccessMessage}
         </p>
       ) : null}
       {saveDiagnostics ? (
@@ -426,7 +463,63 @@ export function SiteBuilderEditor({
           </div>
         ) : null}
 
-        {activePage === "blog" && blogTab === "posts" ? (
+        {isNewslettersPage ? (
+          <>
+          <aside className="w-56 shrink-0 border-r border-zinc-800 bg-zinc-950 flex flex-col">
+            <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+              Pages
+            </p>
+            <nav className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
+              {BUILDER_PAGES.map((p) => (
+                <button
+                  key={p.pageKey}
+                  type="button"
+                  onClick={() => {
+                    setActivePage(p.pageKey);
+                    setSelectedSectionId(null);
+                    setSelectedElementId(null);
+                    if (p.pageKey === "blog") setBlogTab("posts");
+                  }}
+                  className={cn(
+                    "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors",
+                    "text-zinc-400 hover:bg-zinc-900",
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                className={cn(
+                  "w-full text-left rounded-md px-2.5 py-2 text-sm mt-2 border border-dashed border-brand-primary/30",
+                  "bg-brand-primary/20 text-brand-primary",
+                )}
+              >
+                {NEWSLETTER_BUILDER_NAV.label}
+              </button>
+            </nav>
+          </aside>
+          <div className="flex-1 min-w-0 min-h-0">
+            <NewslettersManager
+              initialNewsletters={newsletters}
+              initialBrandSettings={initialNewsletterBrand}
+              loadError={newsletterLoadError}
+              onNewslettersChange={setNewsletters}
+              onSuccess={(msg) => {
+                setNewsletterSuccessMessage(msg);
+                setPageSuccessMessage(null);
+                setBlogSuccessMessage(null);
+                setSaveDiagnostics(null);
+                setError(null);
+              }}
+              onError={(msg) => {
+                setNewsletterSuccessMessage(null);
+                if (msg) setError(msg);
+              }}
+            />
+          </div>
+          </>
+        ) : activePage === "blog" && blogTab === "posts" ? (
           <div className="flex-1 min-w-0 min-h-0">
             <BlogPostsManager
               initialPosts={blogPosts}
@@ -471,6 +564,22 @@ export function SiteBuilderEditor({
                 {p.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => {
+                setActivePage(NEWSLETTER_BUILDER_NAV.id);
+                setSelectedSectionId(null);
+                setSelectedElementId(null);
+              }}
+              className={cn(
+                "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors mt-2 border border-dashed border-zinc-800",
+                activePage === NEWSLETTER_BUILDER_NAV.id
+                  ? "bg-brand-primary/20 text-brand-primary border-brand-primary/30"
+                  : "text-zinc-400 hover:bg-zinc-900",
+              )}
+            >
+              {NEWSLETTER_BUILDER_NAV.label}
+            </button>
           </nav>
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 border-t border-zinc-800">
             Sections
