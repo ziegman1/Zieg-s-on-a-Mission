@@ -83,6 +83,21 @@ describe("uploadNewsletterImageFile", () => {
     await expect(uploadNewsletterImageFile(file, "header")).rejects.toThrow("Upload failed.");
   });
 
+  it("surfaces missing Supabase URL config from API", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "Supabase Storage is not configured. Missing NEXT_PUBLIC_SUPABASE_URL.",
+        }),
+        { status: 503 },
+      ),
+    );
+    const file = new File([new Uint8Array(10)], "h.jpg", { type: "image/jpeg" });
+    await expect(uploadNewsletterImageFile(file, "header")).rejects.toThrow(
+      "Supabase Storage is not configured. Missing NEXT_PUBLIC_SUPABASE_URL.",
+    );
+  });
+
   it("throws on 401", async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),

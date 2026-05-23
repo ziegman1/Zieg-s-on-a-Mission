@@ -21,8 +21,9 @@ const RUNTIME_ENV_HINTS: { key: string; note: string }[] = [
   { key: "DIRECT_URL", note: "migrations only (db.<ref>.supabase.co :5432)" },
   { key: "AUTH_SECRET", note: "NextAuth session signing (alias: NEXTAUTH_SECRET)" },
   { key: "NEXTAUTH_URL", note: "must match public site URL" },
-  { key: "NEXT_PUBLIC_SUPABASE_URL", note: "Mission Hub media uploads" },
-  { key: "SUPABASE_SERVICE_ROLE_KEY", note: "server-only Supabase Storage" },
+  { key: "NEXT_PUBLIC_SUPABASE_URL", note: "Mission Hub + Newsletter Storage uploads" },
+  { key: "SUPABASE_SERVICE_ROLE_KEY", note: "server-only Supabase Storage (legacy eyJ JWT)" },
+  { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", note: "optional; legacy anon JWT" },
 ];
 
 function logHeader(): void {

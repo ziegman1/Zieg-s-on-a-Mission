@@ -10,11 +10,9 @@ import {
 } from "@/lib/newsletter/storage-paths";
 import { uploadNewsletterAsset } from "@/lib/supabase/newsletter-media";
 import {
-  getSupabaseProjectUrl,
-  getSupabaseServiceRoleKeyIssue,
-  isSupabaseStorageConfigured,
+  getSupabaseStorageConfigProblems,
   logSupabaseServiceRoleKeyDebug,
-  supabaseServiceRoleKeyErrorMessage,
+  supabaseStorageNotConfiguredMessage,
 } from "@/lib/supabase/config";
 
 export const runtime = "nodejs";
@@ -40,8 +38,8 @@ function clientFacingUploadError(message: string): string {
   if (lower.includes("jpg") || lower.includes("png") || lower.includes("webp") || lower.includes("mime")) {
     return "Unsupported file type.";
   }
-  if (lower.includes("unauthorized") || (lower.includes("missing") && lower.includes("key"))) {
-    return "Upload failed. Storage is not configured.";
+  if (lower.includes("not configured") || lower.includes("missing next_public")) {
+    return message;
   }
   if (lower.includes("bucket") && lower.includes("missing")) {
     return "Upload failed. Create the newsletter-assets bucket in Supabase.";
@@ -52,6 +50,15 @@ function clientFacingUploadError(message: string): string {
   return "Upload failed.";
 }
 
+function storageConfigErrorResponse() {
+  const problems = getSupabaseStorageConfigProblems();
+  let error = supabaseStorageNotConfiguredMessage(problems);
+  if (process.env.NODE_ENV === "development") {
+    error += " Add values to .env.local and restart npm run dev.";
+  }
+  return NextResponse.json({ error }, { status: 503 });
+}
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.role || !["ADMIN", "STAFF"].includes(session.user.role)) {
@@ -60,29 +67,8 @@ export async function POST(req: Request) {
 
   logSupabaseServiceRoleKeyDebug("upload-newsletter-image");
 
-  if (!getSupabaseProjectUrl()) {
-    return NextResponse.json(
-      {
-        error:
-          "Upload failed. Set NEXT_PUBLIC_SUPABASE_URL in .env.local (see docs/supabase-newsletter-assets.md).",
-      },
-      { status: 503 },
-    );
-  }
-
-  const keyIssue = getSupabaseServiceRoleKeyIssue();
-  if (keyIssue) {
-    return NextResponse.json(
-      { error: clientFacingUploadError(supabaseServiceRoleKeyErrorMessage(keyIssue)) },
-      { status: 503 },
-    );
-  }
-
-  if (!isSupabaseStorageConfigured()) {
-    return NextResponse.json(
-      { error: "Upload failed. Supabase Storage is not configured." },
-      { status: 503 },
-    );
+  if (getSupabaseStorageConfigProblems().length > 0) {
+    return storageConfigErrorResponse();
   }
 
   let formData: FormData;

@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import {
   buildBlogFeaturedImagePath,
   buildCommunityMemberProfilePath,
@@ -10,21 +9,11 @@ import {
   type CommunityCoverMimeType,
 } from "@/lib/community/media-upload";
 import {
-  assertSupabaseStorageReady,
   COMMUNITY_MEDIA_BUCKET,
   getSupabaseProjectUrl,
-  getSupabaseServiceRoleKey,
   supabaseServiceRoleKeyErrorMessage,
 } from "@/lib/supabase/config";
-
-function getStorageAdmin() {
-  assertSupabaseStorageReady();
-  const url = getSupabaseProjectUrl()!;
-  const key = getSupabaseServiceRoleKey()!;
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { getSupabaseStorageAdmin } from "@/lib/supabase/storage-admin";
 
 export function getCommunityMediaPublicUrl(storagePath: string): string | null {
   const base = getSupabaseProjectUrl();
@@ -70,7 +59,7 @@ export async function uploadCommunityPostCover(
   bytes: Buffer,
   contentType: CommunityCoverMimeType,
 ): Promise<{ url: string; path: string }> {
-  const supabase = getStorageAdmin();
+  const supabase = getSupabaseStorageAdmin();
 
   const ext = extensionForCoverMime(contentType);
   const path = buildCommunityPostCoverPath(ext);
@@ -100,7 +89,7 @@ export async function uploadCommunitySpaceCover(
   bytes: Buffer,
   contentType: CommunityCoverMimeType,
 ): Promise<{ url: string; path: string }> {
-  const supabase = getStorageAdmin();
+  const supabase = getSupabaseStorageAdmin();
 
   const ext = extensionForCoverMime(contentType);
   const path = buildCommunitySpaceCoverPath(ext);
@@ -130,7 +119,7 @@ export async function uploadCommunityMemberProfile(
   bytes: Buffer,
   contentType: CommunityCoverMimeType,
 ): Promise<{ url: string; path: string }> {
-  const supabase = getStorageAdmin();
+  const supabase = getSupabaseStorageAdmin();
 
   const ext = extensionForCoverMime(contentType);
   const path = buildCommunityMemberProfilePath(ext);
@@ -160,7 +149,7 @@ export async function uploadCommunityPrayerAudio(
   bytes: Buffer,
   contentType: string,
 ): Promise<{ url: string; path: string }> {
-  const supabase = getStorageAdmin();
+  const supabase = getSupabaseStorageAdmin();
   const ext = extensionForPrayerAudioMime(contentType);
   const path = buildCommunityPrayerAudioPath(ext);
 
@@ -189,7 +178,7 @@ export async function uploadBlogFeaturedImage(
   bytes: Buffer,
   contentType: CommunityCoverMimeType,
 ): Promise<{ url: string; path: string }> {
-  const supabase = getStorageAdmin();
+  const supabase = getSupabaseStorageAdmin();
   const ext = extensionForCoverMime(contentType);
   const path = buildBlogFeaturedImagePath(ext);
 

@@ -1,25 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
 import type { CommunityCoverMimeType } from "@/lib/community/media-upload";
 import {
   buildNewsletterAssetPathFromMime,
   type NewsletterImagePurpose,
 } from "@/lib/newsletter/storage-paths";
 import {
-  assertSupabaseStorageReady,
   getSupabaseProjectUrl,
-  getSupabaseServiceRoleKey,
   NEWSLETTER_ASSETS_BUCKET,
   supabaseServiceRoleKeyErrorMessage,
 } from "@/lib/supabase/config";
-
-function getStorageAdmin() {
-  assertSupabaseStorageReady();
-  const url = getSupabaseProjectUrl()!;
-  const key = getSupabaseServiceRoleKey()!;
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { getSupabaseStorageAdmin } from "@/lib/supabase/storage-admin";
 
 export function getNewsletterAssetPublicUrl(storagePath: string): string | null {
   const base = getSupabaseProjectUrl();
@@ -68,7 +57,7 @@ export async function uploadNewsletterAsset(
   purpose: NewsletterImagePurpose,
   options?: { newsletterId?: string },
 ): Promise<{ url: string; path: string }> {
-  const supabase = getStorageAdmin();
+  const supabase = getSupabaseStorageAdmin();
   const path = buildNewsletterAssetPathFromMime(purpose, contentType, options);
 
   const { error } = await supabase.storage.from(NEWSLETTER_ASSETS_BUCKET).upload(path, bytes, {

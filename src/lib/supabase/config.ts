@@ -111,8 +111,51 @@ export function getSupabaseProjectUrl(): string | undefined {
   return url.replace(/\/$/, "");
 }
 
+/** Public anon key — optional for server Storage uploads; used if browser Supabase client is added later. */
+export function getSupabaseAnonKey(): string | undefined {
+  return normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}
+
 export function getSupabaseServiceRoleKey(): string | undefined {
   return normalizeEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+export type SupabaseStorageConfigProblem = {
+  variable: "NEXT_PUBLIC_SUPABASE_URL" | "SUPABASE_SERVICE_ROLE_KEY";
+  kind: "missing" | "invalid";
+};
+
+/** Variables required for server-side Storage uploads (newsletter + Mission Hub media). */
+export function getSupabaseStorageConfigProblems(): SupabaseStorageConfigProblem[] {
+  const problems: SupabaseStorageConfigProblem[] = [];
+  if (!getSupabaseProjectUrl()) {
+    problems.push({ variable: "NEXT_PUBLIC_SUPABASE_URL", kind: "missing" });
+  }
+  const keyIssue = getSupabaseServiceRoleKeyIssue();
+  if (keyIssue === "missing") {
+    problems.push({ variable: "SUPABASE_SERVICE_ROLE_KEY", kind: "missing" });
+  } else if (keyIssue) {
+    problems.push({ variable: "SUPABASE_SERVICE_ROLE_KEY", kind: "invalid" });
+  }
+  return problems;
+}
+
+/** User-facing message when Storage env is incomplete (upload routes). */
+export function supabaseStorageNotConfiguredMessage(
+  problems?: SupabaseStorageConfigProblem[],
+): string {
+  const items = problems ?? getSupabaseStorageConfigProblems();
+  if (items.length === 0) {
+    return "Supabase Storage is not configured.";
+  }
+  const missing = items.filter((p) => p.kind === "missing").map((p) => p.variable);
+  if (missing.length === 1) {
+    return `Supabase Storage is not configured. Missing ${missing[0]}.`;
+  }
+  if (missing.length > 1) {
+    return `Supabase Storage is not configured. Missing ${missing.join(", ")}.`;
+  }
+  return "Supabase Storage is not configured. Invalid SUPABASE_SERVICE_ROLE_KEY.";
 }
 
 export function getSupabaseServiceRoleKeyIssue(): SupabaseServiceRoleKeyIssue | null {
@@ -120,20 +163,23 @@ export function getSupabaseServiceRoleKeyIssue(): SupabaseServiceRoleKeyIssue | 
 }
 
 export function isSupabaseStorageConfigured(): boolean {
-  return Boolean(getSupabaseProjectUrl() && getSupabaseServiceRoleKey());
+  return getSupabaseStorageConfigProblems().length === 0;
 }
 
 /** Throws a clear Error if URL or service_role JWT is missing or wrong format. */
 export function assertSupabaseStorageReady(): void {
-  const url = getSupabaseProjectUrl();
-  if (!url) {
-    throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL is missing. Set your project URL in .env.local (see docs/supabase-community-media.md).",
+  const problems = getSupabaseStorageConfigProblems();
+  if (problems.length > 0) {
+    const missingUrl = problems.some(
+      (p) => p.variable === "NEXT_PUBLIC_SUPABASE_URL" && p.kind === "missing",
     );
-  }
-  const keyIssue = getSupabaseServiceRoleKeyIssue();
-  if (keyIssue) {
-    throw new Error(supabaseServiceRoleKeyErrorMessage(keyIssue));
+    if (missingUrl) {
+      throw new Error(supabaseStorageNotConfiguredMessage(problems));
+    }
+    const keyIssue = getSupabaseServiceRoleKeyIssue();
+    if (keyIssue) {
+      throw new Error(supabaseServiceRoleKeyErrorMessage(keyIssue));
+    }
   }
 }
 

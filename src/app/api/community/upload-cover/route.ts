@@ -9,11 +9,9 @@ import {
   uploadCommunitySpaceCover,
 } from "@/lib/supabase/community-media";
 import {
-  getSupabaseProjectUrl,
-  getSupabaseServiceRoleKeyIssue,
-  isSupabaseStorageConfigured,
+  getSupabaseStorageConfigProblems,
   logSupabaseServiceRoleKeyDebug,
-  supabaseServiceRoleKeyErrorMessage,
+  supabaseStorageNotConfiguredMessage,
 } from "@/lib/supabase/config";
 
 export const runtime = "nodejs";
@@ -26,32 +24,12 @@ export async function POST(req: Request) {
 
   logSupabaseServiceRoleKeyDebug("upload-cover");
 
-  if (!getSupabaseProjectUrl()) {
-    return NextResponse.json(
-      {
-        error:
-          "NEXT_PUBLIC_SUPABASE_URL is missing. Set your Supabase project URL in .env.local (see docs/supabase-community-media.md).",
-      },
-      { status: 503 },
-    );
-  }
-
-  const keyIssue = getSupabaseServiceRoleKeyIssue();
-  if (keyIssue) {
-    return NextResponse.json(
-      { error: supabaseServiceRoleKeyErrorMessage(keyIssue) },
-      { status: 503 },
-    );
-  }
-
-  if (!isSupabaseStorageConfigured()) {
-    return NextResponse.json(
-      {
-        error:
-          "Supabase Storage is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
-      },
-      { status: 503 },
-    );
+  if (getSupabaseStorageConfigProblems().length > 0) {
+    let error = supabaseStorageNotConfiguredMessage();
+    if (process.env.NODE_ENV === "development") {
+      error += " Add values to .env.local and restart npm run dev.";
+    }
+    return NextResponse.json({ error }, { status: 503 });
   }
 
   let formData: FormData;

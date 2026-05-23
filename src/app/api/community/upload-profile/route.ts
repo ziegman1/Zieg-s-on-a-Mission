@@ -8,10 +8,8 @@ import {
 } from "@/lib/community/media-upload";
 import { uploadCommunityMemberProfile } from "@/lib/supabase/community-media";
 import {
-  getSupabaseProjectUrl,
-  getSupabaseServiceRoleKeyIssue,
-  isSupabaseStorageConfigured,
-  supabaseServiceRoleKeyErrorMessage,
+  getSupabaseStorageConfigProblems,
+  supabaseStorageNotConfiguredMessage,
 } from "@/lib/supabase/config";
 import { revalidateCommunityFeeds } from "@/lib/community/post-author";
 import { getOrSetVisitorKey } from "@/lib/community/visitor-key";
@@ -30,23 +28,11 @@ export async function POST(req: Request) {
     await getOrSetVisitorKey();
   }
 
-  if (!getSupabaseProjectUrl()) {
+  if (getSupabaseStorageConfigProblems().length > 0) {
     return NextResponse.json(
-      { error: "Supabase Storage is not configured." },
+      { error: supabaseStorageNotConfiguredMessage() },
       { status: 503 },
     );
-  }
-
-  const keyIssue = getSupabaseServiceRoleKeyIssue();
-  if (keyIssue) {
-    return NextResponse.json(
-      { error: supabaseServiceRoleKeyErrorMessage(keyIssue) },
-      { status: 503 },
-    );
-  }
-
-  if (!isSupabaseStorageConfigured()) {
-    return NextResponse.json({ error: "Supabase Storage is not configured." }, { status: 503 });
   }
 
   let formData: FormData;

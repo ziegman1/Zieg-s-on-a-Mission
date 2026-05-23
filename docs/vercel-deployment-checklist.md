@@ -21,6 +21,9 @@ Add these in **Vercel → Project → Settings → Environment Variables**. Set 
 | **NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY** | Stripe **live** publishable key (`pk_live_...`) from the same place. |
 | **PRINTIFY_API_KEY** | Printify API key. |
 | **PRINTIFY_SHOP_ID** | Printify Shop ID. |
+| **NEXT_PUBLIC_SUPABASE_URL** | Supabase project URL (`https://YOUR_REF.supabase.co`) — Mission Hub + Newsletter image uploads. |
+| **SUPABASE_SERVICE_ROLE_KEY** | Legacy **service_role** JWT (`eyJ…`) — server-only Storage uploads. **Not** `sb_secret_…`. |
+| **NEXT_PUBLIC_SUPABASE_ANON_KEY** | Legacy anon JWT (optional for uploads; recommended for full Supabase setup). |
 
 ---
 
