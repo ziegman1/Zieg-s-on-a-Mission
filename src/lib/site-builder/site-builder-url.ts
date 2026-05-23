@@ -1,14 +1,24 @@
-import { BUILDER_PAGES, NEWSLETTER_BUILDER_NAV } from "@/lib/site-builder/types";
+import {
+  BUILDER_PAGES,
+  NEWSLETTER_BUILDER_NAV,
+  type BuilderPageKey,
+} from "@/lib/site-builder/types";
 import type { NewsletterComposerLayoutMode } from "@/lib/newsletter/composer-layout";
 
 export const SITE_BUILDER_PATH = "/admin/site-builder";
 
-const DEFAULT_PAGE = "home";
+export type SiteBuilderPageKey = BuilderPageKey | typeof NEWSLETTER_BUILDER_NAV.id;
 
-const VALID_PAGE_KEYS = new Set([
+const DEFAULT_PAGE: SiteBuilderPageKey = "home";
+
+const VALID_PAGE_KEYS_FOR_LOOKUP: ReadonlySet<string> = new Set<string>([
   ...BUILDER_PAGES.map((p) => p.pageKey),
   NEWSLETTER_BUILDER_NAV.id,
 ]);
+
+function isValidPageKey(value: string): value is SiteBuilderPageKey {
+  return VALID_PAGE_KEYS_FOR_LOOKUP.has(value);
+}
 
 export type SiteBuilderBlogTab = "intro" | "posts";
 
@@ -31,7 +41,7 @@ type SearchParamsLike = { get(name: string): string | null };
 
 export function parseSiteBuilderSearchParams(params: SearchParamsLike): SiteBuilderSearchState {
   const rawPage = params.get("page")?.trim() || DEFAULT_PAGE;
-  const page = VALID_PAGE_KEYS.has(rawPage) ? rawPage : DEFAULT_PAGE;
+  const page: SiteBuilderPageKey = isValidPageKey(rawPage) ? rawPage : DEFAULT_PAGE;
 
   const blogTab = params.get("blogTab") === "intro" ? "intro" : "posts";
 

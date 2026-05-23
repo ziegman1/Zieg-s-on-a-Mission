@@ -12,7 +12,8 @@ import { spawnSync } from "child_process";
 
 const BUILD_STEPS: { name: string; command: string; args: string[] }[] = [
   { name: "prisma-generate", command: "npx", args: ["prisma", "generate"] },
-  { name: "next-build", command: "npx", args: ["next", "build"] },
+  { name: "typecheck", command: "npx", args: ["tsc", "--noEmit", "--pretty", "false"] },
+  { name: "next-build", command: "npx", args: ["next", "build", ...process.argv.slice(2)] },
 ];
 
 /** Env vars required at runtime on Vercel (warn only — build does not need DB). */

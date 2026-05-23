@@ -9,6 +9,7 @@
     "dev": "dotenv -e .env.local -- next dev --webpack",
     "postinstall": "prisma generate",
     "build": "tsx scripts/build.ts",
+    "typecheck": "tsc --noEmit --pretty false",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
