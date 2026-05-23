@@ -4,6 +4,9 @@ import path from "node:path";
 /** Supabase project URL (public — safe for browser; also used server-side). */
 export const COMMUNITY_MEDIA_BUCKET = "community-media";
 
+/** Newsletter Builder images (headers, footers, blocks, featured). */
+export const NEWSLETTER_ASSETS_BUCKET = "newsletter-assets";
+
 export type SupabaseServiceRoleKeyIssue =
   | "missing"
   | "placeholder"

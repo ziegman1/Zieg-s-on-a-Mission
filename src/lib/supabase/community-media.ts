@@ -1,9 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import {
   buildBlogFeaturedImagePath,
-  buildNewsletterImagePath,
   buildCommunityMemberProfilePath,
-  type NewsletterImagePurpose,
   buildCommunityPostCoverPath,
   buildCommunityPrayerAudioPath,
   buildCommunitySpaceCoverPath,
@@ -183,36 +181,6 @@ export async function uploadCommunityPrayerAudio(
 
   const url = getCommunityMediaPublicUrl(path);
   if (!url) throw new Error("Could not build public URL for uploaded audio.");
-  return { url, path };
-}
-
-/** Upload newsletter image to Supabase Storage (`community-media/newsletters/...`). */
-export async function uploadNewsletterImage(
-  bytes: Buffer,
-  contentType: CommunityCoverMimeType,
-  purpose: NewsletterImagePurpose,
-): Promise<{ url: string; path: string }> {
-  const supabase = getStorageAdmin();
-  const ext = extensionForCoverMime(contentType);
-  const path = buildNewsletterImagePath(purpose, ext);
-
-  const { error } = await supabase.storage.from(COMMUNITY_MEDIA_BUCKET).upload(path, bytes, {
-    contentType,
-    cacheControl: "31536000",
-    upsert: false,
-  });
-
-  if (error) {
-    if (error.message?.toLowerCase().includes("bucket") || error.message?.includes("not found")) {
-      throw new Error(
-        `Storage bucket "${COMMUNITY_MEDIA_BUCKET}" is missing. Create it in Supabase (see docs/supabase-community-media.md).`,
-      );
-    }
-    throw new Error(mapStorageUploadError(error.message || "Upload failed"));
-  }
-
-  const url = getCommunityMediaPublicUrl(path);
-  if (!url) throw new Error("Could not build public URL for uploaded image.");
   return { url, path };
 }
 

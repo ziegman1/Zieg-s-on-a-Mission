@@ -36,12 +36,14 @@ export function NewsletterSettingsPanel({
   onTitleChange,
   onSlugTouched,
   toDatetimeLocal,
+  newsletterId,
 }: {
   form: NewsletterSettingsFormSlice;
   onPatch: (patch: Partial<NewsletterSettingsFormSlice>) => void;
   onTitleChange: (title: string) => void;
   onSlugTouched: () => void;
   toDatetimeLocal: (iso: string) => string;
+  newsletterId?: string;
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 p-4" data-testid="newsletter-settings-panel">
@@ -121,6 +123,7 @@ export function NewsletterSettingsPanel({
           <NewsletterImageUploadField
             label="Header image (issue override)"
             purpose="header"
+            newsletterId={newsletterId}
             helpText="Uses saved branding header by default. Upload or paste a URL to override this issue only."
             imageUrl={form.headerImageUrl}
             onImageUrlChange={(headerImageUrl) =>
@@ -137,6 +140,7 @@ export function NewsletterSettingsPanel({
         <NewsletterImageUploadField
           label="Featured image (in content)"
           purpose="featured"
+          newsletterId={newsletterId}
           imageUrl={form.featuredImageUrl}
           onImageUrlChange={(featuredImageUrl) => onPatch({ featuredImageUrl })}
         />
@@ -210,6 +214,7 @@ export function NewsletterSettingsPanel({
           <NewsletterImageUploadField
             label="Footer image (issue override)"
             purpose="footer"
+            newsletterId={newsletterId}
             helpText="Uses saved branding footer by default. Upload or paste a URL to override this issue only."
             imageUrl={form.footerImageUrl}
             onImageUrlChange={(footerImageUrl) =>

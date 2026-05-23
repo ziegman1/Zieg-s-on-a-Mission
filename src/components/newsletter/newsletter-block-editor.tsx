@@ -13,9 +13,11 @@ const fieldClass = "bg-zinc-900 border-zinc-700 text-sm";
 export function NewsletterBlockEditor({
   block,
   onChange,
+  newsletterId,
 }: {
   block: NewsletterBlock;
   onChange: (next: NewsletterBlock) => void;
+  newsletterId?: string;
 }) {
   switch (block.type) {
     case "text":
@@ -65,6 +67,7 @@ export function NewsletterBlockEditor({
         <NewsletterImageUploadField
           label="Image"
           purpose="block"
+          newsletterId={newsletterId}
           imageUrl={block.imageUrl}
           onImageUrlChange={(imageUrl) => onChange({ ...block, imageUrl })}
           altText={block.alt}
@@ -100,6 +103,7 @@ export function NewsletterBlockEditor({
           <NewsletterImageUploadField
             label="Image"
             purpose="block"
+            newsletterId={newsletterId}
             imageUrl={block.imageUrl}
             onImageUrlChange={(imageUrl) => onChange({ ...block, imageUrl })}
             altText={block.alt}

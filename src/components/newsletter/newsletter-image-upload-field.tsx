@@ -25,11 +25,13 @@ export function NewsletterImageUploadField({
   onCaptionChange,
   previewClassName,
   disabled = false,
+  newsletterId,
 }: {
   label: string;
   imageUrl: string;
   onImageUrlChange: (url: string) => void;
   purpose: NewsletterImagePurpose;
+  newsletterId?: string;
   helpText?: string;
   altText?: string;
   onAltTextChange?: (alt: string) => void;
@@ -51,7 +53,7 @@ export function NewsletterImageUploadField({
       setPreviewBroken(false);
       setUploading(true);
       try {
-        const { url } = await uploadNewsletterImageFile(file, purpose);
+        const { url } = await uploadNewsletterImageFile(file, purpose, { newsletterId });
         onImageUrlChange(url);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Upload failed");
@@ -59,7 +61,7 @@ export function NewsletterImageUploadField({
         setUploading(false);
       }
     },
-    [onImageUrlChange, purpose],
+    [newsletterId, onImageUrlChange, purpose],
   );
 
   function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {

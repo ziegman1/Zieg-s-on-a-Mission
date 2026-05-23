@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { auth } from "@/auth";
 import {
-  extensionForCoverMime,
   isCommunityCoverMimeType,
-  NEWSLETTER_IMAGE_PURPOSES,
-  type NewsletterImagePurpose,
   validateCommunityCoverFile,
 } from "@/lib/community/media-upload";
-import { uploadNewsletterImage } from "@/lib/supabase/community-media";
-import { assertSupabaseStorageReady } from "@/lib/supabase/config";
+import {
+  NEWSLETTER_IMAGE_PURPOSES,
+  type NewsletterImagePurpose,
+} from "@/lib/newsletter/storage-paths";
+import { uploadNewsletterAsset } from "@/lib/supabase/newsletter-media";
+import {
+  getSupabaseProjectUrl,
+  getSupabaseServiceRoleKeyIssue,
+  isSupabaseStorageConfigured,
+  logSupabaseServiceRoleKeyDebug,
+  supabaseServiceRoleKeyErrorMessage,
+} from "@/lib/supabase/config";
+
+export const runtime = "nodejs";
 
 function parsePurpose(value: FormDataEntryValue | null): NewsletterImagePurpose {
   if (typeof value === "string" && (NEWSLETTER_IMAGE_PURPOSES as readonly string[]).includes(value)) {
@@ -18,10 +26,63 @@ function parsePurpose(value: FormDataEntryValue | null): NewsletterImagePurpose 
   return "block";
 }
 
+function parseNewsletterId(value: FormDataEntryValue | null): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const id = value.trim();
+  return id.length > 0 ? id : undefined;
+}
+
+function clientFacingUploadError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("5 mb") || lower.includes("size limit") || lower.includes("too large")) {
+    return "Image exceeds size limit.";
+  }
+  if (lower.includes("jpg") || lower.includes("png") || lower.includes("webp") || lower.includes("mime")) {
+    return "Unsupported file type.";
+  }
+  if (lower.includes("unauthorized") || (lower.includes("missing") && lower.includes("key"))) {
+    return "Upload failed. Storage is not configured.";
+  }
+  if (lower.includes("bucket") && lower.includes("missing")) {
+    return "Upload failed. Create the newsletter-assets bucket in Supabase.";
+  }
+  if (process.env.NODE_ENV === "development") {
+    return message;
+  }
+  return "Upload failed.";
+}
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.role || !["ADMIN", "STAFF"].includes(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  logSupabaseServiceRoleKeyDebug("upload-newsletter-image");
+
+  if (!getSupabaseProjectUrl()) {
+    return NextResponse.json(
+      {
+        error:
+          "Upload failed. Set NEXT_PUBLIC_SUPABASE_URL in .env.local (see docs/supabase-newsletter-assets.md).",
+      },
+      { status: 503 },
+    );
+  }
+
+  const keyIssue = getSupabaseServiceRoleKeyIssue();
+  if (keyIssue) {
+    return NextResponse.json(
+      { error: clientFacingUploadError(supabaseServiceRoleKeyErrorMessage(keyIssue)) },
+      { status: 503 },
+    );
+  }
+
+  if (!isSupabaseStorageConfigured()) {
+    return NextResponse.json(
+      { error: "Upload failed. Supabase Storage is not configured." },
+      { status: 503 },
+    );
   }
 
   let formData: FormData;
@@ -37,46 +98,31 @@ export async function POST(req: Request) {
   }
 
   const purpose = parsePurpose(formData.get("purpose"));
+  const newsletterId = parseNewsletterId(formData.get("newsletterId"));
 
   const validationError = validateCommunityCoverFile(file);
   if (validationError) {
-    return NextResponse.json({ error: validationError }, { status: 400 });
+    const error =
+      validationError.includes("5 MB") ? "Image exceeds size limit." : validationError;
+    return NextResponse.json({ error }, { status: 400 });
   }
 
   const mimeType = file.type;
   if (!isCommunityCoverMimeType(mimeType)) {
-    return NextResponse.json({ error: "Use a JPG, PNG, or WebP image." }, { status: 400 });
+    return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-
   try {
-    assertSupabaseStorageReady();
-    const { url } = await uploadNewsletterImage(buffer, mimeType, purpose);
-    return NextResponse.json({ url, storage: "supabase", purpose });
-  } catch (e) {
-    console.warn("[upload-newsletter-image] Supabase failed, trying Blob:", e);
-  }
-
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  const ext = extensionForCoverMime(mimeType);
-  const pathname = `newsletters/${purpose}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  try {
-    const blob = await put(pathname, file, {
-      access: "public",
-      ...(token ? { token } : {}),
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { url, path } = await uploadNewsletterAsset(buffer, mimeType, purpose, {
+      newsletterId,
     });
-    return NextResponse.json({ url: blob.url, storage: "blob", purpose });
+    return NextResponse.json({ url, path, storage: "supabase", purpose });
   } catch (e) {
+    console.error("[upload-newsletter-image]", e);
     const message = e instanceof Error ? e.message : "Upload failed";
     return NextResponse.json(
-      {
-        error:
-          process.env.NODE_ENV === "development"
-            ? message
-            : "Could not upload image. Check Supabase Storage or Vercel Blob configuration.",
-      },
+      { error: clientFacingUploadError(message) },
       { status: 500 },
     );
   }

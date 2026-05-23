@@ -541,6 +541,9 @@ export function NewslettersManager({
             layoutMode={composerLayoutMode}
             onLayoutModeChange={setComposerLayoutMode}
             onOpenSettings={() => setSettingsOpen(true)}
+            newsletterId={
+              editingId && editingId !== "new" ? editingId : undefined
+            }
             meta={{
               title: form.title,
               subtitle: form.subtitle,
@@ -593,6 +596,9 @@ export function NewslettersManager({
                     onTitleChange={handleTitleChange}
                     onSlugTouched={() => setSlugTouched(true)}
                     toDatetimeLocal={toDatetimeLocal}
+                    newsletterId={
+                      editingId && editingId !== "new" ? editingId : undefined
+                    }
                   />
                 </div>
                 <div className="shrink-0 px-4 py-3 border-t border-zinc-800">

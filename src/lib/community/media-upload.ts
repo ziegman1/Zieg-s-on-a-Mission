@@ -162,19 +162,11 @@ export function buildBlogFeaturedImagePath(ext: string): string {
   return buildCommunityMediaPath("blog", ext);
 }
 
-export const NEWSLETTER_IMAGE_PURPOSES = ["header", "featured", "footer", "block"] as const;
-export type NewsletterImagePurpose = (typeof NEWSLETTER_IMAGE_PURPOSES)[number];
-
-/** `newsletters/{purpose}/2026/05/<uuid>.jpg` */
-export function buildNewsletterImagePath(purpose: NewsletterImagePurpose, ext: string): string {
-  const now = new Date();
-  const y = now.getUTCFullYear();
-  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const id = crypto.randomUUID();
-  const safeExt = ext.replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
-  const safePurpose = NEWSLETTER_IMAGE_PURPOSES.includes(purpose) ? purpose : "block";
-  return `newsletters/${safePurpose}/${y}/${m}/${id}.${safeExt}`;
-}
+export {
+  NEWSLETTER_IMAGE_PURPOSES,
+  type NewsletterImagePurpose,
+  buildNewsletterAssetPath as buildNewsletterImagePath,
+} from "@/lib/newsletter/storage-paths";
 
 function buildCommunityMediaPath(
   folder: "posts" | "profiles" | "spaces" | "prayers" | "blog",

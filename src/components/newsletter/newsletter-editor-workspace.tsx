@@ -58,6 +58,7 @@ export function NewsletterEditorWorkspace({
   layoutMode,
   onLayoutModeChange,
   onOpenSettings,
+  newsletterId,
 }: {
   blocks: NewsletterBlocks;
   onBlocksChange: (blocks: NewsletterBlocks) => void;
@@ -66,6 +67,7 @@ export function NewsletterEditorWorkspace({
   layoutMode: NewsletterComposerLayoutMode;
   onLayoutModeChange: (mode: NewsletterComposerLayoutMode) => void;
   onOpenSettings: () => void;
+  newsletterId?: string;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(blocks[0]?.id ?? null);
   const [railExpanded, setRailExpanded] = useState(true);
@@ -327,6 +329,7 @@ export function NewsletterEditorWorkspace({
                         <div className="p-4">
                           <NewsletterBlockEditor
                             block={block}
+                            newsletterId={newsletterId}
                             onChange={(next) => updateBlock(block.id, next)}
                           />
                         </div>
