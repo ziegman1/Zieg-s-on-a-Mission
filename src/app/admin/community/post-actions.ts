@@ -20,6 +20,7 @@ import type {
   CommunityPostFeedItemBase,
   CommunityPostType,
 } from "@/lib/community/types";
+import { deliverPostPublishNotifications } from "@/lib/community/deliver-post-publish-notifications";
 import { prisma } from "@/lib/db";
 
 const POST_TYPE_VALUES = new Set(COMMUNITY_POST_TYPES.map((t) => t.value));
@@ -117,6 +118,11 @@ export async function createCommunityPostAction(
         publishedAt: parsePublishedAt(data.status, data.publishedAt),
       },
     });
+    if (data.status === "published") {
+      await deliverPostPublishNotifications(row.id, {
+        authorUserId: owner.id,
+      }).catch((err) => console.error("[notifications] post publish:", err));
+    }
     await revalidatePosts(space.slug);
     return { ok: true, id: row.id };
   } catch (e) {
@@ -194,6 +200,7 @@ export async function updateCommunityPostAction(
     data.status === "published"
       ? parsePublishedAt(data.status, data.publishedAt) ?? existing.publishedAt ?? new Date()
       : null;
+  const wasPublished = existing.status === "published";
 
   try {
     await prisma.communityPostRecord.update({
@@ -213,9 +220,14 @@ export async function updateCommunityPostAction(
     if (newSpace.slug !== existing.space.slug) {
       await revalidatePosts(newSpace.slug);
     }
+    const isNowPublished = data.status === "published" && newSpace.status === "published";
+    if (isNowPublished && !wasPublished) {
+      await deliverPostPublishNotifications(id, {
+        authorUserId: owner.id,
+      }).catch((err) => console.error("[notifications] post publish:", err));
+    }
     const feedPatch = await feedItemBaseForPostId(id);
-    const visibleInPublishedFeed =
-      data.status === "published" && newSpace.status === "published";
+    const visibleInPublishedFeed = isNowPublished;
     return { ok: true, feedPatch, visibleInPublishedFeed };
   } catch (e) {
     console.error(e);

@@ -12,7 +12,10 @@ import {
 import { isSpiritualRoom } from "@/lib/community/spiritual-room";
 import { listComposerSpacesForOwner } from "@/lib/community/composer-spaces";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
+import { CommunityNewsletterArchive } from "@/components/community/community-newsletter-archive";
 import { listPublishedPostsBySpaceSlug } from "@/lib/community/posts";
+import { NEWSLETTER_SPACE_SLUG } from "@/lib/newsletter/mission-hub-announcement";
+import { listMissionHubNewsletterArchive } from "@/lib/newsletter/mission-hub-newsletter-archive";
 import {
   getPublishedCommunitySpaceDetailBySlug,
   listPublishedCommunitySpaces,
@@ -58,14 +61,25 @@ export default async function CommunitySpacePage({ params }: PageProps) {
     getVisitorKey(),
   ]);
 
+  const isNewsletterArchiveSpace =
+    slug.trim().toLowerCase() === NEWSLETTER_SPACE_SLUG;
+
   let publishedSpaces: Awaited<ReturnType<typeof listPublishedCommunitySpaces>> = [];
   let posts: Awaited<ReturnType<typeof listPublishedPostsBySpaceSlug>> = [];
+  let newsletterArchive: Awaited<ReturnType<typeof listMissionHubNewsletterArchive>> = [];
   let composerSpaces: Awaited<ReturnType<typeof listComposerSpacesForOwner>> = [];
   try {
-    [publishedSpaces, posts] = await Promise.all([
-      listPublishedCommunitySpaces(),
-      listPublishedPostsBySpaceSlug(slug, 50, visitorKey),
-    ]);
+    if (isNewsletterArchiveSpace) {
+      [publishedSpaces, newsletterArchive] = await Promise.all([
+        listPublishedCommunitySpaces(),
+        listMissionHubNewsletterArchive(),
+      ]);
+    } else {
+      [publishedSpaces, posts] = await Promise.all([
+        listPublishedCommunitySpaces(),
+        listPublishedPostsBySpaceSlug(slug, 50, visitorKey),
+      ]);
+    }
     if (owner) composerSpaces = await listComposerSpacesForOwner();
   } catch (e) {
     console.error("[community/[slug]] failed to load:", e);
@@ -106,7 +120,9 @@ export default async function CommunitySpacePage({ params }: PageProps) {
       defaultSpaceId={space.id}
       spaceDetail={spiritual ? space : null}
     >
-      {spiritual ? (
+      {isNewsletterArchiveSpace ? (
+        <CommunityNewsletterArchive space={space} items={newsletterArchive} />
+      ) : spiritual ? (
         <Suspense fallback={null}>
           <CommunitySpiritualSpaceView
             space={space}

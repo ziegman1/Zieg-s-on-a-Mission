@@ -20,6 +20,7 @@ import { isVoicePrayerBody } from "@/lib/community/prayer-response-body";
 import { isPrayerSpaceSlug } from "@/lib/community/space-interaction";
 import { canUseVoicePrayer } from "@/lib/community/voice-prayer";
 import { getOrSetVisitorKey } from "@/lib/community/visitor-key";
+import { deliverPostPublishNotifications } from "@/lib/community/deliver-post-publish-notifications";
 import { prisma } from "@/lib/db";
 
 const createPrayerRoomPostSchema = z.object({
@@ -157,6 +158,10 @@ export async function createPrayerRoomPostAction(
       actorDisplayName,
       actorIsOwner,
     }).catch((err) => console.error("[notifications] prayer room post:", err));
+
+    await deliverPostPublishNotifications(row.id, {
+      authorUserId,
+    }).catch((err) => console.error("[notifications] post publish:", err));
 
     revalidatePath("/community");
     revalidatePath(`/community/${space.slug}`);

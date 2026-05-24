@@ -1,6 +1,10 @@
+"use client";
+
 import type { CommunityComposerSpace } from "@/lib/community/composer-types";
+import { filterHubAllFeedPosts } from "@/lib/community/feed-filters";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
+import { useMemo } from "react";
 import { CommunityPostCard } from "./community-post-card";
 
 export function CommunityPostFeed({
@@ -17,7 +21,12 @@ export function CommunityPostFeed({
   owner?: CommunityOwner | null;
   composerSpaces?: CommunityComposerSpace[];
 }) {
-  if (posts.length === 0) return null;
+  const displayPosts = useMemo(
+    () => (showSpaceLabel ? filterHubAllFeedPosts(posts) : posts),
+    [posts, showSpaceLabel],
+  );
+
+  if (displayPosts.length === 0) return null;
 
   const spiritual = variant === "spiritual";
 
@@ -26,7 +35,7 @@ export function CommunityPostFeed({
       className={spiritual ? "space-y-3 sm:space-y-3.5" : "space-y-2.5 sm:space-y-3"}
       aria-label="Posts"
     >
-      {posts.map((post) => (
+      {displayPosts.map((post) => (
         <li key={post.id}>
           <CommunityPostCard
             post={post}

@@ -116,7 +116,11 @@ describe("deliverNewsletterPublishNotifications — email", () => {
         ...DEFAULT_NOTIFICATION_PREFERENCES,
         email: false,
       });
-    vi.mocked(queueAndSendNewsletterPublishEmail).mockResolvedValue({ action: "sent", deliveryId: "d1" });
+    vi.mocked(queueAndSendNewsletterPublishEmail).mockResolvedValue({
+      action: "sent",
+      deliveryId: "d1",
+      resendMessageId: "msg_1",
+    });
 
     const result = await deliverNewsletterPublishNotifications(sampleNewsletter, deliveryOptions);
 
@@ -175,7 +179,11 @@ describe("deliverNewsletterPublishNotifications — email", () => {
     vi.mocked(getUserNotificationPreferences).mockResolvedValue(
       DEFAULT_NOTIFICATION_PREFERENCES,
     );
-    vi.mocked(queueAndSendNewsletterPublishEmail).mockResolvedValue({ action: "sent", deliveryId: "d1" });
+    vi.mocked(queueAndSendNewsletterPublishEmail).mockResolvedValue({
+      action: "sent",
+      deliveryId: "d1",
+      resendMessageId: "msg_1",
+    });
 
     const result = await deliverNewsletterPublishNotifications(sampleNewsletter, {
       ...deliveryOptions,

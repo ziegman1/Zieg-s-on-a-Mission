@@ -7,7 +7,10 @@ import {
   prayerResponseNotificationExcerpt,
 } from "@/lib/community/prayer-response-body";
 import { prisma } from "@/lib/db";
-import { newsletterPublishNotificationDedupeKey } from "@/lib/newsletter/mission-hub-dedupe";
+import {
+  newPostPublishNotificationDedupeKey,
+  newsletterPublishNotificationDedupeKey,
+} from "@/lib/newsletter/mission-hub-dedupe";
 
 const OWNER_ROLES = ["ADMIN", "STAFF"] as const;
 
@@ -327,6 +330,77 @@ export async function upsertNewsletterPublishedNotification(input: {
       dedupeKey,
       sourcePostId: input.sourcePostId,
     });
+  }
+
+  await prisma.communityNotificationRecord.create({
+    data: {
+      recipientUserId: input.recipientUserId,
+      ...data,
+    },
+  });
+  return "created";
+}
+
+export function buildNewPostPublishedNotificationTitle(spaceName: string): string {
+  return `New post in ${spaceName.trim() || "Mission Hub"}`;
+}
+
+/** Deduped in-app notification when a Mission Hub post is published. */
+export async function upsertNewPostPublishedNotification(input: {
+  recipientUserId: string;
+  postId: string;
+  spaceId: string;
+  spaceSlug: string;
+  spaceName: string;
+  title: string | null;
+  body: string;
+  excerpt: string | null;
+  actorUserId?: string | null;
+}): Promise<"created" | "updated"> {
+  if (input.actorUserId && input.actorUserId === input.recipientUserId) {
+    return "updated";
+  }
+
+  const dedupeKey = newPostPublishNotificationDedupeKey(input.postId);
+  const headline =
+    input.title?.trim() ||
+    input.excerpt?.trim() ||
+    input.body.trim().slice(0, 120) ||
+    "New update";
+  const notificationBody = input.excerpt?.trim() || input.body.trim().slice(0, 200) || null;
+
+  const metadata = {
+    sourceKind: "post",
+    sourceId: input.postId,
+    sourcePostId: input.postId,
+    spaceId: input.spaceId,
+    spaceSlug: input.spaceSlug,
+  } satisfies Record<string, string>;
+
+  const existing = await prisma.communityNotificationRecord.findFirst({
+    where: { recipientUserId: input.recipientUserId, dedupeKey },
+    select: { id: true },
+  });
+
+  const data = {
+    type: "new_post" as const,
+    title: buildNewPostPublishedNotificationTitle(input.spaceName),
+    body: notificationBody,
+    postId: input.postId,
+    commentId: null,
+    actorUserId: input.actorUserId ?? null,
+    actorMemberId: null,
+    dedupeKey,
+    metadata: metadata as unknown as import("@prisma/client").Prisma.InputJsonValue,
+    readAt: null,
+  };
+
+  if (existing) {
+    await prisma.communityNotificationRecord.update({
+      where: { id: existing.id },
+      data: { ...data, readAt: null, createdAt: new Date() },
+    });
+    return "updated";
   }
 
   await prisma.communityNotificationRecord.create({

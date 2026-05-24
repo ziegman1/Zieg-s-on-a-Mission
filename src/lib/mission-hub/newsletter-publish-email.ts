@@ -1,18 +1,18 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import {
-  NEWSLETTER_SPACE_SLUG,
-  newsletterPublicPath,
-} from "@/lib/newsletter/mission-hub-announcement";
 import type { NewsletterRecord } from "@/lib/newsletter/types";
 import {
   getMissionHubEmailConfigProblem,
   missionHubEmailDisabledMessage,
 } from "@/lib/mission-hub/email-config";
 import { newsletterPublishEmailDedupeKey } from "@/lib/mission-hub/email-dedupe";
-import { sendMissionHubEmail } from "@/lib/mission-hub/resend-client";
+import { queueMissionHubEmailDelivery } from "@/lib/mission-hub/email-delivery-queue";
+import type { QueueMissionHubEmailResult } from "@/lib/mission-hub/email-delivery-types";
+import type { MissionHubEmailSendPolicy } from "@/lib/mission-hub/test-email-recipients";
+import {
+  NEWSLETTER_SPACE_SLUG,
+  newsletterPublicPath,
+} from "@/lib/newsletter/mission-hub-announcement";
 import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
 
 export const NEWSLETTER_PUBLISH_EMAIL_SUBJECT = "New newsletter from Zieg's on a Mission";
@@ -89,10 +89,7 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export type QueueNewsletterEmailResult =
-  | { action: "sent"; deliveryId: string }
-  | { action: "deduped" }
-  | { action: "failed"; deliveryId: string; error: string };
+export type QueueNewsletterEmailResult = QueueMissionHubEmailResult;
 
 export async function queueAndSendNewsletterPublishEmail(input: {
   recipientUserId: string;
@@ -100,88 +97,39 @@ export async function queueAndSendNewsletterPublishEmail(input: {
   newsletter: NewsletterRecord;
   missionHubPostUrl: string;
   forceResend?: boolean;
+  emailPolicy?: MissionHubEmailSendPolicy;
 }): Promise<QueueNewsletterEmailResult> {
-  const dedupeKey = newsletterPublishEmailDedupeKey(input.newsletter.id);
-  const existing = await prisma.missionHubEmailDeliveryRecord.findUnique({
-    where: {
-      recipientUserId_dedupeKey: {
-        recipientUserId: input.recipientUserId,
-        dedupeKey,
-      },
-    },
-  });
-
-  if (existing?.status === "sent" && !input.forceResend) {
-    return { action: "deduped" };
-  }
-
   const content = buildNewsletterPublishEmailContent({
     newsletter: input.newsletter,
     missionHubPostUrl: input.missionHubPostUrl,
   });
 
-  const metadata = {
-    newsletterId: input.newsletter.id,
-    newsletterSlug: input.newsletter.slug,
-    newsletterPublicUrl: content.newsletterPublicUrl,
-    missionHubPostUrl: content.missionHubPostUrl,
-  } satisfies Prisma.InputJsonValue;
-
-  const delivery =
-    existing && input.forceResend
-      ? await prisma.missionHubEmailDeliveryRecord.update({
-          where: { id: existing.id },
-          data: {
-            recipientEmail: input.recipientEmail,
-            status: "pending",
-            errorMessage: null,
-            resendMessageId: null,
-            sentAt: null,
-            metadata,
-          },
-        })
-      : existing
-        ? existing
-        : await prisma.missionHubEmailDeliveryRecord.create({
-            data: {
-              recipientUserId: input.recipientUserId,
-              recipientEmail: input.recipientEmail,
-              notificationKind: "newsletter_published",
-              dedupeKey,
-              status: "pending",
-              metadata,
-            },
-          });
-
-  const sendResult = await sendMissionHubEmail({
-    to: input.recipientEmail,
-    subject: content.subject,
-    html: content.html,
-    text: content.text,
-  });
-
-  if (!sendResult.ok) {
-    await prisma.missionHubEmailDeliveryRecord.update({
-      where: { id: delivery.id },
-      data: {
-        status: "failed",
-        errorMessage: sendResult.error,
+  return queueMissionHubEmailDelivery(
+    {
+      recipientUserId: input.recipientUserId,
+      recipientEmail: input.recipientEmail,
+      notificationKind: "newsletter_published",
+      dedupeKey: newsletterPublishEmailDedupeKey(input.newsletter.id),
+      subject: content.subject,
+      html: content.html,
+      text: content.text,
+      metadata: {
+        sourceKind: "newsletter",
+        sourceId: input.newsletter.id,
+        sourcePostId: extractPostIdFromMissionHubUrl(input.missionHubPostUrl),
+        newsletterSlug: input.newsletter.slug,
+        newsletterPublicUrl: content.newsletterPublicUrl,
+        missionHubPostUrl: content.missionHubPostUrl,
       },
-    });
-    return { action: "failed", deliveryId: delivery.id, error: sendResult.error };
-  }
-
-  await prisma.missionHubEmailDeliveryRecord.update({
-    where: { id: delivery.id },
-    data: {
-      status: "sent",
-      resendMessageId: sendResult.resendMessageId,
-      sentAt: new Date(),
-      errorMessage: null,
+      forceResend: input.forceResend,
     },
-  });
+    input.emailPolicy ?? { smokeTest: false },
+  );
+}
 
-  return { action: "sent", deliveryId: delivery.id };
+function extractPostIdFromMissionHubUrl(url: string): string {
+  const hash = url.split("#post-")[1];
+  return hash?.trim() || "";
 }
 
 export function getNewsletterPublishEmailDisabledReason(): string | null {

@@ -22,10 +22,49 @@ When a newsletter is published from Newsletter Builder:
 
 Eligibility: active Mission Hub member, newsletters + email channel on, Newsletter space not muted, not the publisher.
 
-Republish does **not** resend email unless `resendNewsletterEmail` is passed (admin-only, future UI).
+Republish does **not** resend email unless `resendNewsletterEmail` is passed (admin republish + smoke test).
+
+## New post publish (all spaces)
+
+When a **published** Mission Hub post is created (admin composer, member prayer room, etc.):
+
+- In-app: dedupe `post:{postId}:published` in `community_notifications`
+- Email: dedupe `post:{postId}:email` in `mission_hub_email_deliveries`, subject `New post in {spaceName}`
+
+Skipped automatically for `sourceKind: newsletter` hub announcements (newsletter flow handles those).
+
+Eligibility: active member, `newPosts` + channel on, space not muted, not the author.
+
+## Smoke test (safe)
+
+Set on Vercel or locally:
+
+```bash
+TEST_MISSION_HUB_EMAIL_RECIPIENTS=you@example.com
+MISSION_HUB_EMAIL_DEBUG=1   # optional verbose logs
+```
+
+**CLI** (production DB via `.env.production`):
+
+```bash
+npm run smoke:mission-hub-newsletter:production -- <newsletterId>
+```
+
+**Admin UI:** Newsletter settings → Mission Hub delivery → **Run smoke test**
+
+Behavior:
+
+1. `removeNewsletterFromMissionHub()` — archives posts, clears dedupe logs  
+2. Republish announcements + in-app notifications for all eligible members  
+3. Email **only** to `TEST_MISSION_HUB_EMAIL_RECIPIENTS` (if unset, **no** broadcast email)
+
+## Debugging
+
+- `MISSION_HUB_EMAIL_DEBUG=1` — delivery counts, Resend message ids, skips  
+- `NEWSLETTER_HUB_DEBUG=1` — newsletter fan-out logs  
 
 ## Extending
 
-- `notification_kind` on delivery log: `newsletter_published`, `new_post`, `weekly_digest`, `invitation`
-- Shared send path: `src/lib/mission-hub/resend-client.ts`
+- `notification_kind` on delivery log: `newsletter_published`, `post_published`, `weekly_digest`, `invitation`
+- Shared queue: `src/lib/mission-hub/email-delivery-queue.ts`
 - Dedupe helpers: `src/lib/mission-hub/email-dedupe.ts`

@@ -6,6 +6,7 @@ import {
   getNewsletterMissionHubDiagnosticsAction,
   removeNewsletterFromMissionHubAction,
   republishNewsletterToMissionHubAction,
+  runNewsletterMissionHubSmokeTestAction,
 } from "@/app/admin/site-builder/newsletter-actions";
 import type { NewsletterMissionHubDiagnostics } from "@/lib/newsletter/mission-hub-lifecycle";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,26 @@ export function NewsletterMissionHubPanel({
 
     startTransition(async () => {
       const res = await removeNewsletterFromMissionHubAction(newsletterId);
+      if (res.ok) {
+        onMessage?.(res.message);
+        await loadDiagnostics();
+      } else {
+        onError?.(res.error);
+      }
+    });
+  }
+
+  function handleSmokeTest() {
+    const testList = "Set TEST_MISSION_HUB_EMAIL_RECIPIENTS on the server for email delivery.";
+    const confirmed = window.confirm(
+      "Run Mission Hub newsletter smoke test?\n\n" +
+        "This will remove from Hub, republish posts, refresh in-app notifications, and send email ONLY to TEST_MISSION_HUB_EMAIL_RECIPIENTS (if configured).\n\n" +
+        testList,
+    );
+    if (!confirmed) return;
+
+    startTransition(async () => {
+      const res = await runNewsletterMissionHubSmokeTestAction(newsletterId);
       if (res.ok) {
         onMessage?.(res.message);
         await loadDiagnostics();
@@ -159,6 +180,16 @@ export function NewsletterMissionHubPanel({
         </Button>
         {published ? (
           <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-[10px] rounded-full border-emerald-500/40 text-emerald-400"
+              disabled={pending}
+              onClick={handleSmokeTest}
+            >
+              Run smoke test
+            </Button>
             <Button
               type="button"
               variant="outline"

@@ -33,6 +33,8 @@ export type NotifyNewsletterPublishOptions = {
   publisherUserId?: string | null;
   /** When true, resend newsletter publish emails even if already delivered. */
   resendNewsletterEmail?: boolean;
+  /** Restrict email to TEST_MISSION_HUB_EMAIL_RECIPIENTS; never broadcast in smoke tests. */
+  smokeTest?: boolean;
 };
 
 function buildNotifyMessage(
@@ -92,6 +94,7 @@ export async function notifyMissionHubMembersOfNewsletterPublish(
     newsletterSpacePostId: announcements.newsletterSpace?.postId ?? null,
     publisherUserId: options.publisherUserId ?? null,
     resendNewsletterEmail: options.resendNewsletterEmail,
+    smokeTest: options.smokeTest === true,
   });
 
   revalidatePath("/community", "page");

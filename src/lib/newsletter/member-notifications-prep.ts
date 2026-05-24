@@ -17,10 +17,20 @@ import {
 import { isMissionHubEmailNotificationsEnabled } from "@/lib/mission-hub/email-config";
 import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
 import {
+  isMissionHubEmailDebugEnabled,
+  resolveMissionHubEmailSendPolicy,
+} from "@/lib/mission-hub/test-email-recipients";
+import {
   NEWSLETTER_SPACE_SLUG,
   newsletterPublicPath,
 } from "@/lib/newsletter/mission-hub-announcement";
 import type { NewsletterRecord } from "./types";
+
+export type NewsletterPublishSkipEntry = {
+  userId: string;
+  email?: string;
+  reason: string;
+};
 
 export type NewsletterPublishNotificationsResult = {
   inAppDelivered: true;
@@ -32,11 +42,14 @@ export type NewsletterPublishNotificationsResult = {
   emailNotificationsSent: number;
   emailNotificationsDeduped: number;
   emailNotificationsFailed: number;
+  emailNotificationsSkipped: number;
   emailSkippedNoAddress: number;
   emailRecipientsPrepared: number;
   inAppRecipientsPrepared: number;
   pushRecipientsPrepared: number;
   skippedMutedOrDisabled: number;
+  skippedRecipients: NewsletterPublishSkipEntry[];
+  resendMessageIds: string[];
 };
 
 /** @deprecated Use {@link NewsletterPublishNotificationsResult}. */
@@ -51,6 +64,8 @@ export type DeliverNewsletterPublishNotificationsOptions = {
   publisherUserId?: string | null;
   /** Admin-only: resend emails even when delivery log shows sent. */
   resendNewsletterEmail?: boolean;
+  /** Safe smoke test — email only to TEST_MISSION_HUB_EMAIL_RECIPIENTS. */
+  smokeTest?: boolean;
 };
 
 async function resolveNewsletterNotificationSpaceId(): Promise<string | null> {
@@ -69,6 +84,10 @@ export async function deliverNewsletterPublishNotifications(
   newsletter: NewsletterRecord,
   options: DeliverNewsletterPublishNotificationsOptions,
 ): Promise<NewsletterPublishNotificationsResult> {
+  const emailPolicy = resolveMissionHubEmailSendPolicy({
+    smokeTest: options.smokeTest === true,
+  });
+
   const [members, newsletterSpaceId] = await Promise.all([
     prisma.communityMemberRecord.findMany({
       where: { status: "active", userId: { not: null } },
@@ -107,14 +126,18 @@ export async function deliverNewsletterPublishNotifications(
   let emailNotificationsSent = 0;
   let emailNotificationsDeduped = 0;
   let emailNotificationsFailed = 0;
+  let emailNotificationsSkipped = 0;
   let emailSkippedNoAddress = 0;
   let emailRecipientsPrepared = 0;
   let inAppRecipientsPrepared = 0;
   let pushRecipientsPrepared = 0;
   let skippedMutedOrDisabled = 0;
+  const skippedRecipients: NewsletterPublishSkipEntry[] = [];
+  const resendMessageIds: string[] = [];
 
   for (const userId of userIds) {
     if (publisherId && userId === publisherId) {
+      skippedRecipients.push({ userId, reason: "publisher_excluded" });
       continue;
     }
 
@@ -140,6 +163,11 @@ export async function deliverNewsletterPublishNotifications(
       !eligibility.pushChannel
     ) {
       skippedMutedOrDisabled += 1;
+      skippedRecipients.push({
+        userId,
+        email: emailByUserId.get(userId),
+        reason: eligibility.skipReason ?? "all_channels_off",
+      });
     }
 
     if (eligibility.inAppChannel) {
@@ -172,6 +200,7 @@ export async function deliverNewsletterPublishNotifications(
     const recipientEmail = emailByUserId.get(userId);
     if (!recipientEmail) {
       emailSkippedNoAddress += 1;
+      skippedRecipients.push({ userId, reason: "no_email_address" });
       continue;
     }
 
@@ -181,15 +210,36 @@ export async function deliverNewsletterPublishNotifications(
       newsletter,
       missionHubPostUrl,
       forceResend: options.resendNewsletterEmail === true,
+      emailPolicy: { smokeTest: options.smokeTest === true },
     });
 
-    if (emailOutcome.action === "sent") emailNotificationsSent += 1;
-    else if (emailOutcome.action === "deduped") emailNotificationsDeduped += 1;
-    else emailNotificationsFailed += 1;
+    if (emailOutcome.action === "sent") {
+      emailNotificationsSent += 1;
+      if (emailOutcome.resendMessageId) {
+        resendMessageIds.push(emailOutcome.resendMessageId);
+      }
+    } else if (emailOutcome.action === "deduped") {
+      emailNotificationsDeduped += 1;
+    } else if (emailOutcome.action === "failed") {
+      emailNotificationsFailed += 1;
+      skippedRecipients.push({
+        userId,
+        email: recipientEmail,
+        reason: `email_failed:${emailOutcome.error}`,
+      });
+    } else if (emailOutcome.action === "skipped") {
+      emailNotificationsSkipped += 1;
+      skippedRecipients.push({
+        userId,
+        email: recipientEmail,
+        reason: emailOutcome.reason,
+      });
+    }
   }
 
   if (
     process.env.NEWSLETTER_HUB_DEBUG === "1" ||
+    isMissionHubEmailDebugEnabled() ||
     process.env.NODE_ENV !== "production"
   ) {
     console.info("[newsletter] deliverNewsletterPublishNotifications", {
@@ -197,6 +247,7 @@ export async function deliverNewsletterPublishNotifications(
       newsletterSpaceSlug: NEWSLETTER_SPACE_SLUG,
       newsletterSpaceId,
       sourcePostId: options.sourcePostId,
+      smokeTest: options.smokeTest === true,
       eligibleUserIds: userIds.filter((id) => !publisherId || id !== publisherId),
       totalMembersWithAccounts: userIds.length,
       inAppNotificationsSent,
@@ -205,10 +256,12 @@ export async function deliverNewsletterPublishNotifications(
       emailNotificationsSent,
       emailNotificationsDeduped,
       emailNotificationsFailed,
+      emailNotificationsSkipped,
       emailRecipientsPrepared,
       emailEnabled,
       emailDisabledReason,
       skippedMutedOrDisabled,
+      resendMessageIds,
     });
   }
 
@@ -222,11 +275,14 @@ export async function deliverNewsletterPublishNotifications(
     emailNotificationsSent,
     emailNotificationsDeduped,
     emailNotificationsFailed,
+    emailNotificationsSkipped,
     emailSkippedNoAddress,
     emailRecipientsPrepared,
     inAppRecipientsPrepared,
     pushRecipientsPrepared,
     skippedMutedOrDisabled,
+    skippedRecipients,
+    resendMessageIds,
   };
 }
 

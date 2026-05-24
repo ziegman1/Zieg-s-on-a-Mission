@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { CommunityComposerSpace } from "@/lib/community/composer-types";
+import type { AdminMembersHubPreview } from "@/lib/community/admin-members-preview-types";
 import type { CommunityMemberProfile } from "@/lib/community/members";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import { MH } from "@/lib/community/hub-design";
@@ -24,6 +25,7 @@ export function MissionHubShell({
   notificationUserId = null,
   initialUnreadCount = 0,
   composerSpaces = [],
+  membersPreview = null,
   children,
 }: {
   owner: CommunityOwner | null;
@@ -37,6 +39,7 @@ export function MissionHubShell({
   notificationUserId?: string | null;
   initialUnreadCount?: number;
   composerSpaces?: CommunityComposerSpace[];
+  membersPreview?: AdminMembersHubPreview | null;
   children: ReactNode;
 }) {
   const signedIn = Boolean(owner ?? member);
@@ -57,6 +60,7 @@ export function MissionHubShell({
         notificationUserId={notificationUserId}
         initialUnreadCount={initialUnreadCount}
         composerSpaces={composerSpaces}
+        membersPreview={membersPreview}
       />
       <MissionHubNavBoundary>
         <main

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCommunityAdminStats } from "@/lib/community/admin-community-stats";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,24 @@ export default async function AdminDashboardPage() {
   let productCount = 0;
   let orderCount = 0;
   let collectionCount = 0;
+  let memberCount = 0;
+  let activeMemberCount = 0;
   let dbError: string | null = null;
   try {
-    [productCount, orderCount, collectionCount] = await Promise.all([
+    const [products, orders, collections, hubStats] = await Promise.all([
       prisma.product.count(),
       prisma.order.count(),
       prisma.collection.count(),
+      getCommunityAdminStats().catch(() => ({
+        memberCount: 0,
+        activeMemberCount: 0,
+      })),
     ]);
+    productCount = products;
+    orderCount = orders;
+    collectionCount = collections;
+    memberCount = hubStats.memberCount;
+    activeMemberCount = hubStats.activeMemberCount;
   } catch (e) {
     console.error("[admin dashboard] database query failed:", e);
     dbError =
@@ -36,7 +48,25 @@ export default async function AdminDashboardPage() {
           <p className="mt-1 text-red-200/90">{dbError}</p>
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-brand-primary/25 bg-zinc-900">
+          <CardHeader>
+            <CardTitle className="text-cream">Mission Hub members</CardTitle>
+            <CardDescription>Community member profiles</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-semibold text-brand-primary">{memberCount}</p>
+            <p className="text-xs text-zinc-500 mt-0.5">{activeMemberCount} active</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button asChild variant="outline" size="sm" className="border-brand-primary/50 text-brand-primary">
+                <Link href="/admin/community/members">Members</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="text-zinc-400 hover:text-brand-accent">
+                <Link href="/admin/community">Hub admin</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
         <Card className="border-brand-primary/25 bg-zinc-900">
           <CardHeader>
             <CardTitle className="text-cream">Products</CardTitle>

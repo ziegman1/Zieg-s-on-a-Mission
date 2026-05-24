@@ -82,11 +82,14 @@ describe("notifyMissionHubMembersOfNewsletterPublish", () => {
       emailNotificationsSent: 0,
       emailNotificationsDeduped: 0,
       emailNotificationsFailed: 0,
+      emailNotificationsSkipped: 0,
       emailSkippedNoAddress: 0,
       emailRecipientsPrepared: 1,
       inAppRecipientsPrepared: 2,
       pushRecipientsPrepared: 0,
       skippedMutedOrDisabled: 0,
+      skippedRecipients: [],
+      resendMessageIds: [],
     });
   });
 
@@ -105,6 +108,7 @@ describe("notifyMissionHubMembersOfNewsletterPublish", () => {
       newsletterSpacePostId: "post-newsletter",
       publisherUserId: "admin-1",
       resendNewsletterEmail: undefined,
+      smokeTest: undefined,
     });
     expect(result.message).toContain("Mission Hub in-app notifications sent: 2");
     expect(result.notifications.emailNotificationsSent).toBe(0);

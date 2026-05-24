@@ -8,6 +8,7 @@ import {
 import { attachCommentCountsToFeedPosts } from "@/lib/community/comments";
 import { attachReactionsToFeedPosts } from "@/lib/community/reactions";
 import { interactionFromSpaceRow, spaceExperienceSelect } from "@/lib/community/space-experience";
+import { filterHubAllFeedPosts, hubAllFeedPostWhere } from "@/lib/community/feed-filters";
 import { attachNewsletterAnnouncementToFeedItem } from "@/lib/newsletter/mission-hub-announcement";
 import type { CommunityPostFeedItem, CommunityPostFeedItemBase, CommunityPostType } from "@/lib/community/types";
 import { prisma } from "@/lib/db";
@@ -80,13 +81,14 @@ export async function listPublishedPostsFeed(
   visitorKey?: string,
 ): Promise<CommunityPostFeedItem[]> {
   const rows = await prisma.communityPostRecord.findMany({
-    where: publishedPostWhere,
+    where: hubAllFeedPostWhere(),
     include: feedPostInclude,
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
     take: limit,
   });
   const withReactions = await attachReactionsToFeedPosts(rows.map(recordToFeedItem), visitorKey);
-  return attachCommentCountsToFeedPosts(withReactions);
+  const withCounts = await attachCommentCountsToFeedPosts(withReactions);
+  return filterHubAllFeedPosts(withCounts);
 }
 
 export async function listPublishedPostsBySpaceSlug(

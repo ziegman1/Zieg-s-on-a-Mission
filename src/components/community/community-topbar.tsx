@@ -9,6 +9,8 @@ import { MH } from "@/lib/community/hub-design";
 import type { CommunityComposerSpace } from "@/lib/community/composer-types";
 import { CommunityNotificationsBell } from "./community-notifications-bell";
 import { CommunityProfileMenu } from "./community-profile-menu";
+import { CommunityTopbarMembersCluster } from "./community-topbar-members-cluster";
+import type { AdminMembersHubPreview } from "@/lib/community/admin-members-preview-types";
 import { CommunityTopbarCreate } from "./community-topbar-create";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +22,7 @@ export function CommunityTopbar({
   notificationUserId = null,
   initialUnreadCount = 0,
   composerSpaces = [],
+  membersPreview = null,
 }: {
   owner: CommunityOwner | null;
   member: CommunityMemberProfile | null;
@@ -28,6 +31,8 @@ export function CommunityTopbar({
   notificationUserId?: string | null;
   initialUnreadCount?: number;
   composerSpaces?: CommunityComposerSpace[];
+  /** Admin-only avatar strip data (null for non-admins). */
+  membersPreview?: AdminMembersHubPreview | null;
 }) {
   const pathname = usePathname();
   const returnPath =
@@ -64,6 +69,7 @@ export function CommunityTopbar({
 
         <div className="flex items-center gap-0.5 shrink-0">
           <CommunityTopbarCreate owner={owner} composerSpaces={composerSpaces} />
+          <CommunityTopbarMembersCluster owner={owner} preview={membersPreview} />
           {notificationUserId ? (
             <CommunityNotificationsBell
               recipientUserId={notificationUserId}

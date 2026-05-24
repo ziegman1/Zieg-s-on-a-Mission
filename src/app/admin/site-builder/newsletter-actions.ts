@@ -20,6 +20,10 @@ import {
   type RemoveNewsletterFromMissionHubResult,
 } from "@/lib/newsletter/mission-hub-lifecycle";
 import {
+  runNewsletterMissionHubSmokeTest,
+  type NewsletterHubSmokeTestResult,
+} from "@/lib/mission-hub/smoke-test-newsletter-hub";
+import {
   notifyMissionHubMembersOfNewsletterPublish,
   type NewsletterNotifyResult,
 } from "@/lib/newsletter/notify";
@@ -368,6 +372,34 @@ export async function archiveNewsletterAction(
       },
       "archive",
     );
+  } catch (e) {
+    return { ok: false, error: formatNewsletterError(e) };
+  }
+}
+
+export async function runNewsletterMissionHubSmokeTestAction(
+  id: string,
+): Promise<
+  | { ok: true; result: NewsletterHubSmokeTestResult; message: string }
+  | { ok: false; error: string }
+> {
+  const session = await requireAdminSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  try {
+    const result = await runNewsletterMissionHubSmokeTest({
+      newsletterId: id,
+      publisherUserId: session.id,
+      forceResendEmail: true,
+    });
+    if (!result.ok) {
+      return { ok: false, error: result.error ?? "Smoke test failed" };
+    }
+    revalidatePath("/community", "page");
+    return {
+      ok: true,
+      result,
+      message: result.logLines.join("\n"),
+    };
   } catch (e) {
     return { ok: false, error: formatNewsletterError(e) };
   }

@@ -49,7 +49,7 @@ describe("queueAndSendNewsletterPublishEmail", () => {
       missionHubPostUrl: "https://example.com/community/newsletters#post-1",
     });
 
-    expect(result).toEqual({ action: "deduped" });
+    expect(result.action).toBe("deduped");
     expect(sendMissionHubEmail).not.toHaveBeenCalled();
   });
 

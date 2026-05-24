@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { MissionHubShell } from "@/components/community/mission-hub-shell";
 import { getCurrentCommunityMember } from "@/lib/community/members";
+import { getAdminMembersHubPreview } from "@/lib/community/admin-members-preview";
 import { countUnreadNotifications } from "@/lib/community/notifications";
 import { listComposerSpacesForOwner } from "@/lib/community/composer-spaces";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
@@ -76,6 +77,15 @@ export default async function CommunityLayout({
     }
   }
 
+  let membersPreview: Awaited<ReturnType<typeof getAdminMembersHubPreview>> | null = null;
+  if (owner) {
+    try {
+      membersPreview = await getAdminMembersHubPreview();
+    } catch (e) {
+      console.error("[community layout] members preview:", e);
+    }
+  }
+
   const pathname = headersList.get("x-pathname") ?? "";
   const isAuthPage =
     pathname === "/community/login" || pathname === "/community/join";
@@ -93,6 +103,7 @@ export default async function CommunityLayout({
       notificationUserId={notificationUserId}
       initialUnreadCount={initialUnreadCount}
       composerSpaces={composerSpaces}
+      membersPreview={membersPreview}
     >
       {children}
     </MissionHubShell>
