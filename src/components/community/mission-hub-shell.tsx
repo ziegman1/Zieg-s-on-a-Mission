@@ -7,6 +7,10 @@ import { MH } from "@/lib/community/hub-design";
 import { CommunityBottomNav } from "./community-bottom-nav";
 import { CommunityInstallHint } from "./community-install-hint";
 import { CommunityTopbar } from "./community-topbar";
+import {
+  MissionHubPullToRefreshMain,
+  MissionHubRefreshRoot,
+} from "./mission-hub-live-layer";
 import { MissionHubNavBoundary } from "./mission-hub-nav-boundary";
 import { MissionHubStandaloneInit } from "./mission-hub-standalone-init";
 import { MissionHubSwRegister } from "./mission-hub-sw-register";
@@ -52,28 +56,35 @@ export function MissionHubShell({
     >
       <MissionHubStandaloneInit />
       <MissionHubSwRegister />
-      <CommunityTopbar
-        owner={owner}
-        member={member}
-        siteName={siteName}
-        accountImageUrl={accountImageUrl}
+      <MissionHubRefreshRoot
         notificationUserId={notificationUserId}
         initialUnreadCount={initialUnreadCount}
-        composerSpaces={composerSpaces}
-        membersPreview={membersPreview}
-      />
-      <MissionHubNavBoundary>
-        <main
-          className={cn(
-            "flex-1 w-full",
-            showBottomNav ? MH.bottomNavH : "pb-6",
-          )}
-        >
-          {showInstallHint ? <CommunityInstallHint signedIn={signedIn} /> : null}
-          {children}
-        </main>
-        {showBottomNav ? <CommunityBottomNav /> : null}
-      </MissionHubNavBoundary>
+      >
+        <CommunityTopbar
+          owner={owner}
+          member={member}
+          siteName={siteName}
+          accountImageUrl={accountImageUrl}
+          notificationUserId={notificationUserId}
+          initialUnreadCount={initialUnreadCount}
+          composerSpaces={composerSpaces}
+          membersPreview={membersPreview}
+        />
+        <MissionHubNavBoundary>
+          <MissionHubPullToRefreshMain>
+            <main
+              className={cn(
+                "flex-1 w-full mission-hub-scroll",
+                showBottomNav ? MH.bottomNavH : "pb-6",
+              )}
+            >
+              {showInstallHint ? <CommunityInstallHint signedIn={signedIn} /> : null}
+              {children}
+            </main>
+          </MissionHubPullToRefreshMain>
+          {showBottomNav ? <CommunityBottomNav /> : null}
+        </MissionHubNavBoundary>
+      </MissionHubRefreshRoot>
     </div>
   );
 }

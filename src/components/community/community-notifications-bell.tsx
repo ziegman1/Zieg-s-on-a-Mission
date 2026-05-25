@@ -12,7 +12,12 @@ import {
 } from "@/app/(storefront)/community/notification-actions";
 import type { CommunityNotificationItem } from "@/lib/community/notification-types";
 import { formatCommunityPostDate } from "@/lib/community/format-post-date";
+import {
+  MISSION_HUB_NOTIFICATIONS_SYNC_EVENT,
+  MISSION_HUB_REFRESH_EVENT,
+} from "@/lib/community/mission-hub-refresh";
 import { cn } from "@/lib/utils";
+import { useMissionHubRefreshOptional } from "./mission-hub-refresh-context";
 
 function formatNotificationTime(iso: string): string {
   const d = new Date(iso);
@@ -82,11 +87,15 @@ export function CommunityNotificationsBell({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
+  const hubRefresh = useMissionHubRefreshOptional();
 
   const refreshCount = useCallback(async () => {
     const result = await fetchUnreadNotificationCountAction();
-    if (result.ok) setUnreadCount(result.count);
-  }, []);
+    if (result.ok) {
+      setUnreadCount(result.count);
+      hubRefresh?.setUnreadCount(result.count);
+    }
+  }, [hubRefresh]);
 
   const loadPanel = useCallback(async () => {
     setLoading(true);
@@ -100,16 +109,45 @@ export function CommunityNotificationsBell({
     setUnreadItems(result.unread);
     setReadItems(result.read);
     setUnreadCount(result.unreadCount);
+    hubRefresh?.setUnreadCount(result.unreadCount);
     if (result.read.length === 0) setReadExpanded(false);
-  }, []);
+  }, [hubRefresh]);
+
+  const displayUnreadCount = hubRefresh?.unreadCount ?? unreadCount;
 
   useEffect(() => {
     setUnreadCount(initialUnreadCount);
-  }, [initialUnreadCount]);
+    hubRefresh?.setUnreadCount(initialUnreadCount);
+  }, [initialUnreadCount, hubRefresh]);
 
   useEffect(() => {
     if (!open) return;
     void loadPanel();
+  }, [open, loadPanel]);
+
+  useEffect(() => {
+    if (!hubRefresh) return;
+    setUnreadCount(hubRefresh.unreadCount);
+  }, [hubRefresh?.unreadCount, hubRefresh]);
+
+  useEffect(() => {
+    function onSync(e: Event) {
+      const detail = (e as CustomEvent<{ unreadCount: number }>).detail;
+      if (typeof detail?.unreadCount === "number") {
+        setUnreadCount(detail.unreadCount);
+      }
+    }
+    window.addEventListener(MISSION_HUB_NOTIFICATIONS_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(MISSION_HUB_NOTIFICATIONS_SYNC_EVENT, onSync);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const id = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      void loadPanel();
+    }, 45_000);
+    return () => clearInterval(id);
   }, [open, loadPanel]);
 
   useEffect(() => {
@@ -119,6 +157,15 @@ export function CommunityNotificationsBell({
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refreshCount]);
+
+  useEffect(() => {
+    function onHubRefresh() {
+      void refreshCount();
+      if (open) void loadPanel();
+    }
+    window.addEventListener(MISSION_HUB_REFRESH_EVENT, onHubRefresh);
+    return () => window.removeEventListener(MISSION_HUB_REFRESH_EVENT, onHubRefresh);
+  }, [open, refreshCount, loadPanel]);
 
   useEffect(() => {
     if (!open) return;
@@ -144,6 +191,7 @@ export function CommunityNotificationsBell({
       if (result.ok) {
         const now = new Date().toISOString();
         setUnreadCount(0);
+        hubRefresh?.setUnreadCount(0);
         setReadItems((prev) => [
           ...unreadItems.map((n) => ({ ...n, readAt: now })),
           ...prev,
@@ -160,6 +208,7 @@ export function CommunityNotificationsBell({
       if (result.ok) {
         setReadItems([]);
         setUnreadCount(result.unreadCount);
+        hubRefresh?.setUnreadCount(result.unreadCount);
         setReadExpanded(false);
       }
     });
@@ -171,6 +220,7 @@ export function CommunityNotificationsBell({
         const result = await markNotificationReadAction(item.id);
         if (result.ok) {
           setUnreadCount(result.unreadCount);
+          hubRefresh?.setUnreadCount(result.unreadCount);
           setUnreadItems((prev) => prev.filter((n) => n.id !== item.id));
           setReadItems((prev) => [
             { ...item, readAt: new Date().toISOString() },
@@ -207,17 +257,17 @@ export function CommunityNotificationsBell({
           open && "bg-brand-primary/10 text-brand-primary",
         )}
         aria-label={
-          unreadCount > 0
-            ? `Notifications, ${unreadCount} unread`
+          displayUnreadCount > 0
+            ? `Notifications, ${displayUnreadCount} unread`
             : "Notifications"
         }
         aria-expanded={open}
         aria-haspopup="true"
       >
         <Bell className="h-5 w-5" aria-hidden />
-        {unreadCount > 0 ? (
+        {displayUnreadCount > 0 ? (
           <span className="absolute top-0.5 right-0.5 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-brand-primary px-1 text-[9px] font-bold text-white leading-none shadow-[0_0_0_2px_white] ring-2 ring-brand-primary/25 animate-in zoom-in duration-200">
-            {unreadCount > 9 ? "9+" : unreadCount}
+            {displayUnreadCount > 9 ? "9+" : displayUnreadCount}
           </span>
         ) : null}
       </button>
@@ -247,7 +297,7 @@ export function CommunityNotificationsBell({
                   Clear read
                 </button>
               ) : null}
-              {unreadCount > 0 ? (
+              {displayUnreadCount > 0 ? (
                 <button
                   type="button"
                   disabled={pending}

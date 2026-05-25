@@ -19,6 +19,7 @@ import { CommunityCommentList } from "./community-comment-list";
 import { CommunityJoinPrompt } from "./community-join-prompt";
 import { CommunityMemberProfileForm } from "./community-member-profile-form";
 import { Button } from "@/components/ui/button";
+import { MISSION_HUB_REFRESH_EVENT } from "@/lib/community/mission-hub-refresh";
 import { cn } from "@/lib/utils";
 
 export function CommunityPrayerThreadContent({
@@ -65,6 +66,14 @@ export function CommunityPrayerThreadContent({
     loadComments();
     void getCommentAuthorContextAction().then(setAuthorContext);
   }, [loadComments, refreshKey]);
+
+  useEffect(() => {
+    function onHubRefresh() {
+      loadComments();
+    }
+    window.addEventListener(MISSION_HUB_REFRESH_EVENT, onHubRefresh);
+    return () => window.removeEventListener(MISSION_HUB_REFRESH_EVENT, onHubRefresh);
+  }, [loadComments]);
 
   function handleVisitorProfileCreated(member: CommunityMemberProfile) {
     setAuthorContext({ kind: "visitor", member });

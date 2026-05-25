@@ -36,7 +36,10 @@ export function CommunityPostFeed({
       aria-label="Posts"
     >
       {displayPosts.map((post) => (
-        <li key={post.id}>
+        <li
+          key={post.id}
+          className="animate-in fade-in slide-in-from-top-1 duration-300 motion-reduce:animate-none"
+        >
           <CommunityPostCard
             post={post}
             showSpaceLabel={showSpaceLabel}

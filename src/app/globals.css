@@ -143,6 +143,16 @@ html.mission-hub-standalone .mission-hub-root {
   min-height: 100dvh;
 }
 
+/* Mission Hub mobile scroll — custom PTR, reduce browser rubber-band */
+.mission-hub-root,
+html.mission-hub-standalone {
+  overscroll-behavior-y: contain;
+}
+
+.mission-hub-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
 @keyframes mh-shimmer {
   0% {
     background-position: 200% 0;
