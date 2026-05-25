@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
+import { useMobileComposerFocus } from "@/lib/community/use-mobile-composer-focus";
 import { Loader2, Mic, PenLine } from "lucide-react";
 import type { CommentAuthorContext } from "@/lib/community/members";
 import { encodeVoicePrayerBody } from "@/lib/community/prayer-response-body";
@@ -36,6 +37,7 @@ export function CommunityPrayerResponseForm({
   disabled,
   allowVoice = false,
   autoFocus = false,
+  autoFocusKey = 0,
   variant = "inline",
 }: {
   postId: string;
@@ -47,6 +49,7 @@ export function CommunityPrayerResponseForm({
   allowVoice?: boolean;
   /** Focus textarea when mounted (composer sheet) */
   autoFocus?: boolean;
+  autoFocusKey?: number;
   variant?: "inline" | "sheet";
 }) {
   const [mode, setMode] = useState<"written" | "voice">("written");
@@ -56,20 +59,10 @@ export function CommunityPrayerResponseForm({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const textareaId = useId();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isSheet = variant === "sheet";
 
-  useEffect(() => {
-    if (!autoFocus || mode !== "written") return;
-    const timer = window.setTimeout(() => {
-      const el = document.getElementById(textareaId) as HTMLTextAreaElement | null;
-      if (!el) return;
-      el.focus({ preventScroll: true });
-      const len = el.value.length;
-      el.setSelectionRange(len, len);
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }, 150);
-    return () => window.clearTimeout(timer);
-  }, [autoFocus, mode, textareaId]);
+  useMobileComposerFocus(autoFocus && mode === "written", textareaRef, autoFocusKey);
 
   const name = authorLabel(authorContext);
   const { comments: copy } = preset;
@@ -185,6 +178,7 @@ export function CommunityPrayerResponseForm({
             Written prayer
           </Label>
           <Textarea
+            ref={textareaRef}
             id={textareaId}
             value={body}
             onChange={(e) => setBody(e.target.value)}
@@ -192,11 +186,10 @@ export function CommunityPrayerResponseForm({
             rows={isSheet ? 4 : 3}
             maxLength={2000}
             disabled={disabled || isPending}
-            autoFocus={autoFocus && mode === "written"}
             enterKeyHint="send"
             className={cn(
-              "text-[15px] leading-relaxed bg-white border-black/[0.08] resize-none rounded-xl",
-              isSheet ? "min-h-[7rem] text-base" : "resize-y min-h-[4.5rem]",
+              "leading-relaxed bg-white border-black/[0.08] resize-none rounded-xl touch-manipulation",
+              isSheet ? "min-h-[7rem] text-[16px]" : "resize-y min-h-[4.5rem] text-[16px]",
             )}
           />
         </div>

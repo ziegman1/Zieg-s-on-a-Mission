@@ -153,6 +153,11 @@ html.mission-hub-standalone {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Comment composer — sits above mobile keyboard when Visual Viewport API updates inset */
+html {
+  --mh-keyboard-inset: 0px;
+}
+
 @keyframes mh-shimmer {
   0% {
     background-position: 200% 0;

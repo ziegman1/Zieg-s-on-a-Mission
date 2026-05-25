@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { CommunityPostCoverImage } from "./community-post-cover-image";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
@@ -58,7 +58,21 @@ export function CommunityPostCard({
 
   const [expanded, setExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [composerFocusKey, setComposerFocusKey] = useState(0);
   const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
+
+  const handleCommentsToggle = useCallback(() => {
+    setCommentsOpen((open) => {
+      if (!open) setComposerFocusKey((k) => k + 1);
+      return !open;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!commentsOpen) return;
+    const el = document.getElementById(`post-${post.id}`);
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [commentsOpen, post.id]);
   const returnPath = showSpaceLabel ? "/community" : `/community/${post.spaceSlug}`;
 
   const parsedBody = parsePrayerResponseBody(post.body);
@@ -199,7 +213,7 @@ export function CommunityPostCard({
             initialMyReactions={post.myReactions}
             commentCount={commentCount}
             commentsOpen={commentsOpen}
-            onCommentsToggle={() => setCommentsOpen((v) => !v)}
+            onCommentsToggle={handleCommentsToggle}
             allowReactions={post.spaceAllowReactions}
             allowComments={post.spaceAllowComments}
             interactionPreset={preset}
@@ -227,6 +241,8 @@ export function CommunityPostCard({
             allowVoiceMessages={voicePrayerEnabled}
             spaceType={post.spaceType}
             spaceSlug={post.spaceSlug}
+            autoFocusComposer
+            autoFocusKey={composerFocusKey}
           />
         </div>
       ) : null}

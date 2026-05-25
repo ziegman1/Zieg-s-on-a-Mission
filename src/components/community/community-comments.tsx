@@ -14,13 +14,14 @@ import type { CommentAuthorContext, CommunityMemberProfile } from "@/lib/communi
 import { allowVisitorOnlyComments } from "@/lib/community/members";
 import { getSpaceInteractionPreset } from "@/lib/community/space-interaction";
 import { canUseVoicePrayer } from "@/lib/community/voice-prayer";
+import { MISSION_HUB_REFRESH_EVENT } from "@/lib/community/mission-hub-refresh";
+import { useVisualViewportKeyboardInset } from "@/lib/community/use-visual-viewport-keyboard-inset";
 import type { CommunityPostCommentThread } from "@/lib/community/types";
 import { CommunityCommentForm } from "./community-comment-form";
 import { CommunityCommentList } from "./community-comment-list";
 import { CommunityJoinPrompt } from "./community-join-prompt";
 import { CommunityMemberProfileForm } from "./community-member-profile-form";
 import { CommunityPrayerResponseForm } from "./community-prayer-response-form";
-import { MISSION_HUB_REFRESH_EVENT } from "@/lib/community/mission-hub-refresh";
 import { cn } from "@/lib/utils";
 
 export function CommunityComments({
@@ -32,6 +33,8 @@ export function CommunityComments({
   allowVoiceMessages = false,
   spaceType,
   spaceSlug,
+  autoFocusComposer = false,
+  autoFocusKey = 0,
 }: {
   postId: string;
   returnPath?: string;
@@ -41,6 +44,9 @@ export function CommunityComments({
   allowVoiceMessages?: boolean;
   spaceType?: string;
   spaceSlug?: string;
+  /** Focus the composer when the comment panel opens. */
+  autoFocusComposer?: boolean;
+  autoFocusKey?: number;
 }) {
   const preset = getSpaceInteractionPreset(spaceType, spaceSlug);
   const isPrayer = preset.mode === "prayer";
@@ -52,13 +58,16 @@ export function CommunityComments({
 
   const [threads, setThreads] = useState<CommunityPostCommentThread[] | null>(null);
   const [authorContext, setAuthorContext] = useState<CommentAuthorContext | null>(null);
+  const [authorResolved, setAuthorResolved] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [isLoading, startLoad] = useTransition();
-  const [isRefreshing, startRefresh] = useTransition();
+  const [isLoadingComments, startLoadComments] = useTransition();
+  const [isRefreshingList, startRefreshList] = useTransition();
+
+  useVisualViewportKeyboardInset(autoFocusComposer);
 
   const loadComments = useCallback(() => {
-    startLoad(async () => {
+    startLoadComments(async () => {
       setLoadError(null);
       const res = await loadPostCommentsAction(postId);
       if (!res.ok) {
@@ -73,25 +82,37 @@ export function CommunityComments({
 
   useEffect(() => {
     loadComments();
-    void getCommentAuthorContextAction().then(setAuthorContext);
   }, [loadComments]);
 
   useEffect(() => {
+    let cancelled = false;
+    setAuthorResolved(false);
+    void getCommentAuthorContextAction().then((ctx) => {
+      if (cancelled) return;
+      setAuthorContext(ctx);
+      setAuthorResolved(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [postId]);
+
+  useEffect(() => {
     function onHubRefresh() {
-      startRefresh(() => {
-        void loadPostCommentsAction(postId).then((res) => {
-          if (!res.ok) return;
-          setThreads(res.threads);
-          onCommentCountChange?.(res.commentCount);
-        });
+      startRefreshList(async () => {
+        const res = await loadPostCommentsAction(postId);
+        if (!res.ok) return;
+        setThreads(res.threads);
+        onCommentCountChange?.(res.commentCount);
       });
     }
     window.addEventListener(MISSION_HUB_REFRESH_EVENT, onHubRefresh);
     return () => window.removeEventListener(MISSION_HUB_REFRESH_EVENT, onHubRefresh);
-  }, [postId, onCommentCountChange, startRefresh]);
+  }, [postId, onCommentCountChange]);
 
   function handleVisitorProfileCreated(member: CommunityMemberProfile) {
     setAuthorContext({ kind: "visitor", member });
+    setAuthorResolved(true);
     setActionError(null);
   }
 
@@ -114,7 +135,8 @@ export function CommunityComments({
     return submitComment(body, parentCommentId);
   }
 
-  const loading = threads === null && isLoading;
+  const commentsLoading = threads === null;
+  const listRefreshing = isRefreshingList && threads !== null;
 
   const activeMember =
     authorContext?.kind === "member" || authorContext?.kind === "visitor"
@@ -126,88 +148,107 @@ export function CommunityComments({
     (activeMember !== null && activeMember.status === "active");
 
   const canModerate = authorContext?.kind === "owner";
-
   const isBlocked = activeMember?.status === "blocked";
-
-  function applyModerationResult(result: {
-    threads: CommunityPostCommentThread[];
-    commentCount: number;
-  }) {
-    setThreads(result.threads);
-    onCommentCountChange?.(result.commentCount);
-  }
+  const authorLoading = !authorResolved;
 
   const prompt =
     commentPlaceholder?.trim() ||
     (isPrayer ? preset.comments.placeholder : undefined);
 
+  function renderComposer() {
+    if (!allowComments) {
+      return (
+        <p className="text-sm text-brand-ink/50 rounded-xl bg-white/70 px-4 py-3 ring-1 ring-black/[0.04]">
+          {preset.comments.pausedLabel}
+        </p>
+      );
+    }
+
+    if (!authorResolved) {
+      return (
+        <CommunityCommentForm
+          authorContext={null}
+          authorLoading
+          onSubmit={(body) => submitComment(body)}
+          autoFocus={autoFocusComposer}
+          autoFocusKey={autoFocusKey}
+          commentPlaceholder={prompt}
+        />
+      );
+    }
+
+    if (isBlocked) {
+      return (
+        <p className="text-sm text-red-600 rounded-xl border border-red-200 bg-red-50/90 px-4 py-3">
+          Your Mission Hub account has been blocked from participating here.
+        </p>
+      );
+    }
+
+    if (authorContext?.kind === "guest") {
+      return allowVisitorOnlyComments() ? (
+        <CommunityMemberProfileForm
+          onCreated={handleVisitorProfileCreated}
+          createAction={createVisitorMemberProfileAction}
+        />
+      ) : (
+        <CommunityJoinPrompt returnPath={returnPath} />
+      );
+    }
+
+    if (isPrayer) {
+      return (
+        <CommunityPrayerResponseForm
+          postId={postId}
+          authorContext={authorContext!}
+          preset={preset}
+          onSubmit={(body) => submitComment(body)}
+          allowVoice={voicePrayerEnabled}
+          autoFocus={autoFocusComposer}
+        />
+      );
+    }
+
+    return (
+      <CommunityCommentForm
+        authorContext={authorContext}
+        onSubmit={(body) => submitComment(body)}
+        autoFocus={autoFocusComposer}
+        autoFocusKey={autoFocusKey}
+        commentPlaceholder={prompt}
+      />
+    );
+  }
+
   return (
-    <div className={cn("pt-4 space-y-4", isPrayer && "pt-5")}>
+    <div className={cn("pt-4 flex flex-col gap-3", isPrayer && "pt-5")}>
       {isPrayer ? (
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-brand-primary/70">
           {preset.comments.sectionLabel}
         </p>
       ) : null}
 
-      {authorContext === null ? (
-        <div className="flex items-center gap-2 py-2 text-sm text-brand-ink/50">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          Loading…
-        </div>
-      ) : isBlocked ? (
-        <p className="text-sm text-red-600 rounded-xl border border-red-200 bg-red-50/90 px-4 py-3">
-          Your Mission Hub account has been blocked from participating here.
-        </p>
-      ) : authorContext.kind === "guest" ? (
-        allowVisitorOnlyComments() ? (
-          <CommunityMemberProfileForm
-            onCreated={handleVisitorProfileCreated}
-            createAction={createVisitorMemberProfileAction}
-          />
-        ) : (
-          <CommunityJoinPrompt returnPath={returnPath} />
-        )
-      ) : allowComments ? (
-        isPrayer ? (
-          <CommunityPrayerResponseForm
-            postId={postId}
-            authorContext={authorContext}
-            preset={preset}
-            onSubmit={(body) => submitComment(body)}
-            disabled={loading}
-            allowVoice={voicePrayerEnabled}
-          />
-        ) : (
-          <CommunityCommentForm
-            authorContext={authorContext}
-            onSubmit={(body) => submitComment(body)}
-            disabled={loading}
-            commentPlaceholder={prompt}
-          />
-        )
-      ) : (
-        <p className="text-sm text-brand-ink/50 rounded-xl bg-white/70 px-4 py-3 ring-1 ring-black/[0.04]">
-          {preset.comments.pausedLabel}
-        </p>
-      )}
-      {actionError ? <p className="text-xs text-red-600">{actionError}</p> : null}
-
-      <div className="relative min-h-[2.5rem]">
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-6 text-sm text-brand-ink/50">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            {preset.comments.loadingLabel}
+      <div className="relative min-h-[2rem] order-1">
+        {commentsLoading ? (
+          <div
+            className="flex items-center gap-2 py-3 text-sm text-brand-ink/50"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-primary/60" aria-hidden />
+            <span>{preset.comments.loadingLabel}</span>
           </div>
         ) : loadError ? (
           <p className="text-sm text-red-600 py-2">{loadError}</p>
         ) : (
-          <>
-            {(isRefreshing || isLoading) && threads !== null ? (
+          <div className="relative">
+            {listRefreshing ? (
               <div
-                className="absolute inset-0 z-10 flex items-start justify-center pt-2 bg-white/70 rounded-xl"
+                className="absolute right-0 top-0 z-10 flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 text-[10px] text-brand-ink/50 shadow-sm ring-1 ring-black/[0.04]"
                 aria-hidden
               >
-                <Loader2 className="h-5 w-5 animate-spin text-brand-primary/50" />
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Updating…
               </div>
             ) : null}
             <CommunityCommentList
@@ -216,7 +257,7 @@ export function CommunityComments({
               onReply={
                 canComment
                   ? async (parentId, body) => {
-                      startRefresh(async () => {
+                      startRefreshList(async () => {
                         await handleReply(parentId, body);
                       });
                     }
@@ -225,13 +266,26 @@ export function CommunityComments({
               preset={preset}
               canModerate={canModerate}
               onModerated={(result) => {
-                startRefresh(() => {
-                  applyModerationResult(result);
+                startRefreshList(() => {
+                  setThreads(result.threads);
+                  onCommentCountChange?.(result.commentCount);
                 });
               }}
             />
-          </>
+          </div>
         )}
+      </div>
+
+      <div
+        id={`mh-composer-${postId}`}
+        className={cn(
+          "order-2 z-20 -mx-3.5 px-3.5 sm:-mx-4 sm:px-4",
+          "sticky bottom-[calc(env(safe-area-inset-bottom,0px)+var(--mh-keyboard-inset,0px))]",
+          "pt-2 pb-1 bg-gradient-to-t from-brand-surface via-brand-surface/98 to-brand-surface/0",
+        )}
+      >
+        {renderComposer()}
+        {actionError ? <p className="mt-2 text-xs text-red-600">{actionError}</p> : null}
       </div>
     </div>
   );
