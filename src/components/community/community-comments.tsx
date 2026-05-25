@@ -15,6 +15,7 @@ import { allowVisitorOnlyComments } from "@/lib/community/members";
 import { getSpaceInteractionPreset } from "@/lib/community/space-interaction";
 import { canUseVoicePrayer } from "@/lib/community/voice-prayer";
 import { MISSION_HUB_REFRESH_EVENT } from "@/lib/community/mission-hub-refresh";
+import { missionHubCommentInputId } from "@/lib/community/use-mobile-composer-focus";
 import { useVisualViewportKeyboardInset } from "@/lib/community/use-visual-viewport-keyboard-inset";
 import type { CommunityPostCommentThread } from "@/lib/community/types";
 import { CommunityCommentForm } from "./community-comment-form";
@@ -63,6 +64,8 @@ export function CommunityComments({
   const [actionError, setActionError] = useState<string | null>(null);
   const [isLoadingComments, startLoadComments] = useTransition();
   const [isRefreshingList, startRefreshList] = useTransition();
+
+  const commentInputId = missionHubCommentInputId(postId);
 
   useVisualViewportKeyboardInset(autoFocusComposer);
 
@@ -173,6 +176,7 @@ export function CommunityComments({
           autoFocus={autoFocusComposer}
           autoFocusKey={autoFocusKey}
           commentPlaceholder={prompt}
+          inputId={commentInputId}
         />
       );
     }
@@ -216,6 +220,7 @@ export function CommunityComments({
         autoFocus={autoFocusComposer}
         autoFocusKey={autoFocusKey}
         commentPlaceholder={prompt}
+        inputId={commentInputId}
       />
     );
   }

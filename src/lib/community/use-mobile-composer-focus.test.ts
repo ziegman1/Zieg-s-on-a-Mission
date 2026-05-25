@@ -33,13 +33,28 @@ describe("mobile comment composer UX", () => {
     expect(hook).toContain("240");
   });
 
-  it("bumps focus key when comment button opens panel", () => {
+  it("opens keyboard synchronously from comment tap (flushSync + pointerdown)", () => {
     const card = readFileSync(
       resolve(process.cwd(), "src/components/community/community-post-card.tsx"),
       "utf8",
     );
-    expect(card).toContain("composerFocusKey");
-    expect(card).toContain("setComposerFocusKey");
-    expect(card).toContain("autoFocusComposer");
+    expect(card).toContain("flushSync");
+    expect(card).toContain("focusMissionHubCommentInput");
+    expect(card).toContain("openCommentsWithKeyboard");
+    expect(card).toContain("onCommentsActivate");
+
+    const bar = readFileSync(
+      resolve(process.cwd(), "src/components/community/community-engagement-bar.tsx"),
+      "utf8",
+    );
+    expect(bar).toContain("onPointerDown");
+    expect(bar).toContain("onCommentsActivate");
+
+    const hook = readFileSync(
+      resolve(process.cwd(), "src/lib/community/use-mobile-composer-focus.ts"),
+      "utf8",
+    );
+    expect(hook).toContain("missionHubCommentInputId");
+    expect(hook).toContain("focusMissionHubCommentInput");
   });
 });

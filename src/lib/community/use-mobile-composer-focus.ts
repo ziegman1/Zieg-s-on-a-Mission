@@ -2,13 +2,38 @@
 
 import { useEffect, type RefObject } from "react";
 
+/** Stable DOM id for per-post comment inputs (sync focus from tap handler). */
+export function missionHubCommentInputId(postId: string): string {
+  return `mh-comment-input-${postId}`;
+}
+
 /**
- * Focus a textarea/input on mobile with retries (iOS often misses the first focus).
+ * Focus the comment textarea synchronously — must run inside pointerdown/click
+ * while the user gesture is active (required for iOS keyboard).
+ */
+export function focusMissionHubCommentInput(postId: string): boolean {
+  if (typeof document === "undefined") return false;
+  const el = document.getElementById(
+    missionHubCommentInputId(postId),
+  ) as HTMLTextAreaElement | null;
+  if (!el || el.disabled) return false;
+  try {
+    el.focus({ preventScroll: false });
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  } catch {
+    el.focus();
+  }
+  return true;
+}
+
+/**
+ * Focus a textarea/input on mobile with retries (fallback after mount).
  */
 export function useMobileComposerFocus(
   enabled: boolean,
   inputRef: RefObject<HTMLTextAreaElement | HTMLInputElement | null>,
-  /** Bump when the composer opens so focus runs again. */
+  /** Bump when the comment panel opens to re-run mobile focus. */
   focusKey = 0,
 ) {
   useEffect(() => {

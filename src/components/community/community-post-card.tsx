@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
+import { focusMissionHubCommentInput } from "@/lib/community/use-mobile-composer-focus";
 import Link from "next/link";
 import { CommunityPostCoverImage } from "./community-post-cover-image";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
@@ -61,11 +63,17 @@ export function CommunityPostCard({
   const [composerFocusKey, setComposerFocusKey] = useState(0);
   const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
 
-  const handleCommentsToggle = useCallback(() => {
-    setCommentsOpen((open) => {
-      if (!open) setComposerFocusKey((k) => k + 1);
-      return !open;
+  const openCommentsWithKeyboard = useCallback(() => {
+    if (commentsOpen) return;
+    flushSync(() => {
+      setCommentsOpen(true);
+      setComposerFocusKey((k) => k + 1);
     });
+    focusMissionHubCommentInput(post.id);
+  }, [commentsOpen, post.id]);
+
+  const closeComments = useCallback(() => {
+    setCommentsOpen(false);
   }, []);
 
   useEffect(() => {
@@ -213,7 +221,8 @@ export function CommunityPostCard({
             initialMyReactions={post.myReactions}
             commentCount={commentCount}
             commentsOpen={commentsOpen}
-            onCommentsToggle={handleCommentsToggle}
+            onCommentsActivate={openCommentsWithKeyboard}
+            onCommentsToggle={closeComments}
             allowReactions={post.spaceAllowReactions}
             allowComments={post.spaceAllowComments}
             interactionPreset={preset}
@@ -223,14 +232,16 @@ export function CommunityPostCard({
         )}
       </div>
 
-      {!prayerSpace && commentsOpen && post.spaceAllowComments ? (
+      {!prayerSpace && post.spaceAllowComments ? (
         <div
           className={cn(
-            "pt-0 border-t",
+            "pt-0 border-t transition-[opacity,padding] duration-150",
             spiritual
-              ? "px-3.5 sm:px-4 pb-3.5 border-black/[0.03]"
-              : "px-3.5 sm:px-4 pb-3.5 border-black/[0.04]",
+              ? "px-3.5 sm:px-4 border-black/[0.03]"
+              : "px-3.5 sm:px-4 border-black/[0.04]",
+            commentsOpen ? "pb-3.5 opacity-100" : "h-0 min-h-0 overflow-hidden opacity-0 pointer-events-none border-t-0 pb-0",
           )}
+          aria-hidden={!commentsOpen}
         >
           <CommunityComments
             postId={post.id}

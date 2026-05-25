@@ -53,6 +53,7 @@ export function CommunityEngagementBar({
   commentCount,
   commentsOpen,
   onCommentsToggle,
+  onCommentsActivate,
   allowReactions = true,
   allowComments = true,
   interactionPreset,
@@ -66,7 +67,10 @@ export function CommunityEngagementBar({
   initialMyReactions: CommunityReactionType[];
   commentCount: number;
   commentsOpen: boolean;
+  /** Close comments (when already open). */
   onCommentsToggle: () => void;
+  /** Open comments from pointerdown — keeps iOS keyboard in the user-gesture window. */
+  onCommentsActivate?: () => void;
   allowReactions?: boolean;
   allowComments?: boolean;
   interactionPreset?: SpaceInteractionPreset;
@@ -163,10 +167,19 @@ export function CommunityEngagementBar({
     />
   );
 
+  const commentButtonHandlers = {
+    onPointerDown: () => {
+      if (!commentsOpen) onCommentsActivate?.();
+    },
+    onClick: () => {
+      if (commentsOpen) onCommentsToggle();
+    },
+  };
+
   const defaultCommentPill = allowComments && !isPrayer && (
     <button
       type="button"
-      onClick={onCommentsToggle}
+      {...commentButtonHandlers}
       aria-expanded={commentsOpen}
       className={cn(
         reactionPillBase,
