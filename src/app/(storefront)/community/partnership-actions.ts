@@ -5,11 +5,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { isCommunityMemberRole } from "@/lib/auth-roles";
 import { isAdminRole } from "@/lib/admin-users";
-import {
-  PARTNERSHIP_PREF_KEYS,
-  partnershipPreferencesFromSelection,
-  type PartnershipPrefKey,
-} from "@/lib/community/partnership-preferences";
+import { partnershipPreferencesFromSelection } from "@/lib/community/partnership-preferences";
 import { saveUserPartnershipPreferences } from "@/lib/community/user-partnership-prefs";
 import { getCurrentCommunityMember } from "@/lib/community/members";
 
@@ -66,14 +62,4 @@ export async function savePartnershipPreferencesAction(
   revalidatePath("/community", "layout");
   revalidatePath("/community/settings");
   return { ok: true };
-}
-
-export function partnershipSelectionFromFormData(
-  formData: FormData,
-): PartnershipSelectionInput {
-  const selection = {} as Record<PartnershipPrefKey, boolean>;
-  for (const key of PARTNERSHIP_PREF_KEYS) {
-    selection[key] = formData.get(key) === "on" || formData.get(key) === "true";
-  }
-  return selection as PartnershipSelectionInput;
 }
