@@ -1,5 +1,6 @@
 import type { CommunityMemberStatus } from "@/lib/community/member-form";
 import type { NotificationPreferences } from "@/lib/community/settings-types";
+import type { PartnershipPreferences } from "@/lib/community/partnership-preferences";
 
 export type AdminMemberPortalRow = {
   id: string;
@@ -26,11 +27,19 @@ export type AdminMemberPortalRow = {
   mutedSpaceIds: string[];
   mutedSpaceSlugs: string[];
   unreadNotificationCount: number;
+  partnershipCompleted: boolean;
+  ministryUpdates: boolean;
+  newsletters: boolean;
+  prayerTeam: boolean;
+  urgentPrayerRequests: boolean;
+  advocacyInterest: boolean;
+  financialPartnership: boolean;
 };
 
 export type AdminMemberDetail = AdminMemberPortalRow & {
   bio: string | null;
   notificationPreferences: NotificationPreferences;
+  partnershipPreferences: PartnershipPreferences | null;
   mutedSpaces: { id: string; title: string; slug: string }[];
   publishedSpaces: { id: string; title: string; slug: string }[];
   recentComments: {
@@ -87,4 +96,16 @@ export function formatNotificationPrefsSummary(row: AdminMemberPortalRow): strin
     parts.push(`Muted: ${row.mutedSpaceSlugs.join(", ")}`);
   }
   return parts.length > 0 ? parts.join(" · ") : "Defaults";
+}
+
+export function formatPartnershipSegmentSummary(row: AdminMemberPortalRow): string {
+  if (!row.partnershipCompleted) return "Onboarding pending";
+  const parts: string[] = [];
+  if (row.ministryUpdates) parts.push("Ministry");
+  if (row.newsletters) parts.push("Newsletter");
+  if (row.prayerTeam) parts.push("Prayer team");
+  if (row.urgentPrayerRequests) parts.push("Urgent prayer");
+  if (row.advocacyInterest) parts.push("Advocacy");
+  if (row.financialPartnership) parts.push("Giving");
+  return parts.length > 0 ? parts.join(" · ") : "None selected";
 }

@@ -1,7 +1,13 @@
 import { z } from "zod";
+import type { PartnershipPreferences } from "@/lib/community/partnership-preferences";
 
 /** Settings URL sections — modular nav keys */
-export const USER_SETTINGS_SECTIONS = ["profile", "notifications", "account"] as const;
+export const USER_SETTINGS_SECTIONS = [
+  "profile",
+  "partnership",
+  "notifications",
+  "account",
+] as const;
 export const ADMIN_SETTINGS_SECTIONS = ["hub", "spaces", "community"] as const;
 export const SETTINGS_SECTIONS = [...USER_SETTINGS_SECTIONS, ...ADMIN_SETTINGS_SECTIONS] as const;
 
@@ -213,6 +219,7 @@ export type SettingsPageData = {
   ownerDisplayName: string | null;
   ownerImageUrl: string | null;
   notificationPrefs: NotificationPreferences;
+  partnershipPrefs: PartnershipPreferences | null;
   /** Published spaces for per-space mute toggles */
   muteableSpaces: MuteableSpaceOption[];
   hubSettings: CommunityHubSettings | null;

@@ -2,6 +2,7 @@ import "server-only";
 
 import { roleLabel } from "@/lib/auth-roles";
 import { isCommunityMemberStatus } from "@/lib/community/members";
+import { mergePartnershipPreferences } from "@/lib/community/partnership-preferences";
 import { mergeNotificationPreferences } from "@/lib/community/settings-types";
 import type {
   AdminMemberDetail,
@@ -13,7 +14,21 @@ export type { AdminMemberDetail, AdminMemberPortalRow } from "@/lib/community/ad
 export {
   displayEmail,
   formatNotificationPrefsSummary,
+  formatPartnershipSegmentSummary,
 } from "@/lib/community/admin-members-portal-types";
+
+function partnershipFieldsFromRaw(raw: unknown) {
+  const p = mergePartnershipPreferences(raw);
+  return {
+    partnershipCompleted: Boolean(p?.onboardingCompletedAt),
+    ministryUpdates: p?.ministryUpdates ?? false,
+    newsletters: p?.newsletters ?? false,
+    prayerTeam: p?.prayerTeam ?? false,
+    urgentPrayerRequests: p?.urgentPrayerRequests ?? false,
+    advocacyInterest: p?.advocacyInterest ?? false,
+    financialPartnership: p?.financialPartnership ?? false,
+  };
+}
 
 function maxIso(dates: (Date | null | undefined)[]): string | null {
   let max: number | null = null;
@@ -31,7 +46,14 @@ export async function listMembersForAdminPortal(): Promise<AdminMemberPortalRow[
       orderBy: { createdAt: "desc" },
       take: 1000,
       include: {
-        user: { select: { email: true, role: true, communityNotificationPrefs: true } },
+        user: {
+          select: {
+            email: true,
+            role: true,
+            communityNotificationPrefs: true,
+            communityEngagementPrefs: true,
+          },
+        },
         _count: { select: { comments: true } },
       },
     }),
@@ -101,6 +123,7 @@ export async function listMembersForAdminPortal(): Promise<AdminMemberPortalRow[
   return rows.map((row) => {
     const status = isCommunityMemberStatus(row.status) ? row.status : "active";
     const prefs = mergeNotificationPreferences(row.user?.communityNotificationPrefs);
+    const partnership = partnershipFieldsFromRaw(row.user?.communityEngagementPrefs);
     const mutedSpaceIds = prefs.mutedSpaceIds ?? [];
     const userId = row.userId;
     const userRole = row.user?.role ?? null;
@@ -136,6 +159,7 @@ export async function listMembersForAdminPortal(): Promise<AdminMemberPortalRow[
         .map((id) => spaceSlugById.get(id))
         .filter((slug): slug is string => Boolean(slug)),
       unreadNotificationCount: userId ? (unreadMap.get(userId) ?? 0) : 0,
+      ...partnership,
     };
   });
 }
@@ -157,6 +181,7 @@ function buildPortalRowForMember(
       email: string | null;
       role: string;
       communityNotificationPrefs: unknown;
+      communityEngagementPrefs: unknown;
     } | null;
     _count: { comments: number };
   },
@@ -169,6 +194,7 @@ function buildPortalRowForMember(
 ): AdminMemberPortalRow {
   const status = isCommunityMemberStatus(row.status) ? row.status : "active";
   const prefs = mergeNotificationPreferences(row.user?.communityNotificationPrefs);
+  const partnership = partnershipFieldsFromRaw(row.user?.communityEngagementPrefs);
   const mutedSpaceIds = prefs.mutedSpaceIds ?? [];
   const userRole = row.user?.role ?? null;
 
@@ -199,6 +225,7 @@ function buildPortalRowForMember(
       .map((id) => spaceSlugById.get(id))
       .filter((slug): slug is string => Boolean(slug)),
     unreadNotificationCount: extras.unreadNotificationCount,
+    ...partnership,
   };
 }
 
@@ -208,7 +235,14 @@ export async function getMemberDetailForAdmin(
   const row = await prisma.communityMemberRecord.findUnique({
     where: { id: memberId },
     include: {
-      user: { select: { email: true, role: true, communityNotificationPrefs: true } },
+      user: {
+        select: {
+          email: true,
+          role: true,
+          communityNotificationPrefs: true,
+          communityEngagementPrefs: true,
+        },
+      },
       _count: { select: { comments: true } },
     },
   });
@@ -216,6 +250,7 @@ export async function getMemberDetailForAdmin(
 
   const userId = row.userId;
   const prefs = mergeNotificationPreferences(row.user?.communityNotificationPrefs);
+  const partnership = partnershipFieldsFromRaw(row.user?.communityEngagementPrefs);
 
   const spaces = await prisma.communitySpaceRecord.findMany({
     where: { status: "published" },
@@ -328,6 +363,7 @@ export async function getMemberDetailForAdmin(
     ...base,
     bio: row.bio,
     notificationPreferences: prefs,
+    partnershipPreferences: mergePartnershipPreferences(row.user?.communityEngagementPrefs),
     mutedSpaces: publishedSpaces.filter((s) => mutedSet.has(s.id)),
     publishedSpaces,
     recentComments: comments.map((c) => ({

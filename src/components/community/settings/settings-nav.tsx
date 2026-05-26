@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Bell,
   ChevronLeft,
+  HeartHandshake,
   KeyRound,
   LayoutGrid,
   Shield,
@@ -23,6 +24,7 @@ const USER_NAV: {
   icon: typeof User;
 }[] = [
   { id: "profile", label: "Profile", icon: User },
+  { id: "partnership", label: "Partnership", icon: HeartHandshake },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "account", label: "Password", icon: KeyRound },
 ];

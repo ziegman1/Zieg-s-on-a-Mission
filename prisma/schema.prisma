@@ -60,6 +60,8 @@ model User {
   passwordHash  String?
   role          UserRole  @default(CUSTOMER)
   communityNotificationPrefs Json? @map("community_notification_prefs")
+  /** Partnership onboarding segments (ministry updates, prayer team, etc.) */
+  communityEngagementPrefs Json? @map("community_engagement_prefs")
   accounts      Account[]
   sessions      Session[]
   communityMember CommunityMemberRecord?

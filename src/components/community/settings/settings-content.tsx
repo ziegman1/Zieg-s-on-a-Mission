@@ -5,6 +5,7 @@ import { SettingsAccountPanel } from "./settings-account-panel";
 import { SettingsCommunityPanel } from "./settings-community-panel";
 import { SettingsHubPanel } from "./settings-hub-panel";
 import { SettingsNotificationsPanel } from "./settings-notifications-panel";
+import { SettingsPartnershipPanel } from "./settings-partnership-panel";
 import { SettingsProfilePanel } from "./settings-profile-panel";
 import { SettingsSpacesPanel } from "./settings-spaces-panel";
 
@@ -12,6 +13,8 @@ export function SettingsContent({ data }: { data: SettingsPageData }) {
   switch (data.section) {
     case "profile":
       return <SettingsProfilePanel data={data} />;
+    case "partnership":
+      return <SettingsPartnershipPanel data={data} />;
     case "notifications":
       return <SettingsNotificationsPanel data={data} />;
     case "account":

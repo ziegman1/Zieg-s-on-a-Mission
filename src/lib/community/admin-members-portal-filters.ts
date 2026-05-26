@@ -1,3 +1,7 @@
+import {
+  memberMatchesPartnershipSegment,
+  type PartnershipSegmentFilter,
+} from "./partnership-preferences";
 import type { AdminMemberPortalRow } from "./admin-members-portal-types";
 
 function displayEmail(row: { email: string | null; userEmail: string | null }): string | null {
@@ -11,6 +15,7 @@ export type MemberPortalFilters = {
   emailNotifications: "all" | "on" | "off";
   newsletterNotifications: "all" | "on" | "off";
   mutedSpaceSlug: string;
+  partnershipSegment: PartnershipSegmentFilter;
 };
 
 export const DEFAULT_MEMBER_PORTAL_FILTERS: MemberPortalFilters = {
@@ -20,6 +25,7 @@ export const DEFAULT_MEMBER_PORTAL_FILTERS: MemberPortalFilters = {
   emailNotifications: "all",
   newsletterNotifications: "all",
   mutedSpaceSlug: "",
+  partnershipSegment: "all",
 };
 
 function matchesRole(row: AdminMemberPortalRow, role: MemberPortalFilters["role"]): boolean {
@@ -48,6 +54,9 @@ export function filterAdminMemberRows(
       filters.mutedSpaceSlug &&
       !row.mutedSpaceSlugs.includes(filters.mutedSpaceSlug)
     ) {
+      return false;
+    }
+    if (!memberMatchesPartnershipSegment(row, filters.partnershipSegment)) {
       return false;
     }
 

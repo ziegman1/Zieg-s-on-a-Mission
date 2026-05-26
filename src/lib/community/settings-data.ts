@@ -10,6 +10,7 @@ import {
   type SettingsPageData,
 } from "@/lib/community/settings-types";
 import { getUserNotificationPreferences } from "@/lib/community/user-notification-prefs";
+import { getUserPartnershipPreferences } from "@/lib/community/user-partnership-prefs";
 import { communitySpaceListOrderBy } from "@/lib/community/space-order";
 import { hydrateAllowVoiceMessages } from "@/lib/community/voice-prayer";
 import { prisma } from "@/lib/db";
@@ -20,7 +21,8 @@ export async function loadSettingsPageData(
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const [owner, member, user, notificationPrefs, muteableSpaces] = await Promise.all([
+  const [owner, member, user, notificationPrefs, partnershipPrefs, muteableSpaces] =
+    await Promise.all([
     getCurrentCommunityOwner(),
     getCurrentCommunityMember(),
     prisma.user.findUnique({
@@ -28,6 +30,7 @@ export async function loadSettingsPageData(
       select: { email: true, name: true, image: true },
     }),
     getUserNotificationPreferences(session.user.id),
+    getUserPartnershipPreferences(session.user.id),
     prisma.communitySpaceRecord.findMany({
       where: { status: "published" },
       orderBy: communitySpaceListOrderBy,
@@ -97,6 +100,7 @@ export async function loadSettingsPageData(
     ownerDisplayName: owner ? (user?.name ?? owner.name) : null,
     ownerImageUrl: owner ? (user?.image ?? null) : null,
     notificationPrefs,
+    partnershipPrefs,
     muteableSpaces,
     hubSettings,
     adminSpaces,

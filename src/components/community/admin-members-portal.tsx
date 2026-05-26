@@ -11,7 +11,14 @@ import type { AdminMemberDetail, AdminMemberPortalRow } from "@/lib/community/ad
 import {
   displayEmail,
   formatNotificationPrefsSummary,
+  formatPartnershipSegmentSummary,
 } from "@/lib/community/admin-members-portal-types";
+import {
+  PARTNERSHIP_PREF_KEYS,
+  PARTNERSHIP_PREF_LABELS,
+  PARTNERSHIP_SEGMENT_FILTER_LABELS,
+  type PartnershipSegmentFilter,
+} from "@/lib/community/partnership-preferences";
 import { formatMemberDisplayName } from "@/lib/community/members";
 import {
   collectMutedSpaceOptions,
@@ -176,6 +183,26 @@ function MemberDetailPanel({
           Notification preferences are member-controlled in Mission Hub settings. Admins cannot
           edit them here. Invite links are shared from the community UI (no separate invite queue).
         </p>
+      </section>
+
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">
+          Partnership preferences (read-only)
+        </h3>
+        {member.partnershipPreferences?.onboardingCompletedAt ? (
+          <ul className="text-xs text-zinc-300 space-y-1 mb-4">
+            {PARTNERSHIP_PREF_KEYS.map((key) => (
+              <li key={key}>
+                {PARTNERSHIP_PREF_LABELS[key].label}:{" "}
+                <span className="text-zinc-100">
+                  {member.partnershipPreferences![key] ? "Yes" : "No"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-amber-400/90 mb-4">Onboarding not completed.</p>
+        )}
       </section>
 
       <section>
@@ -455,6 +482,22 @@ export function AdminMembersPortal({
             ...mutedSpaceOptions.map((slug) => ({ value: slug, label: slug })),
           ]}
         />
+        <FilterSelect
+          label="Partnership segment"
+          value={filters.partnershipSegment}
+          onChange={(v) =>
+            setFilters((f) => ({
+              ...f,
+              partnershipSegment: v as PartnershipSegmentFilter,
+            }))
+          }
+          options={(
+            Object.entries(PARTNERSHIP_SEGMENT_FILTER_LABELS) as [
+              PartnershipSegmentFilter,
+              string,
+            ][]
+          ).map(([value, label]) => ({ value, label }))}
+        />
       </div>
 
       <p className="text-xs text-zinc-500">
@@ -473,6 +516,7 @@ export function AdminMembersPortal({
               <th className="px-3 py-2.5 font-medium">Status</th>
               <th className="px-3 py-2.5 font-medium">Joined</th>
               <th className="px-3 py-2.5 font-medium">Last active</th>
+              <th className="px-3 py-2.5 font-medium">Partnership</th>
               <th className="px-3 py-2.5 font-medium">Notifications</th>
               <th className="px-3 py-2.5 font-medium">Unread</th>
               <th className="px-3 py-2.5 font-medium">Actions</th>
@@ -513,6 +557,9 @@ export function AdminMembersPortal({
                   </td>
                   <td className="px-3 py-2.5 text-zinc-500 whitespace-nowrap text-xs">
                     {formatDate(m.lastActiveAt)}
+                  </td>
+                  <td className="px-3 py-2.5 text-[11px] text-zinc-400 max-w-[12rem]">
+                    {formatPartnershipSegmentSummary(m)}
                   </td>
                   <td className="px-3 py-2.5 text-[11px] text-zinc-400 max-w-[14rem]">
                     {formatNotificationPrefsSummary(m)}

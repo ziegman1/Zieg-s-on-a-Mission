@@ -31,6 +31,13 @@ function row(overrides: Partial<AdminMemberPortalRow>): AdminMemberPortalRow {
     mutedSpaceIds: [],
     mutedSpaceSlugs: [],
     unreadNotificationCount: 0,
+    partnershipCompleted: false,
+    ministryUpdates: false,
+    newsletters: false,
+    prayerTeam: false,
+    urgentPrayerRequests: false,
+    advocacyInterest: false,
+    financialPartnership: false,
     ...overrides,
   };
 }
@@ -102,5 +109,17 @@ describe("filterAdminMemberRows", () => {
       role: "visitor",
     });
     expect(result.map((m) => m.id)).toEqual(["m3"]);
+  });
+
+  it("filters by prayer team segment", () => {
+    const withPrayer = [
+      ...members,
+      row({ id: "m4", prayerTeam: true, partnershipCompleted: true }),
+    ];
+    const result = filterAdminMemberRows(withPrayer, {
+      ...DEFAULT_MEMBER_PORTAL_FILTERS,
+      partnershipSegment: "prayerTeam",
+    });
+    expect(result.map((m) => m.id)).toEqual(["m4"]);
   });
 });

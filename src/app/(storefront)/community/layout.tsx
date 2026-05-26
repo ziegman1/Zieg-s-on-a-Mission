@@ -9,6 +9,10 @@ import { listComposerSpacesForOwner } from "@/lib/community/composer-spaces";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
 import { MISSION_HUB_PWA } from "@/lib/community/mission-hub-pwa";
 import { getSiteCopy } from "@/lib/site-copy";
+import { needsPartnershipOnboarding } from "@/lib/community/partnership-preferences";
+import { getUserPartnershipPreferences } from "@/lib/community/user-partnership-prefs";
+import { isCommunityMemberRole } from "@/lib/auth-roles";
+import { MissionHubPartnershipGate } from "@/components/community/mission-hub-partnership-gate";
 
 export const viewport: Viewport = {
   themeColor: MISSION_HUB_PWA.themeColor,
@@ -92,6 +96,20 @@ export default async function CommunityLayout({
   const isSettingsPage = pathname.startsWith("/community/settings");
   const showBottomNav = !isAuthPage && !isSettingsPage;
 
+  let partnershipPrefs = null;
+  let showPartnershipOnboarding = false;
+  if (notificationUserId && !isAuthPage) {
+    try {
+      partnershipPrefs = await getUserPartnershipPreferences(notificationUserId);
+      const hubParticipant =
+        Boolean(member) || isCommunityMemberRole(session?.user?.role ?? null);
+      showPartnershipOnboarding =
+        hubParticipant && needsPartnershipOnboarding(partnershipPrefs);
+    } catch (e) {
+      console.error("[community layout] partnership prefs:", e);
+    }
+  }
+
   return (
     <MissionHubShell
       owner={owner}
@@ -105,7 +123,12 @@ export default async function CommunityLayout({
       composerSpaces={composerSpaces}
       membersPreview={membersPreview}
     >
-      {children}
+      <MissionHubPartnershipGate
+        needsOnboarding={showPartnershipOnboarding}
+        initialPrefs={partnershipPrefs}
+      >
+        {children}
+      </MissionHubPartnershipGate>
     </MissionHubShell>
   );
 }
