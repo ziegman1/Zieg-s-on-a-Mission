@@ -1,5 +1,6 @@
 import type { SiteCopy } from "@/data/site-copy-defaults";
 import type { ContentBlock, ContentLine, BlockType } from "./types";
+import { appendNavigationExtraBlocks } from "./navigation-extras";
 import { newLineId } from "./utils";
 
 type BlockDraft = Omit<ContentBlock, "id" | "sortOrder"> & { sortOrder?: number };
@@ -85,6 +86,8 @@ export function siteCopyToBlocks(copy: SiteCopy): ContentBlock[] {
       }),
     );
   });
+
+  appendNavigationExtraBlocks(order, blocks);
 
   blocks.push(
     scalar(order, "home", "hero", "homeHero.headline", "Hero headline", copy.homeHero.headline, "heading"),

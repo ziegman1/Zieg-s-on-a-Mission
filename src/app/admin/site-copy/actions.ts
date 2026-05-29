@@ -24,6 +24,7 @@ const REVALIDATE_PATHS = [
   "/merch",
   "/partner",
   "/give",
+  "/advocacy-team",
   "/community",
 ] as const;
 

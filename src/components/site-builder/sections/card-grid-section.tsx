@@ -22,6 +22,7 @@ export function CardGridSection({ section }: { section: PageSection }) {
   if (!ctx?.editMode && !headline.trim() && cards.length === 0) return null;
 
   const isPartnerTiers = section.sectionKey === "tiers";
+  const isWaysToGetInvolved = section.sectionKey === "ways-to-get-involved";
 
   const headlineEl = headline.trim() ? (
     <EditableElement
@@ -126,9 +127,12 @@ export function CardGridSection({ section }: { section: PageSection }) {
     );
   });
 
-  if (isPartnerTiers) {
+  if (isPartnerTiers || isWaysToGetInvolved) {
     return (
-      <section className="border-t border-brand-primary/15 bg-white/45 px-4 py-16 sm:py-20">
+      <section
+        id={isWaysToGetInvolved ? "ways-to-get-involved" : undefined}
+        className="border-t border-brand-primary/15 bg-white/45 px-4 py-16 sm:py-20"
+      >
         <div className="mx-auto max-w-5xl">
           {headlineEl}
           {introEl}

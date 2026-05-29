@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { StorefrontHeader } from "@/components/storefront-header";
 import { STOREFRONT_FOOTER_NAV } from "@/data/storefront-navigation";
-import { getSiteCopy } from "@/lib/site-copy";
+import { getSiteCopy, getSiteCopyBlocksForAdmin } from "@/lib/site-copy";
+import { resolveNavigationExtras } from "@/lib/site-copy-blocks/navigation-extras";
 
 const FOOTER_LEGAL = [
   { href: "/privacy", label: "Privacy" },
@@ -18,6 +19,8 @@ export default async function StorefrontLayout({
   children: React.ReactNode;
 }) {
   const copy = await getSiteCopy();
+  const navBlocks = await getSiteCopyBlocksForAdmin();
+  const navExtras = resolveNavigationExtras(navBlocks);
   const labelOverrides = Object.fromEntries(
     copy.navLinks.map((link) => [link.href, link.label]),
   );
@@ -38,7 +41,12 @@ export default async function StorefrontLayout({
   return (
     <div className="min-h-screen flex flex-col bg-brand-surface text-brand-ink">
       <PageViewTracker />
-      <StorefrontHeader siteName={copy.site.name} labelOverrides={labelOverrides} />
+      <StorefrontHeader
+        siteName={copy.site.name}
+        labelOverrides={labelOverrides}
+        giveNowLabel={navExtras.giveNowLabel}
+        getInvolvedItems={navExtras.getInvolvedItems}
+      />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-brand-primary/25 bg-white/40 py-12 px-4">
         <div className="max-w-7xl mx-auto text-center text-sm text-brand-ink/80">

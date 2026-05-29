@@ -61,7 +61,7 @@ export const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
   blog: ["/blog"],
   community: ["/community"],
   contact: ["/contact"],
-  global: ["/", "/community"],
+  global: ["/", "/community", "/partner", "/advocacy-team", "/give"],
   newsletters: ["/newsletters"],
 };
 

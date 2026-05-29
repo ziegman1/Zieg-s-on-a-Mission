@@ -29,6 +29,30 @@ describe("site builder pages", () => {
     expect(String(seo?.content.headline ?? "")).toMatch(/Mission Hub/i);
   });
 
+  it("provides default global sections with Get Involved dropdown and footer nav", () => {
+    const sections = defaultSectionsForPage("global");
+    const keys = sections.map((s) => s.sectionKey);
+    expect(keys).toContain("header-nav");
+    expect(keys).toContain("get-involved-menu");
+    expect(keys).toContain("give-now-button");
+    expect(keys).toContain("footer-nav");
+    expect(keys).not.toContain("nav");
+  });
+
+  it("provides default partner sections with ways to get involved", () => {
+    const sections = defaultSectionsForPage("partner");
+    const keys = sections.map((s) => s.sectionKey);
+    expect(keys).toContain("ways-to-get-involved");
+
+    const ways = sections.find((s) => s.sectionKey === "ways-to-get-involved");
+    expect(ways?.sectionType).toBe("card_grid");
+    expect(Array.isArray(ways?.content.cards)).toBe(true);
+    expect((ways?.content.cards as unknown[]).length).toBe(4);
+
+    const hero = sections.find((s) => s.sectionKey === "hero");
+    expect(String(hero?.content.secondaryCtaUrl ?? "")).toContain("ways-to-get-involved");
+  });
+
   it("exposes newsletters builder nav and revalidation paths", () => {
     expect(NEWSLETTER_BUILDER_NAV.id).toBe("newsletters");
     expect(NEWSLETTER_BUILDER_NAV.label).toBe("Newsletters");

@@ -28,6 +28,9 @@ import { NewslettersManager } from "./newsletters-manager";
 import type { BlogPostRecord } from "@/lib/blog/types";
 import type { NewsletterBrandSettings } from "@/lib/newsletter/brand-types";
 import type { NewsletterRecord } from "@/lib/newsletter/types";
+import type { SiteCopy } from "@/data/site-copy-defaults";
+import type { StorefrontNavExtras } from "@/lib/site-copy-blocks/navigation-extras";
+import { StorefrontNavigationEditor } from "@/components/admin/storefront-navigation-editor";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -52,6 +55,8 @@ export function SiteBuilderEditor({
   initialNewsletters = [],
   initialNewsletterBrand,
   newsletterLoadError = null,
+  initialSiteCopy,
+  initialNavExtras,
 }: {
   initialPages: PageData;
   initialBlogPosts?: BlogPostRecord[];
@@ -59,6 +64,8 @@ export function SiteBuilderEditor({
   initialNewsletters?: NewsletterRecord[];
   initialNewsletterBrand: NewsletterBrandSettings;
   newsletterLoadError?: string | null;
+  initialSiteCopy: SiteCopy;
+  initialNavExtras: StorefrontNavExtras;
 }) {
   const { state: urlState, navigate } = useSiteBuilderNavigation();
   const activePage = urlState.page;
@@ -634,8 +641,16 @@ export function SiteBuilderEditor({
           <p className="text-xs text-zinc-500 mb-1 truncate" title={breadcrumb}>
             {breadcrumb}
           </p>
+          {activePage === "global" ? (
+            <StorefrontNavigationEditor
+              initialCopy={initialSiteCopy}
+              initialExtras={initialNavExtras}
+            />
+          ) : null}
           <p className="text-[11px] text-zinc-600 mb-2">
-            Click any text, card, button, or image in the preview to edit it.
+            {activePage === "global"
+              ? "Edit section content below, or use the form above for live header labels."
+              : "Click any text, card, button, or image in the preview to edit it."}
           </p>
           <div
             className="rounded-lg border border-zinc-700 overflow-hidden shadow-xl bg-white max-w-4xl mx-auto"

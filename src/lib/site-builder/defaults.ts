@@ -1,4 +1,10 @@
 import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
+import {
+  GET_INVOLVED_NAV,
+  GIVE_NOW_NAV,
+  STOREFRONT_FOOTER_NAV,
+  STOREFRONT_HEADER_NAV,
+} from "@/data/storefront-navigation";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
 import type { PageSection, SectionType } from "./types";
 import { registryFor } from "./registry";
@@ -119,8 +125,8 @@ function defaultHomeSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       primaryCtaUrl: "/partner",
       secondaryCtaLabel: g.heroLearnMoreLabel,
       secondaryCtaUrl: "/mission",
-      tertiaryCtaLabel: "Give",
-      tertiaryCtaUrl: "/give",
+      tertiaryCtaLabel: "Get Involved",
+      tertiaryCtaUrl: "/partner",
     }),
   ];
 
@@ -274,11 +280,22 @@ function defaultPartnerSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       primaryCtaLabel: p.primaryCtaLabel,
       primaryCtaUrl: "/partner",
       secondaryCtaLabel: p.secondaryCtaLabel,
-      secondaryCtaUrl: "/give",
+      secondaryCtaUrl: "/partner#ways-to-get-involved",
     }),
     sec("partner", "why", "text_section", "Why partner", {
       headline: p.whyHeading,
       body: `${p.whyBodyParagraph1}\n\n${p.whyBodyParagraph2}`,
+    }),
+    sec("partner", "ways-to-get-involved", "card_grid", "Ways to Get Involved", {
+      headline: p.waysToGetInvolvedHeading,
+      intro: p.waysToGetInvolvedIntro,
+      cards: cardItems(
+        p.waysToGetInvolved.map((w) => ({
+          title: w.title,
+          body: w.description,
+          meta: { cta: w.ctaLabel, href: w.href },
+        })),
+      ),
     }),
     sec("partner", "tiers", "card_grid", "Partner tiers", {
       headline: p.tiersHeading,
@@ -314,8 +331,8 @@ function defaultPartnerSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       body: p.finalBody,
       primaryCtaLabel: p.finalPrimaryCtaLabel,
       primaryCtaUrl: "/partner",
-      secondaryCtaLabel: p.finalContactCtaLabel,
-      secondaryCtaUrl: "/contact",
+      secondaryCtaLabel: p.finalSecondaryCtaLabel,
+      secondaryCtaUrl: "/advocacy-team",
     }),
   ];
 }
@@ -380,16 +397,54 @@ function defaultMerchSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
 }
 
 function defaultGlobalSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
+  const getInvolvedLabel =
+    c.navLinks.find((l) => l.href === GET_INVOLVED_NAV.labelHref)?.label ?? GET_INVOLVED_NAV.label;
+
+  const labelFor = (href: string, fallback: string) =>
+    c.navLinks.find((l) => l.href === href)?.label ?? fallback;
+
+  const headerLabels = [
+    ...STOREFRONT_HEADER_NAV.slice(0, 3).map((item) => `${labelFor(item.href, item.label)} → ${item.href}`),
+    `${getInvolvedLabel} (dropdown) → /partner, /advocacy-team`,
+    ...STOREFRONT_HEADER_NAV.slice(3).map((item) => `${labelFor(item.href, item.label)} → ${item.href}`),
+  ];
+
   return [
     sec("global", "site-meta", "text_section", "Site metadata", {
       headline: c.site.name,
       subheadline: c.site.tagline,
       body: c.site.description,
     }),
-    sec("global", "nav", "text_section", "Navigation labels", {
-      bullets: listItems(c.navLinks.map((l) => l.label)),
+    sec("global", "header-nav", "text_section", "Header navigation", {
+      headline: "Storefront header",
+      body:
+        "Desktop and tablet (768px and up): top-level links plus a Get Involved dropdown and Give Now button. " +
+        "Mobile: logo, Give Now, and a hamburger menu with the same links. Merch is footer-only (not in the header).",
+      bullets: listItems(headerLabels),
     }),
-    sec("global", "footer", "text_section", "Footer", {
+    sec("global", "get-involved-menu", "card_grid", "Get Involved dropdown", {
+      headline: getInvolvedLabel,
+      intro: "Menu items when visitors open Get Involved in the header.",
+      cards: cardItems(
+        GET_INVOLVED_NAV.items.map((item) => ({
+          title: item.label,
+          body: item.description ?? "",
+          meta: { href: item.href },
+        })),
+      ),
+    }),
+    sec("global", "give-now-button", "text_section", "Give Now button", {
+      headline: GIVE_NOW_NAV.label,
+      body: `Prominent header button linking to ${GIVE_NOW_NAV.href}.`,
+      primaryCtaLabel: GIVE_NOW_NAV.label,
+      primaryCtaUrl: GIVE_NOW_NAV.href,
+    }),
+    sec("global", "footer-nav", "text_section", "Footer navigation", {
+      headline: "Footer links",
+      body: "All footer nav labels and paths (includes Give, Partner, Advocacy Team, and Merch).",
+      bullets: listItems(STOREFRONT_FOOTER_NAV.map((l) => `${l.label} → ${l.href}`)),
+    }),
+    sec("global", "footer", "text_section", "Footer blurb", {
       body: c.footer.blurb,
     }),
     sec("global", "legal", "text_section", "Support contact", {

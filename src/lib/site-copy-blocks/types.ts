@@ -52,7 +52,7 @@ export type PageTab = {
 };
 
 export const SITE_COPY_PAGE_TABS: PageTab[] = [
-  { pageKey: "global", label: "Global", description: "Site name, navigation, footer, support email" },
+  { pageKey: "global", label: "Global", description: "Site name, header nav (Get Involved, Give Now), footer, support email" },
   { pageKey: "home", label: "Home", description: "Hero, guided sections, pathway cards" },
   { pageKey: "about", label: "About" },
   { pageKey: "mission", label: "Mission" },

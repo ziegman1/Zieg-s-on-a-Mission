@@ -18,6 +18,7 @@ import {
   STOREFRONT_HEADER_NAV,
   navLabel,
   type NavLabelOverrides,
+  type GetInvolvedNavItem,
 } from "@/data/storefront-navigation";
 import { cn } from "@/lib/utils";
 
@@ -30,9 +31,13 @@ const NAV_LINK_CLASS =
 export function StorefrontHeader({
   siteName,
   labelOverrides = {},
+  giveNowLabel,
+  getInvolvedItems,
 }: {
   siteName: string;
   labelOverrides?: NavLabelOverrides;
+  giveNowLabel?: string;
+  getInvolvedItems?: GetInvolvedNavItem[];
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [involvedOpen, setInvolvedOpen] = useState(false);
@@ -57,13 +62,17 @@ export function StorefrontHeader({
     };
   }, [mobileOpen, closeMobile]);
 
+  const involvedItems = getInvolvedItems ?? GET_INVOLVED_NAV.items;
+
   const getInvolvedLabel = navLabel(
     GET_INVOLVED_NAV.labelHref,
     GET_INVOLVED_NAV.label,
     labelOverrides,
   );
 
-  const giveNowLabel = navLabel(GIVE_NOW_NAV.href, GIVE_NOW_NAV.label, labelOverrides);
+  const resolvedGiveNowLabel =
+    giveNowLabel?.trim() ||
+    navLabel(GIVE_NOW_NAV.href, GIVE_NOW_NAV.label, labelOverrides);
 
   const giveNowButton = (
     <Button
@@ -72,7 +81,7 @@ export function StorefrontHeader({
       className="rounded-full h-9 px-3.5 sm:px-5 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold text-xs sm:text-sm shadow-sm shrink-0"
     >
       <Link href={GIVE_NOW_NAV.href} onClick={closeMobile}>
-        {giveNowLabel}
+        {resolvedGiveNowLabel}
       </Link>
     </Button>
   );
@@ -93,7 +102,7 @@ export function StorefrontHeader({
         align="start"
         className="min-w-[16rem] border-brand-primary/20 bg-white p-2 shadow-lg"
       >
-        {GET_INVOLVED_NAV.items.map((item) => (
+        {involvedItems.map((item) => (
           <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent">
             <Link
               href={item.href}
@@ -135,7 +144,7 @@ export function StorefrontHeader({
           aria-labelledby={`${involvedPanelId}-trigger`}
           className="mt-1 ml-2 pl-2 border-l border-white/20 bg-white/95 rounded-lg p-2 text-brand-ink"
         >
-          {GET_INVOLVED_NAV.items.map((item) => (
+          {involvedItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
