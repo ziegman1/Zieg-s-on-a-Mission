@@ -40,7 +40,18 @@ export const BUILDER_PAGES = [
   { pageKey: "home", label: "Home", path: "/" },
   { pageKey: "about", label: "About", path: "/about" },
   { pageKey: "mission", label: "Mission", path: "/mission" },
-  { pageKey: "partner", label: "Partner", path: "/partner" },
+  {
+    pageKey: "partner",
+    label: "Partner",
+    path: "/partner",
+    group: "Get Involved",
+  },
+  {
+    pageKey: "advocacy-team",
+    label: "Advocacy Team",
+    path: "/advocacy-team",
+    group: "Get Involved",
+  },
   { pageKey: "give", label: "Give", path: "/give" },
   { pageKey: "merch", label: "Merch", path: "/merch" },
   { pageKey: "blog", label: "Blog", path: "/blog" },
@@ -49,6 +60,8 @@ export const BUILDER_PAGES = [
   { pageKey: "global", label: "Global (nav & footer)", path: "" },
 ] as const;
 
+export type BuilderPageDef = (typeof BUILDER_PAGES)[number];
+
 export type BuilderPageKey = (typeof BUILDER_PAGES)[number]["pageKey"];
 
 export const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
@@ -56,6 +69,7 @@ export const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
   about: ["/about"],
   mission: ["/mission"],
   partner: ["/partner"],
+  "advocacy-team": ["/advocacy-team"],
   give: ["/give"],
   merch: ["/merch"],
   blog: ["/blog"],

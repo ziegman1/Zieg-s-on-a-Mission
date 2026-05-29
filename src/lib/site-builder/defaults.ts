@@ -1,5 +1,12 @@
 import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
 import {
+  ADVOCACY_TEAM_FINAL_CTA,
+  ADVOCACY_TEAM_HERO,
+  ADVOCACY_TEAM_INTRO,
+  ADVOCACY_TEAM_MISSION,
+  ADVOCACY_TEAM_ROLES,
+} from "@/data/advocacy-team-content";
+import {
   GET_INVOLVED_NAV,
   GIVE_NOW_NAV,
   STOREFRONT_FOOTER_NAV,
@@ -88,6 +95,8 @@ export function defaultSectionsForPage(pageKey: string): PageSection[] {
       return defaultContactSections(c);
     case "partner":
       return defaultPartnerSections(c);
+    case "advocacy-team":
+      return defaultAdvocacyTeamSections();
     case "give":
       return defaultGiveSections(c);
     case "merch":
@@ -106,6 +115,7 @@ export function defaultAllPageSections(): PageSection[] {
     "about",
     "mission",
     "partner",
+    "advocacy-team",
     "give",
     "merch",
     "blog",
@@ -333,6 +343,44 @@ function defaultPartnerSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       primaryCtaUrl: "/partner",
       secondaryCtaLabel: p.finalSecondaryCtaLabel,
       secondaryCtaUrl: "/advocacy-team",
+    }),
+  ];
+}
+
+function defaultAdvocacyTeamSections(): PageSection[] {
+  return [
+    sec("advocacy-team", "hero", "hero", "Hero", {
+      eyebrow: ADVOCACY_TEAM_HERO.eyebrow,
+      headline: ADVOCACY_TEAM_HERO.title,
+      body: ADVOCACY_TEAM_HERO.subtitle,
+      primaryCtaLabel: ADVOCACY_TEAM_HERO.primaryCtaLabel,
+      primaryCtaUrl: "/contact",
+      secondaryCtaLabel: ADVOCACY_TEAM_HERO.secondaryCtaLabel,
+      secondaryCtaUrl: "#advocacy-team-resources",
+    }),
+    sec("advocacy-team", "intro", "text_section", "What is an Advocacy Team Member?", {
+      headline: ADVOCACY_TEAM_INTRO.heading,
+      body: ADVOCACY_TEAM_INTRO.paragraphs.join("\n\n"),
+    }),
+    sec("advocacy-team", "mission", "text_section", "Our mission", {
+      headline: ADVOCACY_TEAM_MISSION.heading,
+      body: ADVOCACY_TEAM_MISSION.statement,
+    }),
+    sec("advocacy-team", "roles", "card_grid", "Roles", {
+      headline: "What Advocacy Team Members do",
+      intro: "Pray, advocate, connect, and mobilize — four rhythms of serving alongside the mission.",
+      cards: cardItems(
+        ADVOCACY_TEAM_ROLES.map((role) => ({
+          title: role.title,
+          body: `${role.summary}\n\n${role.bullets.map((b) => `• ${b}`).join("\n")}`,
+        })),
+      ),
+    }),
+    sec("advocacy-team", "final-cta", "cta", "Final CTA", {
+      headline: ADVOCACY_TEAM_FINAL_CTA.heading,
+      body: ADVOCACY_TEAM_FINAL_CTA.body,
+      primaryCtaLabel: ADVOCACY_TEAM_FINAL_CTA.buttonLabel,
+      primaryCtaUrl: "/contact",
     }),
   ];
 }

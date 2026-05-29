@@ -53,6 +53,22 @@ describe("site builder pages", () => {
     expect(String(hero?.content.secondaryCtaUrl ?? "")).toContain("ways-to-get-involved");
   });
 
+  it("groups Get Involved pages in admin navigation", () => {
+    const partner = BUILDER_PAGES.find((p) => p.pageKey === "partner");
+    const advocacy = BUILDER_PAGES.find((p) => p.pageKey === "advocacy-team");
+    expect(partner?.group).toBe("Get Involved");
+    expect(advocacy?.group).toBe("Get Involved");
+    expect(PAGE_REVALIDATE_PATHS["advocacy-team"]).toContain("/advocacy-team");
+  });
+
+  it("provides default advocacy team sections", () => {
+    const sections = defaultSectionsForPage("advocacy-team");
+    const keys = sections.map((s) => s.sectionKey);
+    expect(keys).toContain("hero");
+    expect(keys).toContain("roles");
+    expect(keys).toContain("final-cta");
+  });
+
   it("exposes newsletters builder nav and revalidation paths", () => {
     expect(NEWSLETTER_BUILDER_NAV.id).toBe("newsletters");
     expect(NEWSLETTER_BUILDER_NAV.label).toBe("Newsletters");

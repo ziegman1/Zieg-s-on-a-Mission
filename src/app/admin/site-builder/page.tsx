@@ -70,7 +70,8 @@ export default async function AdminSiteBuilderPage() {
         Visual editor for storefront pages. Save updates the live site (no separate publish step required).
         On <strong className="text-zinc-300">Global (nav &amp; footer)</strong>, use the navigation form for live header
         labels and the sections below for site metadata and footer copy. On <strong className="text-zinc-300">Partner</strong>,
-        edit Ways to Get Involved and partnership tiers. On <strong className="text-zinc-300">Blog</strong>, use Blog posts for stories (Page intro for the blog
+        edit Ways to Get Involved under <strong className="text-zinc-300">Get Involved → Partner</strong>,
+        or the Advocacy Team page. On <strong className="text-zinc-300">Blog</strong>, use Blog posts for stories (Page intro for the blog
         header). <strong className="text-zinc-300">Community</strong> edits the Mission Hub landing above the feed.{" "}
         <strong className="text-zinc-300">Newsletters</strong> are managed separately from page sections.
       </p>

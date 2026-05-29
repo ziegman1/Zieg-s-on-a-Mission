@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -27,6 +29,7 @@ import {
   ADVOCACY_TEAM_TIME,
   type AdvocacyTeamRole,
 } from "@/data/advocacy-team-content";
+import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
 export const metadata: Metadata = {
   title: ADVOCACY_TEAM_META.title,
@@ -64,7 +67,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function AdvocacyTeamPage() {
+function LegacyAdvocacyTeamPage() {
   const resourcesHref = `#${ADVOCACY_TEAM_RESOURCES_SECTION_ID}`;
 
   return (
@@ -290,4 +293,8 @@ export default function AdvocacyTeamPage() {
       </section>
     </div>
   );
+}
+
+export default async function AdvocacyTeamPage() {
+  return renderStorefrontPage("advocacy-team", LegacyAdvocacyTeamPage);
 }

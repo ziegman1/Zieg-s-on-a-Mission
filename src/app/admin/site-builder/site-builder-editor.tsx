@@ -30,6 +30,7 @@ import type { NewsletterBrandSettings } from "@/lib/newsletter/brand-types";
 import type { NewsletterRecord } from "@/lib/newsletter/types";
 import type { SiteCopy } from "@/data/site-copy-defaults";
 import type { StorefrontNavExtras } from "@/lib/site-copy-blocks/navigation-extras";
+import { BuilderPagesNav } from "@/components/admin/builder-pages-nav";
 import { StorefrontNavigationEditor } from "@/components/admin/storefront-navigation-editor";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,18 @@ export function SiteBuilderEditor({
   const { state: urlState, navigate } = useSiteBuilderNavigation();
   const activePage = urlState.page;
   const blogTab = urlState.blogTab;
+
+  const selectBuilderPage = useCallback(
+    (pageKey: string) => {
+      navigate({
+        page: pageKey,
+        ...(pageKey === "blog" ? { blogTab: "posts" as const } : {}),
+      });
+      setSelectedSectionId(null);
+      setSelectedElementId(null);
+    },
+    [navigate],
+  );
 
   const [pages, setPages] = useState<PageData>(initialPages);
   const [blogPosts, setBlogPosts] = useState(initialBlogPosts);
@@ -496,27 +509,8 @@ export function SiteBuilderEditor({
             <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
               Pages
             </p>
-            <nav className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
-              {BUILDER_PAGES.map((p) => (
-                <button
-                  key={p.pageKey}
-                  type="button"
-                  onClick={() => {
-                    navigate({
-                      page: p.pageKey,
-                      ...(p.pageKey === "blog" ? { blogTab: "posts" as const } : {}),
-                    });
-                    setSelectedSectionId(null);
-                    setSelectedElementId(null);
-                  }}
-                  className={cn(
-                    "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors",
-                    "text-zinc-400 hover:bg-zinc-900",
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <BuilderPagesNav activePage={activePage} onSelect={selectBuilderPage} />
+            <div className="px-2">
               <button
                 type="button"
                 className={cn(
@@ -526,7 +520,7 @@ export function SiteBuilderEditor({
               >
                 {NEWSLETTER_BUILDER_NAV.label}
               </button>
-            </nav>
+            </div>
           </aside>
           <div className="flex-1 min-w-0 min-h-0">
             <NewslettersManager
@@ -563,29 +557,8 @@ export function SiteBuilderEditor({
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
             Pages
           </p>
-          <nav className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
-            {BUILDER_PAGES.map((p) => (
-              <button
-                key={p.pageKey}
-                type="button"
-                onClick={() => {
-                  navigate({
-                    page: p.pageKey,
-                    ...(p.pageKey === "blog" ? { blogTab: "posts" as const } : {}),
-                  });
-                  setSelectedSectionId(null);
-                  setSelectedElementId(null);
-                }}
-                className={cn(
-                  "w-full text-left rounded-md px-2.5 py-2 text-sm transition-colors",
-                  activePage === p.pageKey
-                    ? "bg-brand-primary/20 text-brand-primary"
-                    : "text-zinc-400 hover:bg-zinc-900",
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
+          <BuilderPagesNav activePage={activePage} onSelect={selectBuilderPage} />
+          <div className="px-2">
             <button
               type="button"
               onClick={() => {
@@ -605,7 +578,7 @@ export function SiteBuilderEditor({
             >
               {NEWSLETTER_BUILDER_NAV.label}
             </button>
-          </nav>
+          </div>
           <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 border-t border-zinc-800">
             Sections
           </p>
