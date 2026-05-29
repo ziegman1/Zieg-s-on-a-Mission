@@ -25,6 +25,26 @@ function lineTexts(block: ContentBlock | undefined): string[] {
   return visibleLines(block.lines).map((l) => l.text.trim());
 }
 
+/** Match saved nav label blocks by href so new default links are not dropped when indices shift. */
+function navBlockForLink(
+  blocks: ContentBlock[],
+  byKey: Map<string, ContentBlock>,
+  def: NavLinkDef,
+  index: number,
+): ContentBlock | undefined {
+  const navBlocks = blocks.filter(
+    (b) => b.pageKey === "global" && b.sectionKey === "navigation",
+  );
+  const byHref = navBlocks.find((b) => b.metadata?.href === def.href);
+  if (byHref) return byHref;
+
+  const byIndex = byKey.get(`nav.link.${index}`);
+  if (!byIndex) return undefined;
+  const blockHref = byIndex.metadata?.href;
+  if (typeof blockHref === "string" && blockHref !== def.href) return undefined;
+  return byIndex;
+}
+
 /** Apply flexible blocks onto SiteCopy (v2: hidden/deleted fields stay empty; no default fill-in). */
 export function blocksToSiteCopy(blocks: ContentBlock[]): SiteCopy {
   const byKey = new Map(blocks.map((b) => [b.blockKey, b]));
@@ -33,7 +53,7 @@ export function blocksToSiteCopy(blocks: ContentBlock[]): SiteCopy {
 
   const navLinks: NavLinkDef[] = d.navLinks
     .map((def, i) => {
-      const b = get(`nav.link.${i}`);
+      const b = navBlockForLink(blocks, byKey, def, i);
       if (!b) return def;
       if (!b.visible) return { href: def.href, label: "" };
       const label = str(b) || def.label;

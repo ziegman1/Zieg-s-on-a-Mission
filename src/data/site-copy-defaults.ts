@@ -98,6 +98,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     { href: "/about", label: "About" },
     { href: "/mission", label: "Mission" },
     { href: "/partner", label: "Partner" },
+    { href: "/advocacy-team", label: "Advocacy Team" },
     { href: "/give", label: "Give" },
     { href: "/merch", label: "Merch" },
     { href: "/blog", label: "Blog" },
