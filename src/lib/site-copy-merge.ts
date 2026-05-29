@@ -1,5 +1,5 @@
 import { DEFAULT_SITE_COPY, type NavLinkDef, type SiteCopy } from "@/data/site-copy-defaults";
-import type { PartnerMilestoneRow, PartnerTierRow } from "@/data/marketing-pages-defaults";
+import type { PartnerMilestoneRow, PartnerTierRow, PartnerWayToGetInvolvedRow } from "@/data/marketing-pages-defaults";
 
 function mergeNavLinks(saved: unknown): NavLinkDef[] {
   const d = DEFAULT_SITE_COPY.navLinks;
@@ -67,6 +67,23 @@ function mergePartnerMilestoneRows(
   });
 }
 
+function mergePartnerWaysRows(
+  saved: unknown,
+  fallback: PartnerWayToGetInvolvedRow[],
+): PartnerWayToGetInvolvedRow[] {
+  if (!Array.isArray(saved)) return fallback;
+  return fallback.map((def, i) => {
+    const r = saved[i] as Partial<PartnerWayToGetInvolvedRow> | undefined;
+    if (!r || typeof r !== "object") return { ...def };
+    return {
+      title: mergeRichText(r.title, def.title),
+      description: mergeRichText(r.description, def.description),
+      href: mergeRichText(r.href, def.href),
+      ctaLabel: mergeRichText(r.ctaLabel, def.ctaLabel),
+    };
+  });
+}
+
 function mergePartnerPage(saved: unknown, fb: SiteCopy["partnerPage"]): SiteCopy["partnerPage"] {
   if (!saved || typeof saved !== "object") return fb;
   const p = saved as Partial<SiteCopy["partnerPage"]>;
@@ -81,6 +98,9 @@ function mergePartnerPage(saved: unknown, fb: SiteCopy["partnerPage"]): SiteCopy
     whyHeading: mergeRichText(p.whyHeading, fb.whyHeading),
     whyBodyParagraph1: mergeRichText(p.whyBodyParagraph1, fb.whyBodyParagraph1),
     whyBodyParagraph2: mergeRichText(p.whyBodyParagraph2, fb.whyBodyParagraph2),
+    waysToGetInvolvedHeading: mergeRichText(p.waysToGetInvolvedHeading, fb.waysToGetInvolvedHeading),
+    waysToGetInvolvedIntro: mergeRichText(p.waysToGetInvolvedIntro, fb.waysToGetInvolvedIntro),
+    waysToGetInvolved: mergePartnerWaysRows(p.waysToGetInvolved, fb.waysToGetInvolved),
     tiersHeading: mergeRichText(p.tiersHeading, fb.tiersHeading),
     tiersIntro: mergeRichText(p.tiersIntro, fb.tiersIntro),
     tiers: mergePartnerTierRows(p.tiers, fb.tiers),
@@ -99,6 +119,7 @@ function mergePartnerPage(saved: unknown, fb: SiteCopy["partnerPage"]): SiteCopy
     finalBody: mergeRichText(p.finalBody, fb.finalBody),
     finalPrimaryCtaLabel: mergeRichText(p.finalPrimaryCtaLabel, fb.finalPrimaryCtaLabel),
     finalSecondaryCtaLabel: mergeRichText(p.finalSecondaryCtaLabel, fb.finalSecondaryCtaLabel),
+    finalOneTimeCtaLabel: mergeRichText(p.finalOneTimeCtaLabel, fb.finalOneTimeCtaLabel),
     finalContactCtaLabel: mergeRichText(p.finalContactCtaLabel, fb.finalContactCtaLabel),
   };
 }

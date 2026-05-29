@@ -55,5 +55,5 @@ export const HOME_GIFTS_TEASER = {
 /** Homepage — final CTA band (static). */
 export const HOME_FINAL_CTA = {
   title: "Ready to join the mission?",
-  body: "Become a monthly partner, make a one-time gift, or reach out — we’d be honored to walk with you.",
+  body: "Become a monthly partner to sustain the work long-term — or explore prayer, advocacy, and one-time giving when that fits your season.",
 } as const;

@@ -1,4 +1,5 @@
 import { DEFAULT_SITE_COPY, type NavLinkDef, type SiteCopy } from "@/data/site-copy-defaults";
+import { GET_INVOLVED_NAV } from "@/data/storefront-navigation";
 import type { ContentBlock } from "./types";
 import { sortBlocks, visibleLines } from "./utils";
 
@@ -56,7 +57,13 @@ export function blocksToSiteCopy(blocks: ContentBlock[]): SiteCopy {
       const b = navBlockForLink(blocks, byKey, def, i);
       if (!b) return def;
       if (!b.visible) return { href: def.href, label: "" };
-      const label = str(b) || def.label;
+      let label = str(b) || def.label;
+      if (def.href === GET_INVOLVED_NAV.labelHref) {
+        const saved = str(b);
+        if (!saved || saved === "Partner" || saved === "Advocacy Team" || saved === "Give") {
+          label = def.label;
+        }
+      }
       return { href: def.href, label };
     })
     .filter((l) => l.label.trim().length > 0);
@@ -283,6 +290,7 @@ function resolvePartnerPage(byKey: Map<string, ContentBlock>, d: SiteCopy): Site
     tiers,
     milestones,
     impactBullets,
+    waysToGetInvolved: d.partnerPage.waysToGetInvolved,
   };
 }
 

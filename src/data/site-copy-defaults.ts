@@ -11,9 +11,10 @@ import {
   type MerchPageCopy,
   type PartnerPageCopy,
 } from "./marketing-pages-defaults";
+import { defaultSiteCopyNavLinks } from "./storefront-navigation";
 
 export type { HomeGuided, HomeGuidedSectionRow } from "./home-guided-default-sections";
-export type { GivePageCopy, MerchPageCopy, PartnerPageCopy } from "./marketing-pages-defaults";
+export type { GivePageCopy, MerchPageCopy, PartnerPageCopy, PartnerWayToGetInvolvedRow } from "./marketing-pages-defaults";
 
 export type NavLinkDef = { href: string; label: string };
 
@@ -93,18 +94,7 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     description:
       "Join the mission as a monthly partner — training, mobilization, and gospel advance with Team Expansion. Optional merch and thank-you gifts for supporters.",
   },
-  navLinks: [
-    { href: "/", label: "Home" },
-    { href: "/about", label: "About" },
-    { href: "/mission", label: "Mission" },
-    { href: "/partner", label: "Partner" },
-    { href: "/advocacy-team", label: "Advocacy Team" },
-    { href: "/give", label: "Give" },
-    { href: "/merch", label: "Merch" },
-    { href: "/blog", label: "Blog" },
-    { href: "/community", label: "Community" },
-    { href: "/contact", label: "Contact" },
-  ],
+  navLinks: defaultSiteCopyNavLinks(),
   footer: {
     blurb:
       "A ministry partnership home — monthly partners sustain the work; one-time gifts and optional merch support the mission alongside you.",

@@ -15,6 +15,13 @@ export type PartnerMilestoneRow = {
   description: string;
 };
 
+export type PartnerWayToGetInvolvedRow = {
+  title: string;
+  description: string;
+  href: string;
+  ctaLabel: string;
+};
+
 export type PartnerPageCopy = {
   metaTitle: string;
   metaDescription: string;
@@ -26,6 +33,9 @@ export type PartnerPageCopy = {
   whyHeading: string;
   whyBodyParagraph1: string;
   whyBodyParagraph2: string;
+  waysToGetInvolvedHeading: string;
+  waysToGetInvolvedIntro: string;
+  waysToGetInvolved: PartnerWayToGetInvolvedRow[];
   tiersHeading: string;
   tiersIntro: string;
   tiers: PartnerTierRow[];
@@ -44,6 +54,7 @@ export type PartnerPageCopy = {
   finalBody: string;
   finalPrimaryCtaLabel: string;
   finalSecondaryCtaLabel: string;
+  finalOneTimeCtaLabel: string;
   finalContactCtaLabel: string;
 };
 
@@ -155,14 +166,43 @@ export const DEFAULT_PARTNER_PAGE: PartnerPageCopy = {
   heroEyebrow: "Join the mission",
   heroTitle: "Become a Monthly Partner in the Mission",
   heroBody:
-    "Monthly partners make ministry sustainable — so we can train, mobilize, and serve with consistency. You become part of the mission, not just a donor: shared prayer, shared impact, and faithful gospel advance among the unreached.",
+    "Monthly partnership is our primary pathway for sustaining the mission — training, mobilization, and gospel advance with consistency. You become part of the team through prayer, recurring support, advocacy, or a one-time gift when that fits best.",
   primaryCtaLabel: "Become a Monthly Partner",
-  secondaryCtaLabel: "Give a One-Time Gift",
+  secondaryCtaLabel: "Explore Ways to Get Involved",
   whyHeading: "Why monthly partnership matters",
   whyBodyParagraph1:
-    "Consistent support creates stability — for planning, for people, and for the long obedience of ministry. Monthly giving isn’t about a subscription; it’s about walking together month after month.",
+    "Consistent support creates stability — for planning, for people, and for the long obedience of ministry. Monthly giving isn’t a subscription; it’s walking together month after month as ministry partners.",
   whyBodyParagraph2:
-    "Partnership is more than financial support — it’s shared mission. We pray for partners, share updates honestly, and want you to know your role in what God is doing.",
+    "Partnership is shared mission. We pray for partners, share updates honestly, and invite you into prayer, advocacy, and giving — each pathway matters, and monthly partnership anchors the work.",
+  waysToGetInvolvedHeading: "Ways to Get Involved",
+  waysToGetInvolvedIntro:
+    "There is more than one way to walk with us. Choose the pathway that fits where God is leading you — and know that monthly partnership remains our primary need for long-term stability.",
+  waysToGetInvolved: [
+    {
+      title: "Pray",
+      description: "Join our prayer network.",
+      href: "/community",
+      ctaLabel: "Join Mission Hub",
+    },
+    {
+      title: "Partner",
+      description: "Become a recurring monthly ministry partner.",
+      href: "/partner#partnership-tiers",
+      ctaLabel: "See partnership levels",
+    },
+    {
+      title: "Advocate",
+      description: "Join the Advocacy Team and help expand ministry partnerships.",
+      href: "/advocacy-team",
+      ctaLabel: "Learn about advocacy",
+    },
+    {
+      title: "Give",
+      description: "Make a one-time gift to support the mission.",
+      href: "/give",
+      ctaLabel: "Give now",
+    },
+  ],
   tiersHeading: "Ways to join the mission",
   tiersIntro:
     "These levels describe partnership — not products. Choose the monthly rhythm that fits; every tier fuels training, mobilization, and gospel advance.",
@@ -190,9 +230,10 @@ export const DEFAULT_PARTNER_PAGE: PartnerPageCopy = {
   complianceBoxBody: `Tax and legal language varies by organization and jurisdiction. This section is a placeholder: your team can add disclosure about tax-deductibility, fair market value of any thank-you items, and other giving policies when your accountant or counsel provides approved wording.`,
   finalHeading: "Take the next step",
   finalBody:
-    "We’d be honored to have you on the team — monthly, one-time, or simply in conversation.",
+    "We’d be honored to have you on the team. Monthly partnership is our primary path for sustaining the mission — and we also welcome prayer partners, Advocacy Team members, and one-time gifts.",
   finalPrimaryCtaLabel: "Become a Monthly Partner",
-  finalSecondaryCtaLabel: "Give a One-Time Gift",
+  finalSecondaryCtaLabel: "Join the Advocacy Team",
+  finalOneTimeCtaLabel: "Give a One-Time Gift",
   finalContactCtaLabel: "Contact us",
 };
 

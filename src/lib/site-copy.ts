@@ -57,6 +57,6 @@ export function homeHeroWithHrefs(copy: SiteCopy) {
     body: copy.homeHero.body,
     primaryCta: { href: "/partner" as const, label: copy.homeHero.primaryCtaLabel },
     secondaryCta: { href: "/mission" as const, label: copy.homeHero.secondaryCtaLabel },
-    tertiaryCta: { href: "/give" as const, label: "Give" },
+    tertiaryCta: { href: "/partner" as const, label: "Get Involved" },
   };
 }

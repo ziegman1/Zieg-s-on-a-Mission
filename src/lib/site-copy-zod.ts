@@ -101,6 +101,18 @@ export const siteCopySaveSchema = z.object({
     whyHeading: z.string().min(1).max(200),
     whyBodyParagraph1: z.string().min(1).max(4000),
     whyBodyParagraph2: z.string().min(1).max(4000),
+    waysToGetInvolvedHeading: z.string().min(1).max(200),
+    waysToGetInvolvedIntro: z.string().min(1).max(2000),
+    waysToGetInvolved: z
+      .array(
+        z.object({
+          title: z.string().min(1).max(120),
+          description: z.string().min(1).max(500),
+          href: z.string().min(1).max(200),
+          ctaLabel: z.string().min(1).max(120),
+        }),
+      )
+      .length(DEFAULT_SITE_COPY.partnerPage.waysToGetInvolved.length),
     tiersHeading: z.string().min(1).max(200),
     tiersIntro: z.string().min(1).max(2000),
     tiers: z
@@ -136,6 +148,7 @@ export const siteCopySaveSchema = z.object({
     finalBody: z.string().min(1).max(2000),
     finalPrimaryCtaLabel: z.string().min(1).max(120),
     finalSecondaryCtaLabel: z.string().min(1).max(120),
+    finalOneTimeCtaLabel: z.string().min(1).max(120),
     finalContactCtaLabel: z.string().min(1).max(120),
   }),
   givePage: z.object({

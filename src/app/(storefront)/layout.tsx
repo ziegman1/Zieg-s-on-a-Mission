@@ -1,8 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { headers } from "next/headers";
-import { CartLink } from "@/components/cart-link";
 import { PageViewTracker } from "@/components/page-view-tracker";
+import { StorefrontHeader } from "@/components/storefront-header";
+import { STOREFRONT_FOOTER_NAV } from "@/data/storefront-navigation";
 import { getSiteCopy } from "@/lib/site-copy";
 
 const FOOTER_LEGAL = [
@@ -18,7 +18,9 @@ export default async function StorefrontLayout({
   children: React.ReactNode;
 }) {
   const copy = await getSiteCopy();
-  const navMain = copy.navLinks.filter((l) => l.href !== "/" && l.label.trim());
+  const labelOverrides = Object.fromEntries(
+    copy.navLinks.map((link) => [link.href, link.label]),
+  );
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const isMissionHub =
@@ -36,45 +38,7 @@ export default async function StorefrontLayout({
   return (
     <div className="min-h-screen flex flex-col bg-brand-surface text-brand-ink">
       <PageViewTracker />
-      <header className="border-b border-white/30 sticky top-0 z-50 bg-brand-primary shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-h-[4.5rem] sm:min-h-20 py-3 sm:py-2">
-          <Link
-            href="/"
-            aria-label={`Home — ${copy.site.name}`}
-            className="flex items-center shrink-0 py-1"
-          >
-            <Image
-              src="/logo/team-expansion.png"
-              alt="Team Expansion"
-              width={768}
-              height={276}
-              className="h-12 w-auto sm:h-[3.3rem] max-w-[min(100%,min(312px,85vw))] object-contain object-left drop-shadow-sm"
-              priority
-              unoptimized
-            />
-          </Link>
-          <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-5 justify-start sm:justify-end">
-            {copy.navLinks.filter((l) => l.label.trim()).map(({ href, label }) => {
-              const isMerch = href === "/merch";
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={
-                    isMerch
-                      ? "text-xs sm:text-sm text-white/80 hover:text-white transition-colors whitespace-nowrap"
-                      : "text-xs sm:text-sm text-white hover:text-white/90 transition-colors whitespace-nowrap"
-                  }
-                >
-                  {label}
-                </Link>
-              );
-            })}
-            <span className="hidden sm:block w-px h-4 bg-white/30 shrink-0" aria-hidden />
-            <CartLink subtle className="!text-white/75 hover:!text-white" />
-          </nav>
-        </div>
-      </header>
+      <StorefrontHeader siteName={copy.site.name} labelOverrides={labelOverrides} />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-brand-primary/25 bg-white/40 py-12 px-4">
         <div className="max-w-7xl mx-auto text-center text-sm text-brand-ink/80">
@@ -83,7 +47,7 @@ export default async function StorefrontLayout({
             <p className="mt-2 max-w-lg mx-auto leading-relaxed">{copy.footer.blurb}</p>
           ) : null}
           <nav className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-brand-ink/90">
-            {navMain.map(({ href, label }) => (
+            {STOREFRONT_FOOTER_NAV.map(({ href, label }) => (
               <Link key={href} href={href} className="hover:text-brand-primary transition-colors">
                 {label}
               </Link>

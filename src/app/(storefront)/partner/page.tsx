@@ -2,11 +2,15 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Gift, HandHeart, Heart, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getMonthlyGivingHref, getOneTimeGivingHref } from "@/data/partnership-content";
+import type { PartnerWayToGetInvolvedRow } from "@/data/marketing-pages-defaults";
 import { getSiteCopy } from "@/lib/site-copy";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
+
+const WAY_ICONS = [Heart, Users, HandHeart, Gift] as const;
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
@@ -46,7 +50,7 @@ async function LegacyPartnerPage() {
               variant="outline"
               className="rounded-full px-8 h-12 border-brand-primary/50 text-brand-ink bg-white/80 hover:bg-white"
             >
-              <Link href={oneTimeHref}>{p.secondaryCtaLabel}</Link>
+              <Link href="#ways-to-get-involved">{p.secondaryCtaLabel}</Link>
             </Button>
           </div>
         </div>
@@ -60,7 +64,57 @@ async function LegacyPartnerPage() {
         </div>
       </section>
 
-      <section className="border-t border-brand-primary/15 bg-white/45 px-4 py-16 sm:py-20">
+      <section
+        id="ways-to-get-involved"
+        className="border-t border-brand-primary/15 bg-white/45 px-4 py-16 sm:py-20 scroll-mt-20"
+      >
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-center font-serif text-2xl text-brand-primary tracking-wide">
+            {p.waysToGetInvolvedHeading}
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-center text-brand-ink/80 leading-relaxed">
+            {p.waysToGetInvolvedIntro}
+          </p>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            {p.waysToGetInvolved.map((way: PartnerWayToGetInvolvedRow, i: number) => {
+              const Icon = WAY_ICONS[i] ?? Heart;
+              return (
+                <Card
+                  key={way.title}
+                  className="border-brand-primary/20 bg-brand-surface/90 shadow-sm overflow-hidden flex flex-col"
+                >
+                  <CardContent className="p-6 sm:p-8 flex flex-col flex-1">
+                    <div className="flex items-start gap-4">
+                      <span
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary"
+                        aria-hidden
+                      >
+                        <Icon className="h-5 w-5" strokeWidth={2} />
+                      </span>
+                      <div>
+                        <h3 className="font-serif text-xl text-brand-ink tracking-wide">{way.title}</h3>
+                        <p className="mt-2 text-sm text-brand-ink/85 leading-relaxed">{way.description}</p>
+                      </div>
+                    </div>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="mt-6 w-full rounded-full border-brand-primary/40"
+                    >
+                      <Link href={way.href}>{way.ctaLabel}</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="partnership-tiers"
+        className="border-t border-brand-primary/15 bg-gradient-to-b from-brand-surface to-white/40 px-4 py-16 sm:py-20 scroll-mt-20"
+      >
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center font-serif text-2xl text-brand-primary tracking-wide">
             {p.tiersHeading}
@@ -166,7 +220,10 @@ async function LegacyPartnerPage() {
               <Link href={monthlyHref}>{p.finalPrimaryCtaLabel}</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full px-8 h-12 border-brand-primary/50 bg-white/90">
-              <Link href={oneTimeHref}>{p.finalSecondaryCtaLabel}</Link>
+              <Link href="/advocacy-team">{p.finalSecondaryCtaLabel}</Link>
+            </Button>
+            <Button asChild variant="ghost" className="rounded-full px-6 text-brand-ink/90">
+              <Link href={oneTimeHref}>{p.finalOneTimeCtaLabel}</Link>
             </Button>
             <Button asChild variant="ghost" className="rounded-full px-6 text-brand-ink">
               <Link href="/contact">{p.finalContactCtaLabel}</Link>
