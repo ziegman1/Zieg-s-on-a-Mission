@@ -29,7 +29,6 @@ import {
   ADVOCACY_TEAM_TIME,
   type AdvocacyTeamRole,
 } from "@/data/advocacy-team-content";
-import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
 export const metadata: Metadata = {
   title: ADVOCACY_TEAM_META.title,
@@ -67,7 +66,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function LegacyAdvocacyTeamPage() {
+function AdvocacyTeamPage() {
   const resourcesHref = `#${ADVOCACY_TEAM_RESOURCES_SECTION_ID}`;
 
   return (
@@ -295,6 +294,4 @@ function LegacyAdvocacyTeamPage() {
   );
 }
 
-export default async function AdvocacyTeamPage() {
-  return renderStorefrontPage("advocacy-team", LegacyAdvocacyTeamPage);
-}
+export default AdvocacyTeamPage;

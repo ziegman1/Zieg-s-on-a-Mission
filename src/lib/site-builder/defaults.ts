@@ -1,10 +1,17 @@
 import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
 import {
+  ADVOCACY_TEAM_BENEFITS,
   ADVOCACY_TEAM_FINAL_CTA,
   ADVOCACY_TEAM_HERO,
   ADVOCACY_TEAM_INTRO,
   ADVOCACY_TEAM_MISSION,
+  ADVOCACY_TEAM_OUR_COMMITMENT,
+  ADVOCACY_TEAM_PARTNERSHIP_GOAL,
+  ADVOCACY_TEAM_QUALIFICATIONS,
+  ADVOCACY_TEAM_RESOURCES,
+  ADVOCACY_TEAM_RESOURCES_SECTION_ID,
   ADVOCACY_TEAM_ROLES,
+  ADVOCACY_TEAM_TIME,
 } from "@/data/advocacy-team-content";
 import {
   GET_INVOLVED_NAV,
@@ -348,6 +355,9 @@ function defaultPartnerSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
 }
 
 function defaultAdvocacyTeamSections(): PageSection[] {
+  const rolesIntro =
+    "Advocacy Team Members serve in four complementary ways — each one rooted in relationship, prayer, and a shared love for the gospel.";
+
   return [
     sec("advocacy-team", "hero", "hero", "Hero", {
       eyebrow: ADVOCACY_TEAM_HERO.eyebrow,
@@ -356,7 +366,7 @@ function defaultAdvocacyTeamSections(): PageSection[] {
       primaryCtaLabel: ADVOCACY_TEAM_HERO.primaryCtaLabel,
       primaryCtaUrl: "/contact",
       secondaryCtaLabel: ADVOCACY_TEAM_HERO.secondaryCtaLabel,
-      secondaryCtaUrl: "#advocacy-team-resources",
+      secondaryCtaUrl: `#${ADVOCACY_TEAM_RESOURCES_SECTION_ID}`,
     }),
     sec("advocacy-team", "intro", "text_section", "What is an Advocacy Team Member?", {
       headline: ADVOCACY_TEAM_INTRO.heading,
@@ -366,9 +376,9 @@ function defaultAdvocacyTeamSections(): PageSection[] {
       headline: ADVOCACY_TEAM_MISSION.heading,
       body: ADVOCACY_TEAM_MISSION.statement,
     }),
-    sec("advocacy-team", "roles", "card_grid", "Roles", {
-      headline: "What Advocacy Team Members do",
-      intro: "Pray, advocate, connect, and mobilize — four rhythms of serving alongside the mission.",
+    sec("advocacy-team", "roles", "card_grid", "Four primary roles", {
+      headline: "Four primary roles",
+      intro: rolesIntro,
       cards: cardItems(
         ADVOCACY_TEAM_ROLES.map((role) => ({
           title: role.title,
@@ -376,6 +386,58 @@ function defaultAdvocacyTeamSections(): PageSection[] {
         })),
       ),
     }),
+    sec("advocacy-team", "partnership-goal", "text_section", "Partnership Goal Commitment", {
+      headline: ADVOCACY_TEAM_PARTNERSHIP_GOAL.heading,
+      body: [
+        ADVOCACY_TEAM_PARTNERSHIP_GOAL.intro,
+        ADVOCACY_TEAM_PARTNERSHIP_GOAL.emphasis,
+      ].join("\n\n"),
+      subheadline: ADVOCACY_TEAM_PARTNERSHIP_GOAL.examplesHeading,
+      bullets: listItems(ADVOCACY_TEAM_PARTNERSHIP_GOAL.examples),
+    }),
+    sec("advocacy-team", "time-commitment", "card_grid", "Time commitment", {
+      headline: ADVOCACY_TEAM_TIME.heading,
+      cards: cardItems([
+        {
+          title: ADVOCACY_TEAM_TIME.duringCampaigns.title,
+          body: ADVOCACY_TEAM_TIME.duringCampaigns.items.map((i) => `• ${i}`).join("\n"),
+        },
+        {
+          title: ADVOCACY_TEAM_TIME.betweenCampaigns.title,
+          body: ADVOCACY_TEAM_TIME.betweenCampaigns.items.map((i) => `• ${i}`).join("\n"),
+        },
+      ]),
+    }),
+    sec("advocacy-team", "qualifications", "text_section", "Qualifications", {
+      headline: ADVOCACY_TEAM_QUALIFICATIONS.heading,
+      bullets: listItems(ADVOCACY_TEAM_QUALIFICATIONS.items),
+    }),
+    sec("advocacy-team", "benefits", "text_section", "Benefits of serving", {
+      headline: ADVOCACY_TEAM_BENEFITS.heading,
+      bullets: listItems(ADVOCACY_TEAM_BENEFITS.items),
+    }),
+    sec("advocacy-team", "our-commitment", "text_section", "Our commitment to you", {
+      headline: ADVOCACY_TEAM_OUR_COMMITMENT.heading,
+      body: ADVOCACY_TEAM_OUR_COMMITMENT.intro,
+      bullets: listItems(ADVOCACY_TEAM_OUR_COMMITMENT.items),
+    }),
+    sec(
+      "advocacy-team",
+      ADVOCACY_TEAM_RESOURCES_SECTION_ID,
+      "card_grid",
+      "Advocacy Team Resources",
+      {
+        headline: "Advocacy Team Resources",
+        intro: "Download materials to pray, share, and advocate well in your circles of influence.",
+        cards: cardItems(
+          ADVOCACY_TEAM_RESOURCES.map((resource) => ({
+            title: resource.title,
+            body: resource.description,
+            meta: { href: resource.href, cta: "Download" },
+          })),
+        ),
+      },
+    ),
     sec("advocacy-team", "final-cta", "cta", "Final CTA", {
       headline: ADVOCACY_TEAM_FINAL_CTA.heading,
       body: ADVOCACY_TEAM_FINAL_CTA.body,

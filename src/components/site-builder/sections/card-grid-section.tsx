@@ -23,6 +23,7 @@ export function CardGridSection({ section }: { section: PageSection }) {
 
   const isPartnerTiers = section.sectionKey === "tiers";
   const isWaysToGetInvolved = section.sectionKey === "ways-to-get-involved";
+  const isAdvocacyResources = section.sectionKey === "advocacy-team-resources";
 
   const headlineEl = headline.trim() ? (
     <EditableElement
@@ -137,6 +138,22 @@ export function CardGridSection({ section }: { section: PageSection }) {
           {headlineEl}
           {introEl}
           <div className="mt-12 grid gap-6 sm:grid-cols-2">{cardNodes}</div>
+          <ContentElementsBlock section={section} />
+        </div>
+      </section>
+    );
+  }
+
+  if (isAdvocacyResources) {
+    return (
+      <section
+        id="advocacy-team-resources"
+        className="border-t border-brand-primary/15 bg-gradient-to-b from-brand-surface to-white/40 px-4 py-16 sm:py-20 scroll-mt-20"
+      >
+        <div className="mx-auto max-w-5xl">
+          {headlineEl}
+          {introEl}
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{cardNodes}</div>
           <ContentElementsBlock section={section} />
         </div>
       </section>

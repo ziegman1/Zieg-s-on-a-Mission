@@ -61,12 +61,19 @@ describe("site builder pages", () => {
     expect(PAGE_REVALIDATE_PATHS["advocacy-team"]).toContain("/advocacy-team");
   });
 
-  it("provides default advocacy team sections", () => {
+  it("provides default advocacy team sections with full page content", () => {
     const sections = defaultSectionsForPage("advocacy-team");
     const keys = sections.map((s) => s.sectionKey);
     expect(keys).toContain("hero");
     expect(keys).toContain("roles");
+    expect(keys).toContain("partnership-goal");
+    expect(keys).toContain("time-commitment");
+    expect(keys).toContain("qualifications");
+    expect(keys).toContain("benefits");
+    expect(keys).toContain("our-commitment");
+    expect(keys).toContain("advocacy-team-resources");
     expect(keys).toContain("final-cta");
+    expect(sections.length).toBeGreaterThanOrEqual(11);
   });
 
   it("exposes newsletters builder nav and revalidation paths", () => {
