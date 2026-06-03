@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mapNotificationRecordToItem } from "./notification-record-mapper";
 
 const baseRow = {
@@ -17,6 +17,24 @@ const baseRow = {
 };
 
 describe("mapNotificationRecordToItem", () => {
+  beforeEach(() => {
+    vi.stubEnv("MISSION_HUB_ADVANCED_NOTIFICATIONS_ENABLED", "true");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("skips advanced types when MISSION_HUB_ADVANCED_NOTIFICATIONS_ENABLED is false", () => {
+    vi.stubEnv("MISSION_HUB_ADVANCED_NOTIFICATIONS_ENABLED", "false");
+    expect(
+      mapNotificationRecordToItem({ ...baseRow, type: "blog_published" }),
+    ).toBeNull();
+    expect(
+      mapNotificationRecordToItem({ ...baseRow, type: "urgent_prayer_request" }),
+    ).toBeNull();
+  });
+
   it("maps urgent_prayer_request to the post anchor", () => {
     const item = mapNotificationRecordToItem({
       ...baseRow,

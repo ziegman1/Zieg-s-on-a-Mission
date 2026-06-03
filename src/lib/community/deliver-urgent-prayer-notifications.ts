@@ -12,6 +12,7 @@ import {
 import { getUserNotificationPreferences } from "@/lib/community/user-notification-prefs";
 import { prisma } from "@/lib/db";
 import { isMissionHubEmailNotificationsEnabled } from "@/lib/mission-hub/email-config";
+import { isMissionHubAdvancedNotificationsEnabled } from "@/lib/mission-hub/advanced-notifications-config";
 import { getNewsletterPublishEmailDisabledReason } from "@/lib/mission-hub/newsletter-publish-email";
 import { queueAndSendUrgentPrayerEmail } from "@/lib/mission-hub/urgent-prayer-email";
 import {
@@ -67,6 +68,26 @@ export async function deliverUrgentPrayerRequestNotifications(
   post: UrgentPrayerPostRow,
   options: DeliverPostPublishNotificationsOptions = {},
 ): Promise<DeliverUrgentPrayerNotificationsResult> {
+  if (!isMissionHubAdvancedNotificationsEnabled()) {
+    return {
+      postId: post.id,
+      spaceId: post.spaceId,
+      spaceSlug: post.space.slug,
+      urgentPrayerRequest: true,
+      totalMembersWithAccounts: 0,
+      inAppNotificationsSent: 0,
+      inAppNotificationsUpdated: 0,
+      emailNotificationsSent: 0,
+      emailNotificationsDeduped: 0,
+      emailNotificationsFailed: 0,
+      emailNotificationsSkipped: 0,
+      emailSkippedNoAddress: 0,
+      skippedMutedOrDisabled: 0,
+      skippedRecipients: [],
+      resendMessageIds: [],
+    };
+  }
+
   const members = await prisma.communityMemberRecord.findMany({
     where: { status: "active", userId: { not: null } },
     select: {

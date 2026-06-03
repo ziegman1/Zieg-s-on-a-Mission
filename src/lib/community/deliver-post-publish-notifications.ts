@@ -21,6 +21,7 @@ import {
 import { BLOG_SOURCE_KIND } from "@/lib/blog/mission-hub-announcement";
 import { deliverUrgentPrayerRequestNotifications } from "@/lib/community/deliver-urgent-prayer-notifications";
 import { isUrgentPrayerRequest } from "@/lib/community/urgent-prayer-metadata";
+import { isMissionHubAdvancedNotificationsEnabled } from "@/lib/mission-hub/advanced-notifications-config";
 import { NEWSLETTER_SOURCE_KIND } from "@/lib/newsletter/mission-hub-announcement";
 
 export type PostPublishSkipEntry = {
@@ -103,6 +104,26 @@ export async function deliverPostPublishNotifications(
   }
 
   if (isUrgentPrayerRequest(post.metadata)) {
+    if (!isMissionHubAdvancedNotificationsEnabled()) {
+      return {
+        postId: post.id,
+        spaceId: post.spaceId,
+        spaceSlug: post.space.slug,
+        skippedNewsletterAnnouncement: false,
+        totalMembersWithAccounts: 0,
+        inAppNotificationsSent: 0,
+        inAppNotificationsUpdated: 0,
+        emailNotificationsSent: 0,
+        emailNotificationsDeduped: 0,
+        emailNotificationsFailed: 0,
+        emailNotificationsSkipped: 0,
+        emailSkippedNoAddress: 0,
+        skippedMutedOrDisabled: 0,
+        skippedRecipients: [],
+        resendMessageIds: [],
+      };
+    }
+
     const urgentResult = await deliverUrgentPrayerRequestNotifications(post, options);
     return {
       postId: urgentResult.postId,

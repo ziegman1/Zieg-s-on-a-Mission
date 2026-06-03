@@ -5,6 +5,7 @@ import {
   NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE,
   URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE,
 } from "@/lib/community/notification-type-constants";
+import { shouldIncludeAdvancedNotificationType } from "@/lib/mission-hub/advanced-notifications-config";
 
 export type NotificationRecordRow = {
   id: string;
@@ -125,6 +126,7 @@ function buildNotificationHrefForType(row: NotificationRecordRow): string {
 export function mapNotificationRecordToItem(row: NotificationRecordRow): CommunityNotificationItem | null {
   try {
     if (!isCommunityNotificationType(row.type)) return null;
+    if (!shouldIncludeAdvancedNotificationType(row.type)) return null;
 
     const spaceSlug = row.post?.space?.slug ?? null;
     const href = buildNotificationHrefForType(row);

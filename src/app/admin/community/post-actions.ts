@@ -26,6 +26,7 @@ import {
   buildUrgentPrayerPostMetadata,
   isUrgentPrayerRequestAllowed,
 } from "@/lib/community/urgent-prayer-metadata";
+import { isMissionHubAdvancedNotificationsEnabled } from "@/lib/mission-hub/advanced-notifications-config";
 import { prisma } from "@/lib/db";
 
 const POST_TYPE_VALUES = new Set(COMMUNITY_POST_TYPES.map((t) => t.value));
@@ -109,7 +110,10 @@ export async function createCommunityPostAction(
   });
   if (!space) return { ok: false, error: "Space not found" };
 
-  if (data.urgentPrayerRequest) {
+  const urgentPrayerRequest =
+    data.urgentPrayerRequest === true && isMissionHubAdvancedNotificationsEnabled();
+
+  if (urgentPrayerRequest) {
     if (!isUrgentPrayerRequestAllowed({
       spaceSlug: space.slug,
       settings: space.settings,
@@ -122,7 +126,7 @@ export async function createCommunityPostAction(
     }
   }
 
-  const metadata: Prisma.InputJsonValue | undefined = data.urgentPrayerRequest
+  const metadata: Prisma.InputJsonValue | undefined = urgentPrayerRequest
     ? (buildUrgentPrayerPostMetadata() as unknown as Prisma.InputJsonValue)
     : undefined;
 

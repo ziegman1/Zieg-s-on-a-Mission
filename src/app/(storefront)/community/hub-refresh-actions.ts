@@ -6,6 +6,7 @@ import {
   countUnreadNotifications,
   requireNotificationRecipientUserId,
 } from "@/lib/community/notifications";
+import { advancedNotificationExcludeFilter } from "@/lib/mission-hub/advanced-notifications-config";
 import { prisma } from "@/lib/db";
 
 export type MissionHubRefreshSnapshot = {
@@ -43,7 +44,10 @@ export async function fetchMissionHubRefreshSnapshotAction(
 
       try {
         const latestNotification = await prisma.communityNotificationRecord.findFirst({
-          where: { recipientUserId: userId },
+          where: {
+            recipientUserId: userId,
+            ...advancedNotificationExcludeFilter(),
+          },
           orderBy: { createdAt: "desc" },
           select: { createdAt: true },
         });

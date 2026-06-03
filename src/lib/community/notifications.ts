@@ -9,6 +9,10 @@ import { prisma } from "@/lib/db";
 import { blogPublishNotificationDedupeKey } from "@/lib/blog/mission-hub-dedupe";
 import { mapNotificationRecordToItem } from "@/lib/community/notification-record-mapper";
 import {
+  advancedNotificationExcludeFilter,
+  isMissionHubAdvancedNotificationsEnabled,
+} from "@/lib/mission-hub/advanced-notifications-config";
+import {
   BLOG_PUBLISHED_NOTIFICATION_TITLE,
   BLOG_PUBLISHED_NOTIFICATION_TYPE,
   NEWSLETTER_PUBLISHED_NOTIFICATION_TITLE,
@@ -49,7 +53,11 @@ export async function requireNotificationRecipientUserId(): Promise<string | nul
 export async function countUnreadNotifications(userId: string): Promise<number> {
   try {
     return await prisma.communityNotificationRecord.count({
-      where: { recipientUserId: userId, readAt: null },
+      where: {
+        recipientUserId: userId,
+        readAt: null,
+        ...advancedNotificationExcludeFilter(),
+      },
     });
   } catch (e) {
     console.error("[notifications] countUnreadNotifications failed:", e);
@@ -79,7 +87,10 @@ export async function listNotificationsGroupedForUser(
     await pruneStaleReadNotifications(userId);
 
     const rows = await prisma.communityNotificationRecord.findMany({
-      where: { recipientUserId: userId },
+      where: {
+        recipientUserId: userId,
+        ...advancedNotificationExcludeFilter(),
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
       include: {
@@ -302,6 +313,10 @@ export async function upsertBlogPublishedNotification(input: {
   missionHubSpaceSlug: string;
   actorUserId?: string | null;
 }): Promise<"created" | "updated"> {
+  if (!isMissionHubAdvancedNotificationsEnabled()) {
+    return "updated";
+  }
+
   if (input.actorUserId && input.actorUserId === input.recipientUserId) {
     return "updated";
   }
@@ -447,6 +462,10 @@ export async function upsertUrgentPrayerRequestNotification(input: {
   body: string;
   actorUserId?: string | null;
 }): Promise<"created" | "updated"> {
+  if (!isMissionHubAdvancedNotificationsEnabled()) {
+    return "updated";
+  }
+
   if (input.actorUserId && input.actorUserId === input.recipientUserId) {
     return "updated";
   }

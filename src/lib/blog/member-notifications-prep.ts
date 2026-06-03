@@ -24,7 +24,29 @@ import {
   BLOG_ARTICLES_SPACE_SLUG,
   blogPublicPath,
 } from "@/lib/blog/mission-hub-announcement";
+import { isMissionHubAdvancedNotificationsEnabled } from "@/lib/mission-hub/advanced-notifications-config";
 import type { BlogPostRecord } from "./types";
+
+function skippedBlogPublishNotificationsResult(): BlogPublishNotificationsResult {
+  return {
+    inAppDelivered: true,
+    emailEnabled: false,
+    emailDisabledReason: "advanced_notifications_disabled",
+    totalMembersWithAccounts: 0,
+    inAppNotificationsSent: 0,
+    inAppNotificationsUpdated: 0,
+    emailNotificationsSent: 0,
+    emailNotificationsDeduped: 0,
+    emailNotificationsFailed: 0,
+    emailNotificationsSkipped: 0,
+    emailSkippedNoAddress: 0,
+    emailRecipientsPrepared: 0,
+    inAppRecipientsPrepared: 0,
+    skippedMutedOrDisabled: 0,
+    skippedRecipients: [],
+    resendMessageIds: [],
+  };
+}
 
 export type BlogPublishSkipEntry = {
   userId: string;
@@ -70,6 +92,10 @@ export async function deliverBlogPublishNotifications(
   blog: BlogPostRecord,
   options: DeliverBlogPublishNotificationsOptions,
 ): Promise<BlogPublishNotificationsResult> {
+  if (!isMissionHubAdvancedNotificationsEnabled()) {
+    return skippedBlogPublishNotificationsResult();
+  }
+
   resolveMissionHubEmailSendPolicy({
     smokeTest: options.smokeTest === true,
   });

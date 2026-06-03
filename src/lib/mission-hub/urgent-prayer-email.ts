@@ -2,6 +2,7 @@ import "server-only";
 
 import { communityPostAnchorPath } from "@/lib/community/post-url";
 import { urgentPrayerPublishEmailDedupeKey } from "@/lib/mission-hub/email-dedupe";
+import { isMissionHubAdvancedNotificationsEnabled } from "@/lib/mission-hub/advanced-notifications-config";
 import { queueMissionHubEmailDelivery } from "@/lib/mission-hub/email-delivery-queue";
 import type { QueueMissionHubEmailResult } from "@/lib/mission-hub/email-delivery-types";
 import type { MissionHubEmailSendPolicy } from "@/lib/mission-hub/test-email-recipients";
@@ -103,6 +104,10 @@ export async function queueAndSendUrgentPrayerEmail(input: {
   forceResend?: boolean;
   emailPolicy?: MissionHubEmailSendPolicy;
 }): Promise<QueueMissionHubEmailResult> {
+  if (!isMissionHubAdvancedNotificationsEnabled()) {
+    return { action: "skipped", reason: "advanced_notifications_disabled" };
+  }
+
   const content = buildUrgentPrayerEmailContent({
     spaceSlug: input.spaceSlug,
     postId: input.postId,

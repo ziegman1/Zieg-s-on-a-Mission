@@ -9,6 +9,7 @@ import {
   getMissionHubEmailConfigProblem,
   missionHubEmailDisabledMessage,
 } from "@/lib/mission-hub/email-config";
+import { isMissionHubAdvancedNotificationsEnabled } from "@/lib/mission-hub/advanced-notifications-config";
 import { blogPublishEmailDedupeKey } from "@/lib/mission-hub/email-dedupe";
 import { queueMissionHubEmailDelivery } from "@/lib/mission-hub/email-delivery-queue";
 import type { QueueMissionHubEmailResult } from "@/lib/mission-hub/email-delivery-types";
@@ -99,6 +100,10 @@ export async function queueAndSendBlogPublishEmail(input: {
   forceResend?: boolean;
   emailPolicy?: MissionHubEmailSendPolicy;
 }): Promise<QueueBlogEmailResult> {
+  if (!isMissionHubAdvancedNotificationsEnabled()) {
+    return { action: "skipped", reason: "advanced_notifications_disabled" };
+  }
+
   const content = buildBlogPublishEmailContent({
     blog: input.blog,
     missionHubPostUrl: input.missionHubPostUrl,

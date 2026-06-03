@@ -23,6 +23,10 @@ vi.mock("@/lib/mission-hub/email-config", () => ({
   isMissionHubEmailNotificationsEnabled: vi.fn(() => true),
 }));
 
+vi.mock("@/lib/mission-hub/advanced-notifications-config", () => ({
+  isMissionHubAdvancedNotificationsEnabled: vi.fn(() => true),
+}));
+
 vi.mock("@/lib/mission-hub/newsletter-publish-email", () => ({
   getNewsletterPublishEmailDisabledReason: vi.fn(() => null),
 }));
