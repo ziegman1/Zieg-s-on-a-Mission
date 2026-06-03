@@ -7,8 +7,6 @@ import {
 } from "@/lib/community/create-community-space-core";
 import type { CommunitySpaceFormInput } from "@/lib/community/space-form";
 
-export type { CreateCommunitySpaceResult };
-
 /** Mission Hub storefront entry — use this from mobile/desktop in-app create flows. */
 export async function createCommunitySpaceAction(
   input: CommunitySpaceFormInput,

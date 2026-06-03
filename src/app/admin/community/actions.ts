@@ -17,8 +17,6 @@ import { formatCommunitySpaceInputErrors } from "@/lib/community/space-form-erro
 import { isReservedCommunitySpaceSlug } from "@/lib/community/reserved-space-slugs";
 import { prisma } from "@/lib/db";
 
-export type { CreateCommunitySpaceResult };
-
 export async function createCommunitySpaceAction(
   input: CommunitySpaceFormInput,
 ): Promise<CreateCommunitySpaceResult> {

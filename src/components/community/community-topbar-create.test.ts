@@ -107,6 +107,7 @@ describe("Mission Hub create space flow", () => {
     expect(spaceActions).toContain('"use server"');
     expect(spaceActions).toContain("createCommunitySpaceCore");
     expect(spaceActions).toContain("ensureBlogArticlesSpaceAction");
+    expect(spaceActions).not.toContain("export type { CreateCommunitySpaceResult }");
     expect(core).toContain('phase: "reached"');
     expect(core).toContain("requestId");
   });

@@ -4,8 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import {
   createCommunitySpaceAction,
-  type CreateCommunitySpaceResult,
 } from "@/app/(storefront)/community/space-actions";
+import type { CreateCommunitySpaceResult } from "@/lib/community/create-community-space-core";
 import { CommunityPostCoverUpload } from "@/components/community/community-post-cover-upload";
 import { COMMUNITY_SPACE_ICONS, DEFAULT_COMMUNITY_ICON } from "@/lib/community/constants";
 import { buildCompactSpaceCreatePayload } from "@/lib/community/compact-space-create-payload";
