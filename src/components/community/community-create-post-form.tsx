@@ -102,6 +102,7 @@ export function CommunityCreatePostForm({
   onSuccess,
   onCancel,
   compactHeader = false,
+  onComposerFocusChange,
 }: {
   spaces: CommunityComposerSpace[];
   defaultSpaceId?: string;
@@ -112,6 +113,7 @@ export function CommunityCreatePostForm({
   onCancel: () => void;
   /** Mobile sheet: tighter header */
   compactHeader?: boolean;
+  onComposerFocusChange?: (focused: boolean) => void;
 }) {
   const router = useRouter();
   const lockSpace = Boolean(defaultSpaceId);
@@ -269,6 +271,14 @@ export function CommunityCreatePostForm({
           id={bodyId}
           value={form.body}
           onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+          onFocus={() => {
+            console.info("[mh-post-composer]", { phase: "textarea_focused", bodyId });
+            onComposerFocusChange?.(true);
+          }}
+          onBlur={() => {
+            console.info("[mh-post-composer]", { phase: "textarea_blurred", bodyId });
+            onComposerFocusChange?.(false);
+          }}
           placeholder="What would you like to share?"
           rows={4}
           enterKeyHint="send"

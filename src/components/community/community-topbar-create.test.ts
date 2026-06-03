@@ -81,6 +81,21 @@ describe("Mission Hub create space flow", () => {
     expect(sheet).toContain("safe-area-inset-top");
     expect(sheet).toContain("keyboardMaxHeight");
     expect(sheet).toContain("bodyRef");
+    expect(sheet).toContain("guardDismissWhileKeyboard");
+    expect(sheet).toContain("onFocusOutside");
+  });
+
+  it("mounts mobile sheet and desktop dialog exclusively for post composer", () => {
+    const composer = readFileSync(
+      resolve(process.cwd(), "src/components/community/community-create-post-composer.tsx"),
+      "utf8",
+    );
+
+    expect(composer).toContain("useLgDesktop");
+    expect(composer).toContain("!isDesktop");
+    expect(composer).toContain("isDesktop ?");
+    expect(composer).not.toContain("const form =");
+    expect(composer).toContain("[mh-post-composer]");
   });
 
   it("loads published spaces in the community layout for live nav refresh", () => {

@@ -33,6 +33,7 @@ function BottomSheetContent({
   onClose,
   onSwipeClose,
   keyboardInset = 0,
+  guardDismissWhileKeyboard = false,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   title: string;
@@ -41,6 +42,8 @@ function BottomSheetContent({
   onClose?: () => void;
   onSwipeClose?: () => void;
   keyboardInset?: number;
+  /** When true, ignore outside-focus/pointer dismiss (mobile keyboard resize). */
+  guardDismissWhileKeyboard?: boolean;
 }) {
   const dragRef = useRef({ startY: 0, dragging: false });
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -71,6 +74,12 @@ function BottomSheetContent({
       ? `calc(100dvh - env(safe-area-inset-top, 0px) - ${keyboardInset}px - 0.5rem)`
       : undefined;
 
+  function guardOutsideDismiss(event: Event, kind: string) {
+    if (!guardDismissWhileKeyboard) return;
+    event.preventDefault();
+    console.info("[mh-bottom-sheet]", { phase: "dismiss_blocked", kind, keyboardInset });
+  }
+
   return (
     <DialogPrimitive.Portal>
       <BottomSheetOverlay />
@@ -83,6 +92,9 @@ function BottomSheetContent({
           className,
         )}
         style={keyboardMaxHeight ? { maxHeight: keyboardMaxHeight } : undefined}
+        onPointerDownOutside={(e) => guardOutsideDismiss(e, "pointerDownOutside")}
+        onInteractOutside={(e) => guardOutsideDismiss(e, "interactOutside")}
+        onFocusOutside={(e) => guardOutsideDismiss(e, "focusOutside")}
         {...props}
       >
         <div
@@ -143,6 +155,7 @@ export function CommunityBottomSheet({
   children,
   className,
   keyboardInset = 0,
+  guardDismissWhileKeyboard = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -152,6 +165,7 @@ export function CommunityBottomSheet({
   className?: string;
   /** Extra bottom padding when the on-screen keyboard is open (px). */
   keyboardInset?: number;
+  guardDismissWhileKeyboard?: boolean;
 }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -163,6 +177,7 @@ export function CommunityBottomSheet({
         onSwipeClose={() => onOpenChange(false)}
         className={className}
         keyboardInset={keyboardInset}
+        guardDismissWhileKeyboard={guardDismissWhileKeyboard}
       >
         {children}
       </BottomSheetContent>
