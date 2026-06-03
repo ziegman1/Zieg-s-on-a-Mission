@@ -41,34 +41,40 @@ const feedPostInclude = {
 
 function recordToFeedItem(
   row: PostWithSpace & { sourceKind?: string | null; metadata?: unknown },
-): CommunityPostFeedItemBase {
-  const publishedAt = row.publishedAt ?? row.createdAt;
-  const author = resolvePostAuthor(row.authorUser);
-  const interaction = interactionFromSpaceRow(row.space);
-  const base: CommunityPostFeedItemBase = {
-    id: row.id,
-    spaceId: row.spaceId,
-    spaceTitle: row.space.title,
-    spaceSlug: row.space.slug,
-    title: row.title,
-    body: row.body,
-    excerpt: row.excerpt,
-    postType: parsePostType(row.postType),
-    coverImageUrl: row.coverImageUrl,
-    publishedAt: publishedAt.toISOString(),
-    authorName: author.authorName,
-    authorImageUrl: author.authorImageUrl,
-    authorAvatarName: author.authorAvatarName,
-    spaceAllowComments: interaction.allowComments,
-    spaceAllowReactions: interaction.allowReactions,
-    spaceAllowVoiceMessages: interaction.allowVoiceMessages,
-    spaceEngagementPrompt: interaction.engagementPrompt,
-    spaceType: interaction.spaceType,
-  };
-  return attachNewsletterAnnouncementToFeedItem(base, {
-    sourceKind: row.sourceKind ?? null,
-    metadata: row.metadata ?? {},
-  });
+): CommunityPostFeedItemBase | null {
+  try {
+    if (!row.space) return null;
+    const publishedAt = row.publishedAt ?? row.createdAt;
+    const author = resolvePostAuthor(row.authorUser);
+    const interaction = interactionFromSpaceRow(row.space);
+    const base: CommunityPostFeedItemBase = {
+      id: row.id,
+      spaceId: row.spaceId,
+      spaceTitle: row.space.title,
+      spaceSlug: row.space.slug,
+      title: row.title,
+      body: row.body,
+      excerpt: row.excerpt,
+      postType: parsePostType(row.postType),
+      coverImageUrl: row.coverImageUrl,
+      publishedAt: publishedAt.toISOString(),
+      authorName: author.authorName,
+      authorImageUrl: author.authorImageUrl,
+      authorAvatarName: author.authorAvatarName,
+      spaceAllowComments: interaction.allowComments,
+      spaceAllowReactions: interaction.allowReactions,
+      spaceAllowVoiceMessages: interaction.allowVoiceMessages,
+      spaceEngagementPrompt: interaction.engagementPrompt,
+      spaceType: interaction.spaceType,
+    };
+    return attachNewsletterAnnouncementToFeedItem(base, {
+      sourceKind: row.sourceKind ?? null,
+      metadata: row.metadata ?? {},
+    });
+  } catch (e) {
+    console.warn("[community feed] recordToFeedItem skipped row", row.id, e);
+    return null;
+  }
 }
 
 const publishedPostWhere = {
@@ -80,15 +86,23 @@ export async function listPublishedPostsFeed(
   limit = 50,
   visitorKey?: string,
 ): Promise<CommunityPostFeedItem[]> {
-  const rows = await prisma.communityPostRecord.findMany({
-    where: hubAllFeedPostWhere(),
-    include: feedPostInclude,
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: limit,
-  });
-  const withReactions = await attachReactionsToFeedPosts(rows.map(recordToFeedItem), visitorKey);
-  const withCounts = await attachCommentCountsToFeedPosts(withReactions);
-  return filterHubAllFeedPosts(withCounts);
+  try {
+    const rows = await prisma.communityPostRecord.findMany({
+      where: hubAllFeedPostWhere(),
+      include: feedPostInclude,
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: limit,
+    });
+    const items = rows
+      .map(recordToFeedItem)
+      .filter((item): item is CommunityPostFeedItemBase => item !== null);
+    const withReactions = await attachReactionsToFeedPosts(items, visitorKey);
+    const withCounts = await attachCommentCountsToFeedPosts(withReactions);
+    return filterHubAllFeedPosts(withCounts);
+  } catch (e) {
+    console.error("[community feed] listPublishedPostsFeed failed:", e);
+    return [];
+  }
 }
 
 export async function listPublishedPostsBySpaceSlug(
@@ -96,17 +110,25 @@ export async function listPublishedPostsBySpaceSlug(
   limit = 50,
   visitorKey?: string,
 ): Promise<CommunityPostFeedItem[]> {
-  const rows = await prisma.communityPostRecord.findMany({
-    where: {
-      ...publishedPostWhere,
-      space: { slug, status: "published" },
-    },
-    include: feedPostInclude,
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: limit,
-  });
-  const withReactions = await attachReactionsToFeedPosts(rows.map(recordToFeedItem), visitorKey);
-  return attachCommentCountsToFeedPosts(withReactions);
+  try {
+    const rows = await prisma.communityPostRecord.findMany({
+      where: {
+        ...publishedPostWhere,
+        space: { slug, status: "published" },
+      },
+      include: feedPostInclude,
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: limit,
+    });
+    const items = rows
+      .map(recordToFeedItem)
+      .filter((item): item is CommunityPostFeedItemBase => item !== null);
+    const withReactions = await attachReactionsToFeedPosts(items, visitorKey);
+    return attachCommentCountsToFeedPosts(withReactions);
+  } catch (e) {
+    console.error("[community feed] listPublishedPostsBySpaceSlug failed:", slug, e);
+    return [];
+  }
 }
 
 export async function countPublishedPostsBySpaceIds(

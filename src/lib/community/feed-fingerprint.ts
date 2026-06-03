@@ -24,30 +24,40 @@ function buildVersion(
 export async function getHubFeedFingerprint(
   spaceSlug?: string | null,
 ): Promise<HubFeedFingerprint> {
-  const where =
-    spaceSlug?.trim()
-      ? {
-          status: "published" as const,
-          space: { slug: spaceSlug.trim().toLowerCase(), status: "published" as const },
-        }
-      : hubAllFeedPostWhere();
+  try {
+    const where =
+      spaceSlug?.trim()
+        ? {
+            status: "published" as const,
+            space: { slug: spaceSlug.trim().toLowerCase(), status: "published" as const },
+          }
+        : hubAllFeedPostWhere();
 
-  const [latest, publishedCount] = await Promise.all([
-    prisma.communityPostRecord.findFirst({
-      where,
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-      select: { id: true, publishedAt: true, createdAt: true },
-    }),
-    prisma.communityPostRecord.count({ where }),
-  ]);
+    const [latest, publishedCount] = await Promise.all([
+      prisma.communityPostRecord.findFirst({
+        where,
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        select: { id: true, publishedAt: true, createdAt: true },
+      }),
+      prisma.communityPostRecord.count({ where }),
+    ]);
 
-  const at = latest?.publishedAt ?? latest?.createdAt ?? null;
-  const latestPublishedAt = at ? at.toISOString() : null;
+    const at = latest?.publishedAt ?? latest?.createdAt ?? null;
+    const latestPublishedAt = at ? at.toISOString() : null;
 
-  return {
-    version: buildVersion(latest?.id ?? null, latestPublishedAt, publishedCount),
-    latestPostId: latest?.id ?? null,
-    latestPublishedAt,
-    publishedCount,
-  };
+    return {
+      version: buildVersion(latest?.id ?? null, latestPublishedAt, publishedCount),
+      latestPostId: latest?.id ?? null,
+      latestPublishedAt,
+      publishedCount,
+    };
+  } catch (e) {
+    console.error("[community feed] getHubFeedFingerprint failed:", e);
+    return {
+      version: "empty:0",
+      latestPostId: null,
+      latestPublishedAt: null,
+      publishedCount: 0,
+    };
+  }
 }

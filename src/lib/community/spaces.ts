@@ -59,15 +59,20 @@ function recordToSpaceDetail(
 }
 
 export async function listPublishedCommunitySpaces(): Promise<CommunitySpace[]> {
-  const rows = await prisma.communitySpaceRecord.findMany({
-    where: { status: "published" },
-    orderBy: communitySpaceListOrderBy,
-  });
-  const counts = await countPublishedPostsBySpaceIds(rows.map((r) => r.id));
-  return rows.map((row) => ({
-    ...communityRecordToSpace(row),
-    postCount: counts[row.id] ?? 0,
-  }));
+  try {
+    const rows = await prisma.communitySpaceRecord.findMany({
+      where: { status: "published" },
+      orderBy: communitySpaceListOrderBy,
+    });
+    const counts = await countPublishedPostsBySpaceIds(rows.map((r) => r.id));
+    return rows.map((row) => ({
+      ...communityRecordToSpace(row),
+      postCount: counts[row.id] ?? 0,
+    }));
+  } catch (e) {
+    console.error("[community spaces] listPublishedCommunitySpaces failed:", e);
+    return [];
+  }
 }
 
 /** Published space only — returns null for missing, draft, or archived slugs. */
@@ -92,12 +97,17 @@ export async function getPublishedCommunitySpaceBySlug(
 export async function getPublishedCommunitySpaceDetailBySlug(
   slug: string,
 ): Promise<CommunitySpaceDetail | null> {
-  const row = await prisma.communitySpaceRecord.findUnique({
-    where: { slug },
-  });
-  if (!row || row.status !== "published") return null;
-  const counts = await countPublishedPostsBySpaceIds([row.id]);
-  return recordToSpaceDetail(row, counts[row.id] ?? 0);
+  try {
+    const row = await prisma.communitySpaceRecord.findUnique({
+      where: { slug },
+    });
+    if (!row || row.status !== "published") return null;
+    const counts = await countPublishedPostsBySpaceIds([row.id]);
+    return recordToSpaceDetail(row, counts[row.id] ?? 0);
+  } catch (e) {
+    console.error("[community spaces] getPublishedCommunitySpaceDetailBySlug failed:", slug, e);
+    return null;
+  }
 }
 
 export async function getSpaceInteractionByPostId(

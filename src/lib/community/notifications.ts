@@ -6,6 +6,7 @@ import {
   prayerResponseNotificationExcerpt,
 } from "@/lib/community/prayer-response-body";
 import { prisma } from "@/lib/db";
+import { logMissionHubDiag } from "@/lib/mission-hub/diagnostics-log";
 import { blogPublishNotificationDedupeKey } from "@/lib/blog/mission-hub-dedupe";
 import { mapNotificationRecordToItem } from "@/lib/community/notification-record-mapper";
 import {
@@ -52,13 +53,14 @@ export async function requireNotificationRecipientUserId(): Promise<string | nul
 
 export async function countUnreadNotifications(userId: string): Promise<number> {
   try {
-    return await prisma.communityNotificationRecord.count({
+    const count = await prisma.communityNotificationRecord.count({
       where: {
         recipientUserId: userId,
         readAt: null,
         ...advancedNotificationExcludeFilter(),
       },
     });
+    return count;
   } catch (e) {
     console.error("[notifications] countUnreadNotifications failed:", e);
     return 0;
@@ -123,7 +125,7 @@ export async function listNotificationsGroupedForUser(
 
     return { unread, read };
   } catch (e) {
-    console.error("[notifications] listNotificationsGroupedForUser failed:", e);
+    logMissionHubDiag("notifications", "error", "listNotificationsGroupedForUser", e);
     return { unread: [], read: [] };
   }
 }

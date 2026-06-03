@@ -45,6 +45,13 @@ export function MissionHubRealtimeBridge({
           filter: missionHubNotificationRealtimeFilter(notificationUserId),
         },
         () => {
+          if (process.env.NODE_ENV !== "production") {
+            console.info("[mission-hub-diag]", {
+              subsystem: "realtime-bridge",
+              phase: "refresh",
+              table: MISSION_HUB_REALTIME_TABLES.notifications,
+            });
+          }
           void hub.refresh("realtime", { force: false });
         },
       )
@@ -56,6 +63,13 @@ export function MissionHubRealtimeBridge({
           table: MISSION_HUB_REALTIME_TABLES.posts,
         },
         () => {
+          if (process.env.NODE_ENV !== "production") {
+            console.info("[mission-hub-diag]", {
+              subsystem: "realtime-bridge",
+              phase: "refresh",
+              table: MISSION_HUB_REALTIME_TABLES.posts,
+            });
+          }
           void hub.refresh("realtime", { force: false });
         },
       )

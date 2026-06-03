@@ -7,6 +7,7 @@ import {
   requireNotificationRecipientUserId,
 } from "@/lib/community/notifications";
 import { advancedNotificationExcludeFilter } from "@/lib/mission-hub/advanced-notifications-config";
+import { logMissionHubDiag } from "@/lib/mission-hub/diagnostics-log";
 import { prisma } from "@/lib/db";
 
 export type MissionHubRefreshSnapshot = {
@@ -17,6 +18,14 @@ export type MissionHubRefreshSnapshot = {
   latestNotificationAt: string | null;
 };
 
+const EMPTY_SNAPSHOT: MissionHubRefreshSnapshot = {
+  feedVersion: "empty:0",
+  latestPostId: null,
+  spacesVersion: "0::",
+  unreadCount: 0,
+  latestNotificationAt: null,
+};
+
 /**
  * Lightweight snapshot for Mission Hub polling, PTR, and focus refresh.
  */
@@ -25,6 +34,10 @@ export async function fetchMissionHubRefreshSnapshotAction(
 ): Promise<
   { ok: true; snapshot: MissionHubRefreshSnapshot } | { ok: false; error: string }
 > {
+  logMissionHubDiag("hub-refresh", "start", "fetchMissionHubRefreshSnapshotAction", {
+    spaceSlug: spaceSlug ?? null,
+  });
+
   try {
     const [feed, spacesVersion, userId] = await Promise.all([
       getHubFeedFingerprint(spaceSlug ?? null),
@@ -36,11 +49,10 @@ export async function fetchMissionHubRefreshSnapshotAction(
     let latestNotificationAt: string | null = null;
 
     if (userId) {
-      try {
-        unreadCount = await countUnreadNotifications(userId);
-      } catch (e) {
-        console.error("[mission-hub refresh snapshot] unread count:", e);
-      }
+      unreadCount = await countUnreadNotifications(userId).catch((e) => {
+        logMissionHubDiag("hub-refresh", "error", "unread-count", e);
+        return 0;
+      });
 
       try {
         const latestNotification = await prisma.communityNotificationRecord.findFirst({
@@ -53,22 +65,26 @@ export async function fetchMissionHubRefreshSnapshotAction(
         });
         latestNotificationAt = latestNotification?.createdAt.toISOString() ?? null;
       } catch (e) {
-        console.error("[mission-hub refresh snapshot] latest notification:", e);
+        logMissionHubDiag("hub-refresh", "error", "latest-notification", e);
       }
     }
 
-    return {
-      ok: true,
-      snapshot: {
-        feedVersion: feed.version,
-        latestPostId: feed.latestPostId,
-        spacesVersion,
-        unreadCount,
-        latestNotificationAt,
-      },
+    const snapshot = {
+      feedVersion: feed.version,
+      latestPostId: feed.latestPostId,
+      spacesVersion,
+      unreadCount,
+      latestNotificationAt,
     };
+    logMissionHubDiag("hub-refresh", "ok", "fetchMissionHubRefreshSnapshotAction", snapshot);
+    return { ok: true, snapshot };
   } catch (e) {
-    console.error("[mission-hub refresh snapshot]", e);
-    return { ok: false, error: "Could not refresh Mission Hub" };
+    logMissionHubDiag(
+      "hub-refresh",
+      "error",
+      "fetchMissionHubRefreshSnapshotAction",
+      e,
+    );
+    return { ok: true, snapshot: EMPTY_SNAPSHOT };
   }
 }

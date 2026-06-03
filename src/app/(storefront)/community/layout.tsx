@@ -10,11 +10,13 @@ import { listComposerSpacesForOwner } from "@/lib/community/composer-spaces";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
 import { listPublishedCommunitySpaces } from "@/lib/community/spaces";
 import { MISSION_HUB_PWA } from "@/lib/community/mission-hub-pwa";
+import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
 import { getSiteCopy } from "@/lib/site-copy";
 import { needsPartnershipOnboarding } from "@/lib/community/partnership-preferences";
 import { getUserPartnershipPreferences } from "@/lib/community/user-partnership-prefs";
 import { isCommunityMemberRole } from "@/lib/auth-roles";
 import { MissionHubPartnershipGate } from "@/components/community/mission-hub-partnership-gate";
+import { safeMissionHubQuery } from "@/lib/mission-hub/safe-query";
 
 export const dynamic = "force-dynamic";
 
@@ -59,15 +61,12 @@ export default async function CommunityLayout({
   children: React.ReactNode;
 }) {
   const [owner, member, copy, headersList, session, publishedSpaces] = await Promise.all([
-    getCurrentCommunityOwner(),
-    getCurrentCommunityMember(),
-    getSiteCopy(),
+    safeMissionHubQuery("layout", "owner", () => getCurrentCommunityOwner(), null),
+    safeMissionHubQuery("layout", "member", () => getCurrentCommunityMember(), null),
+    safeMissionHubQuery("layout", "site-copy", () => getSiteCopy(), DEFAULT_SITE_COPY),
     headers(),
-    auth(),
-    listPublishedCommunitySpaces().catch((e) => {
-      console.error("[community layout] published spaces:", e);
-      return [];
-    }),
+    safeMissionHubQuery("layout", "auth", () => auth(), null),
+    safeMissionHubQuery("layout", "published-spaces", () => listPublishedCommunitySpaces(), []),
   ]);
 
   const notificationUserId = session?.user?.id ?? null;
@@ -82,11 +81,12 @@ export default async function CommunityLayout({
 
   let initialUnreadCount = 0;
   if (notificationUserId) {
-    try {
-      initialUnreadCount = await countUnreadNotifications(notificationUserId);
-    } catch {
-      initialUnreadCount = 0;
-    }
+    initialUnreadCount = await safeMissionHubQuery(
+      "notifications",
+      "layout-unread-count",
+      () => countUnreadNotifications(notificationUserId),
+      0,
+    );
   }
 
   let membersPreview: Awaited<ReturnType<typeof getAdminMembersHubPreview>> | null = null;
