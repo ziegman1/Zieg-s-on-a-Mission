@@ -108,7 +108,7 @@ describe("notifyMissionHubMembersOfNewsletterPublish", () => {
       newsletterSpacePostId: "post-newsletter",
       publisherUserId: "admin-1",
       resendNewsletterEmail: undefined,
-      smokeTest: undefined,
+      smokeTest: false,
     });
     expect(result.message).toContain("Mission Hub in-app notifications sent: 2");
     expect(result.notifications.emailNotificationsSent).toBe(0);

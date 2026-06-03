@@ -18,6 +18,7 @@ import {
   isMissionHubEmailDebugEnabled,
   type MissionHubEmailSendPolicy,
 } from "@/lib/mission-hub/test-email-recipients";
+import { BLOG_SOURCE_KIND } from "@/lib/blog/mission-hub-announcement";
 import { NEWSLETTER_SOURCE_KIND } from "@/lib/newsletter/mission-hub-announcement";
 
 export type PostPublishSkipEntry = {
@@ -78,7 +79,7 @@ export async function deliverPostPublishNotifications(
     return null;
   }
 
-  if (post.sourceKind === NEWSLETTER_SOURCE_KIND) {
+  if (post.sourceKind === NEWSLETTER_SOURCE_KIND || post.sourceKind === BLOG_SOURCE_KIND) {
     return {
       postId: post.id,
       spaceId: post.spaceId,

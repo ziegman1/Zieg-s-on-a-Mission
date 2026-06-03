@@ -2,6 +2,7 @@
 
 export type MissionHubEmailNotificationKind =
   | "newsletter_published"
+  | "blog_published"
   | "post_published"
   | "new_post"
   | "weekly_digest"
@@ -9,6 +10,10 @@ export type MissionHubEmailNotificationKind =
 
 export function newsletterPublishEmailDedupeKey(newsletterId: string): string {
   return `newsletter:${newsletterId}:email`;
+}
+
+export function blogPublishEmailDedupeKey(blogPostId: string): string {
+  return `blog:${blogPostId}:email`;
 }
 
 export function postPublishEmailDedupeKey(postId: string): string {

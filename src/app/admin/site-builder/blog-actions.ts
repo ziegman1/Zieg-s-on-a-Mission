@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   deleteBlogPost,
   getBlogPostById,
@@ -8,6 +9,13 @@ import {
   validateBlogPostInput,
 } from "@/lib/blog/blog-db";
 import { formatBlogError, logBlogAction } from "@/lib/blog/errors";
+import {
+  archiveMissionHubBlogAnnouncement,
+  formatBlogPublishSuccessMessage,
+} from "@/lib/blog/mission-hub-announcement";
+import { getBlogMissionHubDiagnostics } from "@/lib/blog/mission-hub-lifecycle";
+import { notifyMissionHubMembersOfBlogPublish } from "@/lib/blog/notify";
+import type { BlogNotifyResult } from "@/lib/blog/notify";
 import { revalidateBlogPaths } from "@/lib/blog/revalidate";
 import type { BlogPostInput, BlogPostRecord, BlogPostStatus } from "@/lib/blog/types";
 import { requireAdminSession } from "@/lib/admin-auth";
@@ -56,8 +64,23 @@ function successMessage(
   return "Blog post published";
 }
 
+type BlogPublishHubSummary = {
+  announcementPostId: string;
+  announcementSpaceSlug: string;
+  announcementCreated: boolean;
+  blogPublicPath: string;
+  notificationsPrepared: boolean;
+  notify: BlogNotifyResult;
+};
+
 type SaveResult =
-  | { ok: true; post: BlogPostRecord; message: string }
+  | {
+      ok: true;
+      post: BlogPostRecord;
+      message: string;
+      hub?: BlogPublishHubSummary;
+      hubWarning?: string;
+    }
   | { ok: false; error: string };
 
 async function persistBlogPost(
@@ -117,10 +140,60 @@ async function persistBlogPost(
       revalidateBlogPaths();
     }
 
+    let hub: BlogPublishHubSummary | undefined;
+    let hubWarning: string | undefined;
+
+    if (intent === "publish") {
+      try {
+        const notify = await notifyMissionHubMembersOfBlogPublish(post, {
+          publisherUserId: session.id,
+        });
+        hub = {
+          announcementPostId: notify.announcement.postId,
+          announcementSpaceSlug: notify.announcement.spaceSlug,
+          announcementCreated: notify.announcementCreated,
+          blogPublicPath: notify.announcement.blogPath,
+          notificationsPrepared: notify.notifications.inAppDelivered,
+          notify,
+        };
+      } catch (hubErr) {
+        const reason = formatBlogError(hubErr);
+        hubWarning = `Blog published, but Mission Hub notification failed: ${reason}`;
+        console.error("[blog] Mission Hub publish failed", hubErr);
+      }
+    } else if (
+      intent === "draft" &&
+      (previousStatus === "PUBLISHED" || normalized.id)
+    ) {
+      const blogPostId = post.id ?? normalized.id;
+      if (blogPostId && post.status !== "PUBLISHED") {
+        await archiveMissionHubBlogAnnouncement(blogPostId).catch((err) => {
+          console.error("[blog] archive hub announcement", err);
+        });
+      }
+    }
+
+    const message =
+      intent === "publish" && hub
+        ? formatBlogPublishSuccessMessage({
+            blogSlug: post.slug,
+            hub: {
+              announcement: hub.notify.announcement,
+              inAppNotificationsSent: hub.notify.notifications.inAppNotificationsSent,
+              inAppNotificationsUpdated: hub.notify.notifications.inAppNotificationsUpdated,
+              emailNotificationsSent: hub.notify.notifications.emailNotificationsSent,
+              emailNotificationsDeduped: hub.notify.notifications.emailNotificationsDeduped,
+              emailEnabled: hub.notify.notifications.emailEnabled,
+            },
+          })
+        : successMessage(intent, hadExistingId, previousStatus);
+
     return {
       ok: true,
       post,
-      message: successMessage(intent, hadExistingId, previousStatus),
+      message,
+      hub,
+      hubWarning,
     };
   } catch (e) {
     const error = formatBlogError(e);
@@ -256,8 +329,79 @@ export async function unpublishBlogPostAction(
       "draft",
     );
     revalidateBlogPaths(existing.slug);
+    if (existing.status === "PUBLISHED") {
+      await archiveMissionHubBlogAnnouncement(existing.id).catch((err) => {
+        console.error("[blog] archive hub announcement on unpublish", err);
+      });
+    }
     logBlogAction("unpublish", { postId: post.id, slug: post.slug });
     return { ok: true, post, message: "Post unpublished (draft)." };
+  } catch (e) {
+    return { ok: false, error: formatBlogError(e) };
+  }
+}
+
+export async function getBlogMissionHubDiagnosticsAction(
+  id: string,
+): Promise<
+  { ok: true; diagnostics: Awaited<ReturnType<typeof getBlogMissionHubDiagnostics>> } | { ok: false; error: string }
+> {
+  const session = await requireAdminSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  try {
+    const diagnostics = await getBlogMissionHubDiagnostics(id);
+    return { ok: true, diagnostics };
+  } catch (e) {
+    return { ok: false, error: formatBlogError(e) };
+  }
+}
+
+export async function republishBlogToMissionHubAction(
+  id: string,
+  options?: { resendBlogEmail?: boolean },
+): Promise<SaveResult> {
+  const session = await requireAdminSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  try {
+    const existing = await getBlogPostById(id);
+    if (!existing) return { ok: false, error: "Post not found" };
+    if (existing.status !== "PUBLISHED") {
+      return { ok: false, error: "Blog post must be published before Mission Hub delivery." };
+    }
+
+    const notify = await notifyMissionHubMembersOfBlogPublish(existing, {
+      publisherUserId: session.id,
+      resendBlogEmail: options?.resendBlogEmail === true,
+    });
+
+    revalidateBlogPaths(existing.slug);
+    revalidatePath("/community", "page");
+
+    const message = formatBlogPublishSuccessMessage({
+      blogSlug: existing.slug,
+      hub: {
+        announcement: notify.announcement,
+        inAppNotificationsSent: notify.notifications.inAppNotificationsSent,
+        inAppNotificationsUpdated: notify.notifications.inAppNotificationsUpdated,
+        emailNotificationsSent: notify.notifications.emailNotificationsSent,
+        emailNotificationsDeduped: notify.notifications.emailNotificationsDeduped,
+        emailEnabled: notify.notifications.emailEnabled,
+      },
+    });
+
+    return {
+      ok: true,
+      post: existing,
+      message,
+      hub: {
+        announcementPostId: notify.announcement.postId,
+        announcementSpaceSlug: notify.announcement.spaceSlug,
+        announcementCreated: notify.announcementCreated,
+        blogPublicPath: notify.announcement.blogPath,
+        notificationsPrepared: notify.notifications.inAppDelivered,
+        notify,
+      },
+    };
   } catch (e) {
     return { ok: false, error: formatBlogError(e) };
   }

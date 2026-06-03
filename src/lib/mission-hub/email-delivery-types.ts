@@ -1,13 +1,15 @@
 import type { MissionHubEmailNotificationKind } from "@/lib/mission-hub/email-dedupe";
 
 export type MissionHubEmailDeliveryMetadata = {
-  sourceKind: "newsletter" | "post";
+  sourceKind: "newsletter" | "blog" | "post";
   sourceId: string;
   sourcePostId: string;
   spaceId?: string;
   spaceSlug?: string;
   newsletterSlug?: string;
   newsletterPublicUrl?: string;
+  blogSlug?: string;
+  blogPublicUrl?: string;
   missionHubPostUrl?: string;
 };
 

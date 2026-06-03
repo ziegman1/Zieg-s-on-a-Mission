@@ -7,6 +7,7 @@ import {
   prayerResponseNotificationExcerpt,
 } from "@/lib/community/prayer-response-body";
 import { prisma } from "@/lib/db";
+import { blogPublishNotificationDedupeKey } from "@/lib/blog/mission-hub-dedupe";
 import {
   newPostPublishNotificationDedupeKey,
   newsletterPublishNotificationDedupeKey,
@@ -93,6 +94,43 @@ function buildNewsletterNotificationHref(
   return meta?.newsletterPath ?? "/community";
 }
 
+function parseBlogPublishedMetadata(
+  metadata: unknown,
+): BlogPublishedNotificationMetadata | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const m = metadata as Record<string, unknown>;
+  if (m.sourceKind !== "blog") return null;
+  const blogPath =
+    typeof m.blogPath === "string" && m.blogPath.trim() ? m.blogPath.trim() : null;
+  if (!blogPath) return null;
+  return {
+    sourceKind: "blog",
+    sourceId: typeof m.sourceId === "string" ? m.sourceId : "",
+    sourcePostId: typeof m.sourcePostId === "string" ? m.sourcePostId : "",
+    blogSlug: typeof m.blogSlug === "string" ? m.blogSlug : "",
+    blogPath,
+    missionHubSpaceSlug:
+      typeof m.missionHubSpaceSlug === "string" ? m.missionHubSpaceSlug : "",
+  };
+}
+
+function buildBlogNotificationHref(
+  row: {
+    postId: string | null;
+    post: { status: string; space: { slug: string } } | null;
+    metadata: unknown;
+  },
+): string {
+  const meta = parseBlogPublishedMetadata(row.metadata);
+  if (row.post?.status === "published" && row.post.space.slug && row.postId) {
+    return buildNotificationHref(row.post.space.slug, row.postId);
+  }
+  if (meta?.missionHubSpaceSlug && meta.sourcePostId) {
+    return buildNotificationHref(meta.missionHubSpaceSlug, meta.sourcePostId);
+  }
+  return meta?.blogPath ?? "/blog";
+}
+
 function recordToItem(row: {
   id: string;
   type: string;
@@ -110,7 +148,9 @@ function recordToItem(row: {
   const href =
     row.type === NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE
       ? buildNewsletterNotificationHref(row)
-      : buildNotificationHref(spaceSlug, row.postId);
+      : row.type === "blog_published"
+        ? buildBlogNotificationHref(row)
+        : buildNotificationHref(spaceSlug, row.postId);
   return {
     id: row.id,
     type: row.type,
@@ -330,6 +370,88 @@ export async function upsertNewsletterPublishedNotification(input: {
       dedupeKey,
       sourcePostId: input.sourcePostId,
     });
+  }
+
+  await prisma.communityNotificationRecord.create({
+    data: {
+      recipientUserId: input.recipientUserId,
+      ...data,
+    },
+  });
+  return "created";
+}
+
+export const BLOG_PUBLISHED_NOTIFICATION_TYPE = "blog_published" as const;
+export const BLOG_PUBLISHED_NOTIFICATION_TITLE = "New blog article published";
+
+export { blogPublishNotificationDedupeKey } from "@/lib/blog/mission-hub-dedupe";
+
+export type BlogPublishedNotificationMetadata = {
+  sourceKind: "blog";
+  sourceId: string;
+  sourcePostId: string;
+  blogSlug: string;
+  blogPath: string;
+  missionHubSpaceSlug: string;
+};
+
+export function buildBlogPublishedNotificationBody(excerpt: string, body: string): string {
+  const text = excerpt.trim() || body.trim().split(/\n\n+/)[0]?.trim().slice(0, 200) || "";
+  return text || "A new blog article is available.";
+}
+
+/** Create or refresh a deduped in-app notification when a blog article is published. */
+export async function upsertBlogPublishedNotification(input: {
+  recipientUserId: string;
+  blogPostId: string;
+  blogSlug: string;
+  blogPath: string;
+  body: string;
+  sourcePostId: string;
+  missionHubSpaceSlug: string;
+  actorUserId?: string | null;
+}): Promise<"created" | "updated"> {
+  if (input.actorUserId && input.actorUserId === input.recipientUserId) {
+    return "updated";
+  }
+
+  const dedupeKey = blogPublishNotificationDedupeKey(input.blogPostId);
+  const metadata: BlogPublishedNotificationMetadata = {
+    sourceKind: "blog",
+    sourceId: input.blogPostId,
+    sourcePostId: input.sourcePostId,
+    blogSlug: input.blogSlug,
+    blogPath: input.blogPath,
+    missionHubSpaceSlug: input.missionHubSpaceSlug,
+  };
+
+  const existing = await prisma.communityNotificationRecord.findFirst({
+    where: {
+      recipientUserId: input.recipientUserId,
+      dedupeKey,
+    },
+    select: { id: true },
+  });
+
+  const data = {
+    type: BLOG_PUBLISHED_NOTIFICATION_TYPE,
+    title: BLOG_PUBLISHED_NOTIFICATION_TITLE,
+    body: input.body,
+    postId: input.sourcePostId,
+    commentId: null,
+    actorUserId: input.actorUserId ?? null,
+    actorMemberId: null,
+    dedupeKey,
+    metadata: metadata as unknown as import("@prisma/client").Prisma.InputJsonValue,
+    readAt: null,
+  };
+
+  if (existing) {
+    await prisma.communityNotificationRecord.update({
+      where: { id: existing.id },
+      data: { ...data, readAt: null, createdAt: new Date() },
+    });
+    return "updated";
   }
 
   await prisma.communityNotificationRecord.create({

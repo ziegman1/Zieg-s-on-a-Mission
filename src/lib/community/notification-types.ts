@@ -5,6 +5,7 @@ export const COMMUNITY_NOTIFICATION_TYPES = [
   "new_post",
   "member_joined",
   "newsletter_published",
+  "blog_published",
 ] as const;
 
 export type CommunityNotificationType = (typeof COMMUNITY_NOTIFICATION_TYPES)[number];

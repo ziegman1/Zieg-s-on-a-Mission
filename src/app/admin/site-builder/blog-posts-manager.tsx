@@ -14,6 +14,7 @@ import {
   updateBlogPostDraftAction,
   unpublishBlogPostAction,
 } from "./blog-actions";
+import { BlogMissionHubPanel } from "@/components/blog/blog-mission-hub-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,6 +97,7 @@ export function BlogPostsManager({
   const [slugTouched, setSlugTouched] = useState(false);
   const [error, setError] = useState<string | null>(loadError ?? null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [hubWarning, setHubWarning] = useState<string | null>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [listBusy, setListBusy] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -181,6 +183,7 @@ export function BlogPostsManager({
   function save(intent: "draft" | "publish") {
     setError(null);
     setSuccess(null);
+    setHubWarning(null);
 
     const title = form.title.trim();
     if (!title) {
@@ -229,6 +232,7 @@ export function BlogPostsManager({
         setForm(postToForm(res.post));
         setSlugTouched(true);
         setSuccess(res.message);
+        setHubWarning(res.hubWarning ?? null);
         onSuccess?.(res.message);
 
         const listRes = await listAdminBlogPosts();
@@ -494,9 +498,30 @@ export function BlogPostsManager({
                 </p>
               ) : null}
               {success ? (
-                <p className="text-sm text-emerald-400" role="status">
+                <p className="text-sm text-emerald-400 whitespace-pre-wrap" role="status">
                   {success}
                 </p>
+              ) : null}
+              {hubWarning ? (
+                <p className="text-sm text-amber-400 whitespace-pre-wrap" role="alert">
+                  {hubWarning}
+                </p>
+              ) : null}
+
+              {editingId && editingId !== "new" && form.status === "PUBLISHED" ? (
+                <BlogMissionHubPanel
+                  blogPostId={editingId}
+                  blogStatus={form.status}
+                  onMessage={(message) => {
+                    setSuccess(message);
+                    setHubWarning(null);
+                    onSuccess?.(message);
+                  }}
+                  onError={(message) => {
+                    setError(message);
+                    onError?.(message);
+                  }}
+                />
               ) : null}
 
               <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-800">
