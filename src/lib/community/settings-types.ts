@@ -1,5 +1,10 @@
 import { z } from "zod";
 import type { PartnershipPreferences } from "@/lib/community/partnership-preferences";
+import {
+  DEFAULT_SPACE_NOTIFICATION_CATEGORY,
+  SPACE_NOTIFICATION_CATEGORY_VALUES,
+  parseSpaceNotificationCategory,
+} from "@/lib/community/space-notification-category";
 
 /** Settings URL sections — modular nav keys */
 export const USER_SETTINGS_SECTIONS = [
@@ -155,6 +160,11 @@ export const communitySpaceSettingsSchema = z.object({
   hasEmbeddedCoverText: z.boolean().optional(),
   /** When false, hero shows image only; when true, show title/subtitle overlay */
   renderCoverOverlay: z.boolean().optional(),
+  /** Future notification routing — stored in JSON until delivery is wired */
+  notificationCategory: z
+    .enum(SPACE_NOTIFICATION_CATEGORY_VALUES)
+    .optional()
+    .default(DEFAULT_SPACE_NOTIFICATION_CATEGORY),
 });
 
 export type CommunitySpaceSettings = z.infer<typeof communitySpaceSettingsSchema>;
@@ -183,6 +193,9 @@ export function mergeSpaceSettings(raw: unknown): CommunitySpaceSettings {
       : {}),
     ...(typeof o.renderCoverOverlay === "boolean"
       ? { renderCoverOverlay: o.renderCoverOverlay }
+      : {}),
+    ...(typeof o.notificationCategory === "string"
+      ? { notificationCategory: parseSpaceNotificationCategory(o.notificationCategory) }
       : {}),
   };
 }

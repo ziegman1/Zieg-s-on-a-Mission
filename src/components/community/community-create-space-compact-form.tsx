@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { createCommunitySpaceAction } from "@/app/admin/community/actions";
 import { CommunityPostCoverUpload } from "@/components/community/community-post-cover-upload";
 import { COMMUNITY_SPACE_ICONS, DEFAULT_COMMUNITY_ICON } from "@/lib/community/constants";
+import { DEFAULT_SPACE_NOTIFICATION_CATEGORY } from "@/lib/community/space-notification-category";
 import { slugifyCommunityTitle } from "@/lib/community/slug";
 import type { CommunitySpaceFormInput } from "@/lib/community/space-form";
 import type { CommunitySpaceIcon } from "@/lib/community/types";
@@ -51,6 +52,7 @@ function buildPayload(
     allowVoiceMessages: defaultAllowVoiceMessagesForSpace(spaceType, slug),
     showWelcomeMessage: true,
     pinWelcomeMessage: true,
+    notificationCategory: DEFAULT_SPACE_NOTIFICATION_CATEGORY,
   };
 }
 

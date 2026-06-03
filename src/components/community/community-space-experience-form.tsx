@@ -11,6 +11,7 @@ import {
 } from "@/lib/community/space-interaction";
 import { defaultAllowVoiceMessagesForSpace } from "@/lib/community/voice-prayer";
 import { COMMUNITY_SPACE_ICONS, COMMUNITY_SPACE_STATUSES } from "@/lib/community/constants";
+import { SPACE_NOTIFICATION_CATEGORIES } from "@/lib/community/space-notification-category";
 import type { CommunitySpaceDbStatus } from "@/lib/community/types";
 import { CommunityPostCoverUpload } from "./community-post-cover-upload";
 import { Input } from "@/components/ui/input";
@@ -192,6 +193,30 @@ export function CommunitySpaceExperienceForm({
               </select>
             </div>
           ) : null}
+        </div>
+        <div className="space-y-1.5">
+          <Label className={isLight ? "text-xs text-brand-ink/70" : "text-zinc-300"}>
+            Notification category
+          </Label>
+          <select
+            value={form.notificationCategory}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                notificationCategory: e.target.value as SpaceFormState["notificationCategory"],
+              }))
+            }
+            className={selectClass}
+          >
+            {SPACE_NOTIFICATION_CATEGORIES.map((category) => (
+              <option key={category.value} value={category.value}>
+                {category.label}
+              </option>
+            ))}
+          </select>
+          <p className={cn("text-xs", isLight ? "text-brand-ink/45" : "text-zinc-500")}>
+            Saved for future notification routing. Member delivery is not wired to this yet.
+          </p>
         </div>
         <CommunityPostCoverUpload
           label="Cover image"

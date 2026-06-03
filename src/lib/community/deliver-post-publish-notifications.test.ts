@@ -42,7 +42,13 @@ const publishedPost = {
   excerpt: null,
   sourceKind: null,
   authorUserId: "author-1",
-  space: { id: "space-1", slug: "prayer", title: "Prayer Room", status: "published" },
+  space: {
+    id: "space-1",
+    slug: "prayer",
+    title: "Prayer Room",
+    status: "published",
+    settings: { notificationCategory: "prayer_requests" },
+  },
 };
 
 describe("deliverPostPublishNotifications", () => {
@@ -83,10 +89,65 @@ describe("deliverPostPublishNotifications", () => {
     );
   });
 
-  it("excludes user when new posts disabled", async () => {
+  it("excludes user when new posts disabled for custom-category spaces", async () => {
+    vi.mocked(prisma.communityPostRecord.findFirst).mockResolvedValue({
+      ...publishedPost,
+      space: {
+        ...publishedPost.space,
+        settings: { notificationCategory: "custom" },
+      },
+    } as never);
     vi.mocked(getUserNotificationPreferences).mockResolvedValue({
       ...DEFAULT_NOTIFICATION_PREFERENCES,
       newPosts: false,
+    });
+
+    await deliverPostPublishNotifications("post-1");
+    expect(upsertNewPostPublishedNotification).not.toHaveBeenCalled();
+    expect(queueAndSendPostPublishEmail).not.toHaveBeenCalled();
+  });
+
+  it("excludes user when ministryUpdates off for ministry_updates space", async () => {
+    vi.mocked(prisma.communityPostRecord.findFirst).mockResolvedValue({
+      ...publishedPost,
+      space: {
+        ...publishedPost.space,
+        settings: { notificationCategory: "ministry_updates" },
+      },
+    } as never);
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      newPosts: true,
+      ministryUpdates: false,
+    });
+
+    await deliverPostPublishNotifications("post-1");
+    expect(upsertNewPostPublishedNotification).not.toHaveBeenCalled();
+  });
+
+  it("notifies when ministryUpdates on even if newPosts off for ministry_updates space", async () => {
+    vi.mocked(prisma.communityPostRecord.findFirst).mockResolvedValue({
+      ...publishedPost,
+      space: {
+        ...publishedPost.space,
+        settings: { notificationCategory: "ministry_updates" },
+      },
+    } as never);
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      newPosts: false,
+      ministryUpdates: true,
+    });
+
+    await deliverPostPublishNotifications("post-1");
+    expect(upsertNewPostPublishedNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("excludes user when prayerResponses disabled for prayer_requests space", async () => {
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      newPosts: true,
+      prayerResponses: false,
     });
 
     await deliverPostPublishNotifications("post-1");

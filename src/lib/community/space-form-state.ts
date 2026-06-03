@@ -14,6 +14,11 @@ import {
   defaultAllowVoiceMessagesForSpace,
   hydrateAllowVoiceMessages,
 } from "@/lib/community/voice-prayer";
+import {
+  DEFAULT_SPACE_NOTIFICATION_CATEGORY,
+  notificationCategoryFromSpaceSettings,
+  type SpaceNotificationCategory,
+} from "@/lib/community/space-notification-category";
 
 export type SpaceFormState = {
   title: string;
@@ -34,6 +39,7 @@ export type SpaceFormState = {
   allowVoiceMessages: boolean;
   showWelcomeMessage: boolean;
   pinWelcomeMessage: boolean;
+  notificationCategory: SpaceNotificationCategory;
 };
 
 export const emptySpaceForm = (): SpaceFormState => ({
@@ -55,6 +61,7 @@ export const emptySpaceForm = (): SpaceFormState => ({
   allowVoiceMessages: false,
   showWelcomeMessage: true,
   pinWelcomeMessage: true,
+  notificationCategory: DEFAULT_SPACE_NOTIFICATION_CATEGORY,
 });
 
 export function spaceRecordToForm(row: CommunitySpaceRecord): SpaceFormState {
@@ -85,6 +92,7 @@ export function spaceRecordToForm(row: CommunitySpaceRecord): SpaceFormState {
     }),
     showWelcomeMessage: row.showWelcomeMessage,
     pinWelcomeMessage: row.pinWelcomeMessage,
+    notificationCategory: notificationCategoryFromSpaceSettings(row.settings),
   };
 }
 
@@ -108,5 +116,6 @@ export function spaceFormToPayload(form: SpaceFormState): CommunitySpaceFormInpu
     allowVoiceMessages: form.allowVoiceMessages,
     showWelcomeMessage: form.showWelcomeMessage,
     pinWelcomeMessage: form.pinWelcomeMessage,
+    notificationCategory: form.notificationCategory,
   };
 }

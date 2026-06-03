@@ -11,6 +11,7 @@ import { requireCommunityOwner } from "@/lib/community/owner";
 import { normalizeSpaceTypeRaw } from "@/lib/community/space-interaction";
 import { parseSpaceType } from "@/lib/community/space-experience";
 import { resolveSortOrderForNewSpace } from "@/lib/community/space-order";
+import { mergeSpaceSettingsWithNotificationCategory } from "@/lib/community/space-notification-category";
 import { prisma } from "@/lib/db";
 
 function revalidateCommunitySpaceOrder(...slugs: (string | undefined)[]): void {
@@ -55,6 +56,10 @@ export async function createCommunitySpaceAction(
         ...spaceFormDataFromInput(formPayload),
         slug,
         sortOrder,
+        settings: mergeSpaceSettingsWithNotificationCategory(
+          {},
+          formPayload.notificationCategory,
+        ),
       },
     });
     revalidateCommunity(row.slug);
@@ -92,11 +97,16 @@ export async function updateCommunitySpaceAction(
 
   try {
     const existing = await prisma.communitySpaceRecord.findUnique({ where: { id } });
+    if (!existing) return { ok: false, error: "Space not found" };
     await prisma.communitySpaceRecord.update({
       where: { id },
       data: {
         ...spaceFormDataFromInput(formPayload),
         slug,
+        settings: mergeSpaceSettingsWithNotificationCategory(
+          existing.settings,
+          formPayload.notificationCategory,
+        ),
       },
     });
     revalidateCommunity(existing?.slug, slug);

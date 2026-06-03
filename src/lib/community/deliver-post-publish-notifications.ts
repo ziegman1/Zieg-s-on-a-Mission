@@ -1,6 +1,7 @@
 import "server-only";
 
 import { evaluatePostPublishNotificationEligibility } from "@/lib/community/post-notification-preferences";
+import { notificationCategoryFromSpaceSettings } from "@/lib/community/space-notification-category";
 import {
   upsertNewPostPublishedNotification,
 } from "@/lib/community/notifications";
@@ -68,7 +69,7 @@ export async function deliverPostPublishNotifications(
       sourceKind: true,
       authorUserId: true,
       space: {
-        select: { id: true, slug: true, title: true, status: true },
+        select: { id: true, slug: true, title: true, status: true, settings: true },
       },
     },
   });
@@ -130,6 +131,8 @@ export async function deliverPostPublishNotifications(
   const skippedRecipients: PostPublishSkipEntry[] = [];
   const resendMessageIds: string[] = [];
 
+  const notificationCategory = notificationCategoryFromSpaceSettings(post.space.settings);
+
   for (const userId of userIds) {
     if (authorId && userId === authorId) {
       skippedRecipients.push({ userId, reason: "author_excluded" });
@@ -145,6 +148,7 @@ export async function deliverPostPublishNotifications(
 
     const eligibility = evaluatePostPublishNotificationEligibility(prefs, {
       spaceId: post.spaceId,
+      notificationCategory,
     });
 
     if (!eligibility.emailChannel && !eligibility.inAppChannel) {

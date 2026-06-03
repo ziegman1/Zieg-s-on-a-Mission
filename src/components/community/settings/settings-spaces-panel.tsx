@@ -9,6 +9,7 @@ import {
   type SpaceFormState,
 } from "@/lib/community/space-form-state";
 import { parseSpaceIcon, parseSpaceType, parseThemeMood } from "@/lib/community/space-experience";
+import { notificationCategoryFromSpaceSettings } from "@/lib/community/space-notification-category";
 import { hydrateAllowVoiceMessages } from "@/lib/community/voice-prayer";
 import { sortSpacesByDisplayOrder } from "@/lib/community/space-order";
 import type { CommunitySpaceDbStatus } from "@/lib/community/types";
@@ -53,6 +54,7 @@ function adminRowToForm(space: AdminSpaceSettingsRow): SpaceFormState {
     }),
     showWelcomeMessage: space.showWelcomeMessage,
     pinWelcomeMessage: space.pinWelcomeMessage,
+    notificationCategory: notificationCategoryFromSpaceSettings(space.settings),
   };
 }
 
@@ -89,6 +91,7 @@ function SpaceEditor({
         settings: {
           ...space.settings,
           allowVoiceMessages: payload.allowVoiceMessages,
+          notificationCategory: payload.notificationCategory,
         },
       });
       if (!res.ok) {
@@ -102,6 +105,7 @@ function SpaceEditor({
         settings: {
           ...space.settings,
           allowVoiceMessages: payload.allowVoiceMessages,
+          notificationCategory: payload.notificationCategory,
         },
       });
     });

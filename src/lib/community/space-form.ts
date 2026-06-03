@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { DEFAULT_COMMUNITY_ICON } from "@/lib/community/constants";
 import {
+  DEFAULT_SPACE_NOTIFICATION_CATEGORY,
+  SPACE_NOTIFICATION_CATEGORY_VALUES,
+} from "@/lib/community/space-notification-category";
+import {
   COMMUNITY_SPACE_TYPES,
   COMMUNITY_THEME_MOODS,
 } from "@/lib/community/space-experience";
@@ -48,6 +52,9 @@ export const communitySpaceInputSchema = z.object({
   allowVoiceMessages: z.boolean().default(false),
   showWelcomeMessage: z.boolean().default(true),
   pinWelcomeMessage: z.boolean().default(true),
+  notificationCategory: z
+    .enum(SPACE_NOTIFICATION_CATEGORY_VALUES)
+    .default(DEFAULT_SPACE_NOTIFICATION_CATEGORY),
 });
 
 export type CommunitySpaceFormInput = z.infer<typeof communitySpaceInputSchema>;
