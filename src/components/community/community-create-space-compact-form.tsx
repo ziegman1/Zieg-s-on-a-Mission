@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import {
   createCommunitySpaceAction,
   type CreateCommunitySpaceResult,
-} from "@/app/admin/community/actions";
+} from "@/app/(storefront)/community/space-actions";
 import { CommunityPostCoverUpload } from "@/components/community/community-post-cover-upload";
 import { COMMUNITY_SPACE_ICONS, DEFAULT_COMMUNITY_ICON } from "@/lib/community/constants";
 import { buildCompactSpaceCreatePayload } from "@/lib/community/compact-space-create-payload";
@@ -18,6 +18,12 @@ import { CommunitySpaceIcon as SpaceIconGlyph } from "./community-space-icon";
 import { cn } from "@/lib/utils";
 
 export type CompactSpaceCreateSuccess = Extract<CreateCommunitySpaceResult, { ok: true }>;
+
+const CLIENT_MARKER = "mh-create-v3";
+
+function logClient(phase: string, detail?: Record<string, unknown>) {
+  console.log("[MH create-space client]", { phase, marker: CLIENT_MARKER, ...detail });
+}
 
 export function CommunityCreateSpaceCompactForm({
   autoFocus = true,
@@ -33,8 +39,25 @@ export function CommunityCreateSpaceCompactForm({
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [buildLabel, setBuildLabel] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const titleId = "mh-create-space-title";
+
+  useEffect(() => {
+    const envSha = process.env.NEXT_PUBLIC_MISSION_HUB_BUILD_SHA?.slice(0, 7);
+    if (envSha) {
+      setBuildLabel(`${CLIENT_MARKER}@${envSha}`);
+      return;
+    }
+    void fetch("/api/mission-hub/build-info", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data: { label?: string; sha?: string }) => {
+        setBuildLabel(`${CLIENT_MARKER}@${data.sha ?? data.label ?? "?"}`);
+      })
+      .catch(() => {
+        setBuildLabel(CLIENT_MARKER);
+      });
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,22 +76,42 @@ export function CommunityCreateSpaceCompactForm({
       coverImageUrl,
     });
 
+    logClient("submit_started", {
+      title: payload.title,
+      slug: payload.slug,
+      status: payload.status,
+      notificationCategory: payload.notificationCategory,
+    });
+
     startTransition(async () => {
       try {
         const res = await createCommunitySpaceAction(payload);
+        logClient("server_action_returned", { ok: res.ok, requestId: res.requestId, res });
+
+        try {
+          sessionStorage.setItem(
+            "mh:last-create-space",
+            JSON.stringify({ at: new Date().toISOString(), res }),
+          );
+        } catch {
+          /* ignore storage errors */
+        }
+
         if (!res.ok) {
           setError(res.error);
           return;
         }
 
         const message = res.existing
-          ? `"${res.title}" already exists. Opening it now…`
-          : `"${res.title}" created! Opening your new space…`;
+          ? `"${res.title}" already exists. Opening it now… (ref ${res.requestId})`
+          : `"${res.title}" created! Opening your new space… (ref ${res.requestId})`;
         setSuccess(message);
+        logClient("success_navigate", { slug: res.slug, requestId: res.requestId });
         onCreated(res);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Could not create space.";
-        setError(msg);
+        logClient("client_exception", { message: msg });
+        setError(`${msg} — try again or use Admin → Community.`);
         console.error("[CommunityCreateSpaceCompactForm]", e);
       }
     });
@@ -76,6 +119,12 @@ export function CommunityCreateSpaceCompactForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3.5 pb-1">
+      {buildLabel ? (
+        <p className="text-[10px] text-brand-ink/35 font-mono" aria-hidden>
+          Create space · {buildLabel}
+        </p>
+      ) : null}
+
       <div className="space-y-1.5">
         <Label htmlFor={titleId} className="text-xs text-brand-ink/65">
           Space name
@@ -141,13 +190,13 @@ export function CommunityCreateSpaceCompactForm({
       />
 
       {error ? (
-        <p className="text-xs text-red-600" role="alert">
+        <p className="text-xs text-red-600 font-medium" role="alert">
           {error}
         </p>
       ) : null}
 
       {success ? (
-        <p className="text-xs text-emerald-700" role="status">
+        <p className="text-xs text-emerald-700 font-medium" role="status">
           {success}
         </p>
       ) : null}

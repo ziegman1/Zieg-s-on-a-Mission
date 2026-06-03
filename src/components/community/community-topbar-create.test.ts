@@ -64,7 +64,8 @@ describe("Mission Hub create space flow", () => {
     expect(flow).toContain("window.location.assign(path)");
     expect(flow).toContain("useMissionHubRefreshOptional");
     expect(flow).toContain("onCreated={finishSpaceCreated}");
-    expect(compact).toContain("buildCompactSpaceCreatePayload");
+    expect(compact).toContain("community/space-actions");
+    expect(compact).toContain("mh-create-v3");
     expect(compact).toContain('role="alert"');
     expect(compact).toContain('role="status"');
     expect(compact).toContain("onCreated(res)");
@@ -93,9 +94,26 @@ describe("Mission Hub create space flow", () => {
     expect(layout).toContain('export const dynamic = "force-dynamic"');
   });
 
+  it("uses community route server action for mobile create", () => {
+    const spaceActions = readFileSync(
+      resolve(process.cwd(), "src/app/(storefront)/community/space-actions.ts"),
+      "utf8",
+    );
+    const core = readFileSync(
+      resolve(process.cwd(), "src/lib/community/create-community-space-core.ts"),
+      "utf8",
+    );
+
+    expect(spaceActions).toContain('"use server"');
+    expect(spaceActions).toContain("createCommunitySpaceCore");
+    expect(spaceActions).toContain("ensureBlogArticlesSpaceAction");
+    expect(core).toContain('phase: "reached"');
+    expect(core).toContain("requestId");
+  });
+
   it("returns title and detailed validation errors from createCommunitySpaceAction", () => {
     const actions = readFileSync(
-      resolve(process.cwd(), "src/app/admin/community/actions.ts"),
+      resolve(process.cwd(), "src/lib/community/create-community-space-core.ts"),
       "utf8",
     );
 

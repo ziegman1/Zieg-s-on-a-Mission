@@ -5,7 +5,7 @@
  * Does NOT cache: HTML/RSC, /api/*, POST bodies, member/profile responses.
  */
 
-const CACHE_NAME = "mission-hub-static-v2";
+const CACHE_NAME = "mission-hub-static-v3";
 
 /** Keep in sync with MISSION_HUB_PWA.precachePaths */
 const PRECACHE_URLS = [

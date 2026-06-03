@@ -28,12 +28,19 @@ const RUNTIME_ENV_HINTS: { key: string; note: string }[] = [
 ];
 
 function logHeader(): void {
+  if (!process.env.NEXT_PUBLIC_MISSION_HUB_BUILD_SHA?.trim()) {
+    process.env.NEXT_PUBLIC_MISSION_HUB_BUILD_SHA =
+      process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
+      process.env.GITHUB_SHA?.trim()?.slice(0, 7) ||
+      "local";
+  }
   console.log("[build] ========================================");
   console.log("[build] Zieg's on a Mission — production build");
   console.log("[build] ========================================");
   console.log(`[build] Node ${process.version} (${process.platform})`);
   console.log(`[build] cwd: ${process.cwd()}`);
   console.log(`[build] NODE_ENV: ${process.env.NODE_ENV ?? "(unset)"}`);
+  console.log(`[build] NEXT_PUBLIC_MISSION_HUB_BUILD_SHA: ${process.env.NEXT_PUBLIC_MISSION_HUB_BUILD_SHA ?? "(unset)"}`);
 }
 
 function warnMissingRuntimeEnv(): void {

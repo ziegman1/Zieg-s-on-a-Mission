@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CommunityBottomSheet } from "./community-bottom-sheet";
 import { CommunityCreateSpaceCompactForm } from "./community-create-space-compact-form";
 import { CommunitySpaceExperienceForm } from "./community-space-experience-form";
-import { createCommunitySpaceAction } from "@/app/admin/community/actions";
+import { createCommunitySpaceAction } from "@/app/(storefront)/community/space-actions";
 import {
   emptySpaceForm,
   spaceFormToPayload,
@@ -73,6 +73,11 @@ export function CommunityCreateSpaceFlow({
       typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
 
     if (isMobile) {
+      console.log("[MH create-space client]", {
+        phase: "navigation_assign",
+        slug: result.slug,
+        requestId: result.requestId,
+      });
       window.setTimeout(() => {
         window.location.assign(path);
       }, 350);

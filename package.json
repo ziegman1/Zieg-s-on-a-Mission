@@ -24,6 +24,7 @@
     "db:seed:admin": "dotenv -e .env.local -- tsx prisma/seed-admin.ts",
     "db:seed:mission-hub": "dotenv -e .env.local -- tsx prisma/seed-mission-hub-spaces.ts",
     "db:seed:mission-hub:production": "dotenv -o -e .env.production -- tsx prisma/seed-mission-hub-spaces.ts",
+    "db:seed:blog-articles:production": "dotenv -o -e .env.production -- tsx scripts/seed-blog-articles-space.ts",
     "db:check:production": "dotenv -o -e .env.production -- tsx scripts/check-mission-hub-production.ts",
     "db:validate:env:local": "node scripts/validate-db-env.mjs .env.local",
     "db:validate:env:production": "node scripts/validate-db-env.mjs .env.production",

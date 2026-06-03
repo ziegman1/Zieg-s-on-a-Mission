@@ -5,6 +5,7 @@ import type { CommunitySpaceRecord } from "@prisma/client";
 import {
   archiveCommunitySpaceAction,
   createCommunitySpaceAction,
+  ensureBlogArticlesSpaceAction,
   updateCommunitySpaceAction,
 } from "./actions";
 import { CommunitySpaceExperienceForm } from "@/components/community/community-space-experience-form";
@@ -26,6 +27,7 @@ export function CommunitySpacesManager({ initialSpaces }: { initialSpaces: Commu
   const [slugTouched, setSlugTouched] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [ensureBlogStatus, setEnsureBlogStatus] = useState<string | null>(null);
 
   const editingRow = useMemo(
     () => (editingId ? spaces.find((s) => s.id === editingId) : null),
@@ -64,6 +66,23 @@ export function CommunitySpacesManager({ initialSpaces }: { initialSpaces: Commu
       title,
       slug: slugTouched ? f.slug : slugifyCommunityTitle(title),
     }));
+  }
+
+  async function handleEnsureBlogArticles() {
+    setEnsureBlogStatus("Creating Blog Articles space…");
+    setErrorMsg(null);
+    const res = await ensureBlogArticlesSpaceAction();
+    if (!res.ok) {
+      setEnsureBlogStatus(null);
+      setErrorMsg(res.error);
+      return;
+    }
+    setEnsureBlogStatus(
+      res.existing
+        ? `Blog Articles already exists — opening /community/${res.slug}`
+        : `Blog Articles created — opening /community/${res.slug}`,
+    );
+    window.location.href = `/community/${res.slug}`;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -111,10 +130,17 @@ export function CommunitySpacesManager({ initialSpaces }: { initialSpaces: Commu
           </a>
           .
         </p>
-        <Button type="button" variant="outline" size="sm" onClick={startCreate}>
-          New space
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={startCreate}>
+            New space
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => void handleEnsureBlogArticles()}>
+            Ensure Blog Articles
+          </Button>
+        </div>
       </div>
+
+      {ensureBlogStatus ? <p className="text-sm text-emerald-400">{ensureBlogStatus}</p> : null}
 
       {errorMsg ? <p className="text-sm text-red-400">{errorMsg}</p> : null}
       {status === "saved" ? (
