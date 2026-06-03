@@ -176,6 +176,7 @@ export const DEFAULT_SPACE_SETTINGS: CommunitySpaceSettings = {
   requirePostApproval: false,
   pinFeaturedPosts: false,
   feedSort: "newest",
+  notificationCategory: DEFAULT_SPACE_NOTIFICATION_CATEGORY,
 };
 
 export function mergeSpaceSettings(raw: unknown): CommunitySpaceSettings {
