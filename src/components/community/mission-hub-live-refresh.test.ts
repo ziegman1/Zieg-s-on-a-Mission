@@ -41,7 +41,8 @@ describe("Mission Hub live refresh integration", () => {
     expect(provider).toContain("shouldPollMissionHub");
     expect(provider).toContain('refresh("poll")');
     expect(provider).toContain("spacesVersion");
-    expect(provider).toContain("isCommunityHubRoute");
+    expect(provider).toContain("shouldRouterRefreshAfterSnapshot");
+    expect(provider).not.toContain("isCommunityHubRoute || source === \"pull\"");
   });
 
   it("notification bell syncs unread count from hub refresh", () => {

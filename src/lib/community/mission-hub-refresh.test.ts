@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   missionHubFeedPathFromPathname,
   shouldAllowMissionHubRefresh,
+  shouldRouterRefreshAfterSnapshot,
   MISSION_HUB_PTR_TRIGGER_PX,
 } from "@/lib/community/mission-hub-refresh";
 import { missionHubPollIntervalMs, shouldPollMissionHub } from "@/lib/community/mission-hub-refresh-schedule";
@@ -47,6 +48,21 @@ describe("shouldAllowMissionHubRefresh", () => {
 
   it("allows forced refresh inside debounce window", () => {
     expect(shouldAllowMissionHubRefresh(9999, 10_000, true)).toBe(true);
+  });
+});
+
+describe("shouldRouterRefreshAfterSnapshot", () => {
+  it("refreshes RSC only on explicit user actions", () => {
+    expect(shouldRouterRefreshAfterSnapshot("pull")).toBe(true);
+    expect(shouldRouterRefreshAfterSnapshot("banner")).toBe(true);
+    expect(shouldRouterRefreshAfterSnapshot("manual")).toBe(true);
+    expect(shouldRouterRefreshAfterSnapshot("focus")).toBe(false);
+    expect(shouldRouterRefreshAfterSnapshot("poll")).toBe(false);
+    expect(shouldRouterRefreshAfterSnapshot("realtime")).toBe(false);
+  });
+
+  it("honors force flag for banner acknowledge", () => {
+    expect(shouldRouterRefreshAfterSnapshot("focus", { force: true })).toBe(true);
   });
 });
 

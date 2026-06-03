@@ -29,7 +29,7 @@ export async function fetchUnreadNotificationCountAction(): Promise<
     const count = await countUnreadNotifications(authResult.userId);
     return { ok: true, count };
   } catch (e) {
-    console.error(e);
+    console.error("[notifications] fetchUnreadNotificationCountAction failed:", e);
     return { ok: false, error: "Could not load notifications" };
   }
 }
@@ -61,7 +61,7 @@ export async function listNotificationsAction(): Promise<
       unreadCount,
     };
   } catch (e) {
-    console.error(e);
+    console.error("[notifications] listNotificationsAction failed:", e);
     return { ok: false, error: "Could not load notifications" };
   }
 }

@@ -47,9 +47,14 @@ export async function requireNotificationRecipientUserId(): Promise<string | nul
 }
 
 export async function countUnreadNotifications(userId: string): Promise<number> {
-  return prisma.communityNotificationRecord.count({
-    where: { recipientUserId: userId, readAt: null },
-  });
+  try {
+    return await prisma.communityNotificationRecord.count({
+      where: { recipientUserId: userId, readAt: null },
+    });
+  } catch (e) {
+    console.error("[notifications] countUnreadNotifications failed:", e);
+    return 0;
+  }
 }
 
 export type NotificationsListForUser = {
@@ -70,41 +75,46 @@ export async function listNotificationsGroupedForUser(
   userId: string,
   limit = 50,
 ): Promise<NotificationsListForUser> {
-  await pruneStaleReadNotifications(userId);
+  try {
+    await pruneStaleReadNotifications(userId);
 
-  const rows = await prisma.communityNotificationRecord.findMany({
-    where: { recipientUserId: userId },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    include: {
-      post: { select: { status: true, space: { select: { slug: true } } } },
-    },
-  });
-
-  const items = rows
-    .map(mapNotificationRecordToItem)
-    .filter((n): n is NonNullable<typeof n> => n !== null);
-
-  const unread: NotificationsListForUser["unread"] = [];
-  const read: NotificationsListForUser["read"] = [];
-  for (const item of items) {
-    if (item.readAt) read.push(item);
-    else unread.push(item);
-  }
-
-  if (
-    process.env.NEWSLETTER_HUB_DEBUG === "1" ||
-    process.env.NODE_ENV !== "production"
-  ) {
-    console.info("[notifications] listNotificationsGroupedForUser", {
-      userId,
-      unreadCount: unread.length,
-      readCount: read.length,
-      totalRows: rows.length,
+    const rows = await prisma.communityNotificationRecord.findMany({
+      where: { recipientUserId: userId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      include: {
+        post: { select: { status: true, space: { select: { slug: true } } } },
+      },
     });
-  }
 
-  return { unread, read };
+    const items = rows
+      .map(mapNotificationRecordToItem)
+      .filter((n): n is NonNullable<typeof n> => n !== null);
+
+    const unread: NotificationsListForUser["unread"] = [];
+    const read: NotificationsListForUser["read"] = [];
+    for (const item of items) {
+      if (item.readAt) read.push(item);
+      else unread.push(item);
+    }
+
+    if (
+      process.env.NEWSLETTER_HUB_DEBUG === "1" ||
+      process.env.NODE_ENV !== "production"
+    ) {
+      console.info("[notifications] listNotificationsGroupedForUser", {
+        userId,
+        unreadCount: unread.length,
+        readCount: read.length,
+        totalRows: rows.length,
+      });
+    }
+
+    return { unread, read };
+  } catch (e) {
+    console.error("[notifications] listNotificationsGroupedForUser failed:", e);
+    return { unread: [], read: [] };
+  }
 }
 
 const READ_NOTIFICATION_RETENTION_DAYS = 30;

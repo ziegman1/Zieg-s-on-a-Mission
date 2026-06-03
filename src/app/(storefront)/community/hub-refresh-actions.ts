@@ -35,16 +35,22 @@ export async function fetchMissionHubRefreshSnapshotAction(
     let latestNotificationAt: string | null = null;
 
     if (userId) {
-      const [count, latestNotification] = await Promise.all([
-        countUnreadNotifications(userId),
-        prisma.communityNotificationRecord.findFirst({
+      try {
+        unreadCount = await countUnreadNotifications(userId);
+      } catch (e) {
+        console.error("[mission-hub refresh snapshot] unread count:", e);
+      }
+
+      try {
+        const latestNotification = await prisma.communityNotificationRecord.findFirst({
           where: { recipientUserId: userId },
           orderBy: { createdAt: "desc" },
           select: { createdAt: true },
-        }),
-      ]);
-      unreadCount = count;
-      latestNotificationAt = latestNotification?.createdAt.toISOString() ?? null;
+        });
+        latestNotificationAt = latestNotification?.createdAt.toISOString() ?? null;
+      } catch (e) {
+        console.error("[mission-hub refresh snapshot] latest notification:", e);
+      }
     }
 
     return {

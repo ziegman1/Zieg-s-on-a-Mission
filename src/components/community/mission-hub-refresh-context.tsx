@@ -17,6 +17,7 @@ import {
   dispatchMissionHubRefresh,
   missionHubFeedPathFromPathname,
   shouldAllowMissionHubRefresh,
+  shouldRouterRefreshAfterSnapshot,
   type MissionHubRefreshSource,
 } from "@/lib/community/mission-hub-refresh";
 import {
@@ -141,7 +142,7 @@ export function MissionHubRefreshProvider({
           });
         }
 
-        if (isFeedRoute || isCommunityHubRoute || source === "pull" || source === "focus" || opts?.force) {
+        if (shouldRouterRefreshAfterSnapshot(source, opts)) {
           router.refresh();
         }
 

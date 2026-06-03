@@ -75,3 +75,16 @@ export function shouldAllowMissionHubRefresh(
   if (force) return true;
   return now - lastRefreshAt >= MISSION_HUB_REFRESH_DEBOUNCE_MS;
 }
+
+/**
+ * Only re-fetch RSC payloads when the user explicitly refreshes or opts in.
+ * Focus/poll/realtime update badges and the "new posts" banner without router.refresh()
+ * so a transient SSR error cannot crash the whole Mission Hub shell.
+ */
+export function shouldRouterRefreshAfterSnapshot(
+  source: MissionHubRefreshSource,
+  opts?: { force?: boolean },
+): boolean {
+  if (opts?.force) return true;
+  return source === "pull" || source === "banner" || source === "manual";
+}

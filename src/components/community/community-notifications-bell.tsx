@@ -90,27 +90,37 @@ export function CommunityNotificationsBell({
   const hubRefresh = useMissionHubRefreshOptional();
 
   const refreshCount = useCallback(async () => {
-    const result = await fetchUnreadNotificationCountAction();
-    if (result.ok) {
-      setUnreadCount(result.count);
-      hubRefresh?.setUnreadCount(result.count);
+    try {
+      const result = await fetchUnreadNotificationCountAction();
+      if (result.ok) {
+        setUnreadCount(result.count);
+        hubRefresh?.setUnreadCount(result.count);
+      }
+    } catch (e) {
+      console.error("[notifications bell] refresh count failed:", e);
     }
   }, [hubRefresh]);
 
   const loadPanel = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await listNotificationsAction();
-    setLoading(false);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    try {
+      const result = await listNotificationsAction();
+      setLoading(false);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setUnreadItems(result.unread);
+      setReadItems(result.read);
+      setUnreadCount(result.unreadCount);
+      hubRefresh?.setUnreadCount(result.unreadCount);
+      if (result.read.length === 0) setReadExpanded(false);
+    } catch (e) {
+      setLoading(false);
+      console.error("[notifications bell] load panel failed:", e);
+      setError("Could not load notifications");
     }
-    setUnreadItems(result.unread);
-    setReadItems(result.read);
-    setUnreadCount(result.unreadCount);
-    hubRefresh?.setUnreadCount(result.unreadCount);
-    if (result.read.length === 0) setReadExpanded(false);
   }, [hubRefresh]);
 
   const displayUnreadCount = hubRefresh?.unreadCount ?? unreadCount;

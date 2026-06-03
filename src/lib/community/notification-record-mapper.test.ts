@@ -121,4 +121,14 @@ describe("mapNotificationRecordToItem", () => {
       }),
     );
   });
+
+  it("does not throw when post exists but space relation is missing", () => {
+    const item = mapNotificationRecordToItem({
+      ...baseRow,
+      type: "urgent_prayer_request",
+      post: { status: "published", space: null },
+    });
+    expect(item?.href).toBe("/community");
+    expect(item?.spaceSlug).toBeNull();
+  });
 });

@@ -16,7 +16,7 @@ export type NotificationRecordRow = {
   postId: string | null;
   commentId: string | null;
   metadata: unknown;
-  post: { status: string; space: { slug: string } } | null;
+  post: { status: string; space: { slug: string } | null } | null;
 };
 
 function buildNotificationHref(spaceSlug: string | null, postId: string | null): string {
@@ -58,8 +58,9 @@ function parseNewsletterPublishedMetadata(metadata: unknown): {
 
 function buildNewsletterNotificationHref(row: NotificationRecordRow): string {
   const meta = parseNewsletterPublishedMetadata(row.metadata);
-  if (row.post?.status === "published" && row.post.space.slug && row.postId) {
-    return buildNotificationHref(row.post.space.slug, row.postId);
+  const postSpaceSlug = row.post?.space?.slug ?? null;
+  if (row.post?.status === "published" && postSpaceSlug && row.postId) {
+    return buildNotificationHref(postSpaceSlug, row.postId);
   }
   if (
     meta?.ministryUpdatesSpaceSlug &&
@@ -97,8 +98,9 @@ function parseBlogPublishedMetadata(metadata: unknown): {
 
 function buildBlogNotificationHref(row: NotificationRecordRow): string {
   const meta = parseBlogPublishedMetadata(row.metadata);
-  if (row.post?.status === "published" && row.post.space.slug && row.postId) {
-    return buildNotificationHref(row.post.space.slug, row.postId);
+  const postSpaceSlug = row.post?.space?.slug ?? null;
+  if (row.post?.status === "published" && postSpaceSlug && row.postId) {
+    return buildNotificationHref(postSpaceSlug, row.postId);
   }
   if (meta?.missionHubSpaceSlug && meta.sourcePostId) {
     return buildNotificationHref(meta.missionHubSpaceSlug, meta.sourcePostId);
@@ -107,7 +109,7 @@ function buildBlogNotificationHref(row: NotificationRecordRow): string {
 }
 
 function buildNotificationHrefForType(row: NotificationRecordRow): string {
-  const spaceSlug = row.post?.space.slug ?? null;
+  const spaceSlug = row.post?.space?.slug ?? null;
   switch (row.type) {
     case NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE:
       return buildNewsletterNotificationHref(row);
@@ -124,7 +126,7 @@ export function mapNotificationRecordToItem(row: NotificationRecordRow): Communi
   try {
     if (!isCommunityNotificationType(row.type)) return null;
 
-    const spaceSlug = row.post?.space.slug ?? null;
+    const spaceSlug = row.post?.space?.slug ?? null;
     const href = buildNotificationHrefForType(row);
 
     return {
@@ -140,13 +142,11 @@ export function mapNotificationRecordToItem(row: NotificationRecordRow): Communi
       href,
     };
   } catch (e) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[notifications] mapNotificationRecordToItem skipped row", {
-        id: row.id,
-        type: row.type,
-        error: e,
-      });
-    }
+    console.warn("[notifications] mapNotificationRecordToItem skipped row", {
+      id: row.id,
+      type: row.type,
+      error: e instanceof Error ? e.message : String(e),
+    });
     return null;
   }
 }
