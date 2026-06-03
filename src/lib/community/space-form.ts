@@ -3,7 +3,7 @@ import { DEFAULT_COMMUNITY_ICON } from "@/lib/community/constants";
 import {
   DEFAULT_SPACE_NOTIFICATION_CATEGORY,
   SPACE_NOTIFICATION_CATEGORY_VALUES,
-} from "@/lib/community/space-notification-category";
+} from "@/lib/community/space-notification-category-values";
 import {
   COMMUNITY_SPACE_TYPES,
   COMMUNITY_THEME_MOODS,

@@ -2,15 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
-import { createCommunitySpaceAction } from "@/app/admin/community/actions";
+import {
+  createCommunitySpaceAction,
+  type CreateCommunitySpaceResult,
+} from "@/app/admin/community/actions";
 import { CommunityPostCoverUpload } from "@/components/community/community-post-cover-upload";
 import { COMMUNITY_SPACE_ICONS, DEFAULT_COMMUNITY_ICON } from "@/lib/community/constants";
-import { DEFAULT_SPACE_NOTIFICATION_CATEGORY } from "@/lib/community/space-notification-category";
-import { slugifyCommunityTitle } from "@/lib/community/slug";
-import type { CommunitySpaceFormInput } from "@/lib/community/space-form";
+import { buildCompactSpaceCreatePayload } from "@/lib/community/compact-space-create-payload";
 import type { CommunitySpaceIcon } from "@/lib/community/types";
-import { defaultAllowVoiceMessagesForSpace } from "@/lib/community/voice-prayer";
-import type { CommunitySpaceType } from "@/lib/community/space-experience";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,74 +17,60 @@ import { Textarea } from "@/components/ui/textarea";
 import { CommunitySpaceIcon as SpaceIconGlyph } from "./community-space-icon";
 import { cn } from "@/lib/utils";
 
-function iconToSpaceType(icon: CommunitySpaceIcon): CommunitySpaceType {
-  if (icon === "prayer") return "prayer";
-  if (icon === "praise") return "praise_room";
-  return "standard";
-}
-
-function buildPayload(
-  title: string,
-  description: string,
-  icon: CommunitySpaceIcon,
-  coverImageUrl: string,
-): CommunitySpaceFormInput {
-  const slug = slugifyCommunityTitle(title);
-  const spaceType = iconToSpaceType(icon);
-  return {
-    title: title.trim(),
-    slug,
-    description: description.trim() || undefined,
-    icon,
-    status: "published",
-    sortOrder: 0,
-    coverImageUrl: coverImageUrl.trim() || undefined,
-    spaceType,
-    themeMood: "",
-    welcomeMessage: "",
-    engagementPrompt: "",
-    allowComments: true,
-    allowReactions: true,
-    allowMemberPosts: false,
-    requirePostApproval: false,
-    allowVoiceMessages: defaultAllowVoiceMessagesForSpace(spaceType, slug),
-    showWelcomeMessage: true,
-    pinWelcomeMessage: true,
-    notificationCategory: DEFAULT_SPACE_NOTIFICATION_CATEGORY,
-  };
-}
+export type CompactSpaceCreateSuccess = Extract<CreateCommunitySpaceResult, { ok: true }>;
 
 export function CommunityCreateSpaceCompactForm({
   autoFocus = true,
   onCreated,
 }: {
   autoFocus?: boolean;
-  /** Called only after the server action succeeds — parent closes sheet and navigates. */
-  onCreated: (slug: string) => void;
+  /** Called only after the server action succeeds — parent navigates to the space. */
+  onCreated: (result: CompactSpaceCreateSuccess) => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [icon, setIcon] = useState<CommunitySpaceIcon>(DEFAULT_COMMUNITY_ICON);
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const titleId = "mh-create-space-title";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
+
     if (!title.trim()) {
       setError("Enter a space name.");
       return;
     }
-    const payload = buildPayload(title, description, icon, coverImageUrl);
+
+    const payload = buildCompactSpaceCreatePayload({
+      title,
+      description,
+      icon,
+      coverImageUrl,
+    });
+
     startTransition(async () => {
-      const res = await createCommunitySpaceAction(payload);
-      if (!res.ok) {
-        setError(res.error);
-        return;
+      try {
+        const res = await createCommunitySpaceAction(payload);
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+
+        const message = res.existing
+          ? `"${res.title}" already exists. Opening it now…`
+          : `"${res.title}" created! Opening your new space…`;
+        setSuccess(message);
+        onCreated(res);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Could not create space.";
+        setError(msg);
+        console.error("[CommunityCreateSpaceCompactForm]", e);
       }
-      onCreated(res.slug);
     });
   }
 
@@ -100,7 +85,7 @@ export function CommunityCreateSpaceCompactForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Prayer & Praise Room"
-          disabled={isPending}
+          disabled={isPending || Boolean(success)}
           autoFocus={autoFocus}
           enterKeyHint="next"
           className="h-10 rounded-xl border-black/[0.08] bg-white text-[15px] scroll-mt-3"
@@ -114,7 +99,7 @@ export function CommunityCreateSpaceCompactForm({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What is this space for?"
           rows={3}
-          disabled={isPending}
+          disabled={isPending || Boolean(success)}
           className="resize-none rounded-xl border-black/[0.08] bg-white text-[14px] leading-relaxed"
         />
       </div>
@@ -131,7 +116,7 @@ export function CommunityCreateSpaceCompactForm({
                 role="radio"
                 aria-checked={active}
                 title={label}
-                disabled={isPending}
+                disabled={isPending || Boolean(success)}
                 onClick={() => setIcon(value)}
                 className={cn(
                   "inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors",
@@ -161,9 +146,15 @@ export function CommunityCreateSpaceCompactForm({
         </p>
       ) : null}
 
+      {success ? (
+        <p className="text-xs text-emerald-700" role="status">
+          {success}
+        </p>
+      ) : null}
+
       <Button
         type="submit"
-        disabled={isPending || !title.trim()}
+        disabled={isPending || !title.trim() || Boolean(success)}
         className="w-full rounded-full min-h-[2.75rem] bg-brand-primary hover:bg-brand-primary"
       >
         {isPending ? (
@@ -171,6 +162,8 @@ export function CommunityCreateSpaceCompactForm({
             <Loader2 className="h-4 w-4 animate-spin mr-1.5" aria-hidden />
             Creating…
           </>
+        ) : success ? (
+          "Opening space…"
         ) : (
           "Create space"
         )}

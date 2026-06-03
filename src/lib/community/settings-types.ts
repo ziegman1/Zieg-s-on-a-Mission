@@ -4,7 +4,7 @@ import {
   DEFAULT_SPACE_NOTIFICATION_CATEGORY,
   SPACE_NOTIFICATION_CATEGORY_VALUES,
   parseSpaceNotificationCategory,
-} from "@/lib/community/space-notification-category";
+} from "@/lib/community/space-notification-category-values";
 
 /** Settings URL sections — modular nav keys */
 export const USER_SETTINGS_SECTIONS = [

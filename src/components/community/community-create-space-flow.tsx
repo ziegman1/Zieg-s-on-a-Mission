@@ -24,6 +24,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
+import type { CompactSpaceCreateSuccess } from "./community-create-space-compact-form";
 import { useMissionHubRefreshOptional } from "./mission-hub-refresh-context";
 
 /** Mobile sheet + desktop dialog for creating a space. */
@@ -64,16 +65,21 @@ export function CommunityCreateSpaceFlow({
     }));
   }
 
-  function finishSpaceCreated(slug: string) {
-    handleOpenChange(false);
+  function finishSpaceCreated(result: CompactSpaceCreateSuccess) {
     void missionHubRefresh?.refresh("manual", { force: true });
 
-    const path = `/community/${encodeURIComponent(slug)}`;
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
-      window.location.assign(path);
+    const path = `/community/${encodeURIComponent(result.slug)}`;
+    const isMobile =
+      typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
+
+    if (isMobile) {
+      window.setTimeout(() => {
+        window.location.assign(path);
+      }, 350);
       return;
     }
 
+    handleOpenChange(false);
     router.push(path);
     router.refresh();
   }
@@ -83,12 +89,18 @@ export function CommunityCreateSpaceFlow({
     setError(null);
     const payload = spaceFormToPayload(form);
     startTransition(async () => {
-      const res = await createCommunitySpaceAction(payload);
-      if (!res.ok) {
-        setError(res.error);
-        return;
+      try {
+        const res = await createCommunitySpaceAction(payload);
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        finishSpaceCreated(res);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Could not create space.";
+        setError(msg);
+        console.error("[CommunityCreateSpaceFlow desktop]", err);
       }
-      finishSpaceCreated(res.slug);
     });
   }
 
@@ -104,7 +116,11 @@ export function CommunityCreateSpaceFlow({
         showStatus
         showSortOrder={false}
       />
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? (
+        <p className="text-xs text-red-600" role="alert">
+          {error}
+        </p>
+      ) : null}
       <Button
         type="submit"
         disabled={isPending}

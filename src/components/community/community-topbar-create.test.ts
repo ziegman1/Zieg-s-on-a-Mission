@@ -64,7 +64,10 @@ describe("Mission Hub create space flow", () => {
     expect(flow).toContain("window.location.assign(path)");
     expect(flow).toContain("useMissionHubRefreshOptional");
     expect(flow).toContain("onCreated={finishSpaceCreated}");
-    expect(compact).toContain("onCreated(res.slug)");
+    expect(compact).toContain("buildCompactSpaceCreatePayload");
+    expect(compact).toContain('role="alert"');
+    expect(compact).toContain('role="status"');
+    expect(compact).toContain("onCreated(res)");
     expect(compact).not.toContain("router.refresh");
   });
 
@@ -88,6 +91,16 @@ describe("Mission Hub create space flow", () => {
     expect(layout).toContain("listPublishedCommunitySpaces");
     expect(layout).toContain("CommunityPublishedSpacesProvider");
     expect(layout).toContain('export const dynamic = "force-dynamic"');
+  });
+
+  it("returns title and detailed validation errors from createCommunitySpaceAction", () => {
+    const actions = readFileSync(
+      resolve(process.cwd(), "src/app/admin/community/actions.ts"),
+      "utf8",
+    );
+
+    expect(actions).toContain("title: row.title");
+    expect(actions).toContain("formatCommunitySpaceInputErrors");
   });
 });
 
