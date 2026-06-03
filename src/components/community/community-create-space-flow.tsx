@@ -11,6 +11,7 @@ import {
   type SpaceFormState,
 } from "@/lib/community/space-form-state";
 import { slugifyCommunityTitle } from "@/lib/community/slug";
+import { useVisualViewportKeyboardInset } from "@/hooks/use-visual-viewport-keyboard-inset";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,6 +34,7 @@ export function CommunityCreateSpaceFlow({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const keyboardInset = useVisualViewportKeyboardInset(open);
   const [form, setForm] = useState<SpaceFormState>(() => ({
     ...emptySpaceForm(),
     status: "published",
@@ -60,6 +62,12 @@ export function CommunityCreateSpaceFlow({
     }));
   }
 
+  function finishSpaceCreated(slug: string) {
+    handleOpenChange(false);
+    router.refresh();
+    router.push(`/community/${slug}`);
+  }
+
   function handleDesktopSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -70,8 +78,7 @@ export function CommunityCreateSpaceFlow({
         setError(res.error);
         return;
       }
-      handleOpenChange(false);
-      router.refresh();
+      finishSpaceCreated(res.slug);
     });
   }
 
@@ -113,11 +120,11 @@ export function CommunityCreateSpaceFlow({
           onOpenChange={handleOpenChange}
           title="New space"
           description="Create a room for prayer, updates, testimony, or connection."
-          className="max-h-[min(88dvh,640px)]"
+          keyboardInset={keyboardInset}
         >
           <CommunityCreateSpaceCompactForm
-            autoFocus
-            onCreated={() => handleOpenChange(false)}
+            autoFocus={open}
+            onCreated={finishSpaceCreated}
           />
         </CommunityBottomSheet>
       </div>

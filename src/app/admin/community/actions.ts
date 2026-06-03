@@ -31,7 +31,7 @@ function revalidateCommunity(...slugs: (string | undefined)[]) {
 
 export async function createCommunitySpaceAction(
   input: CommunitySpaceFormInput,
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; id: string; slug: string } | { ok: false; error: string }> {
   const owner = await requireCommunityOwner();
   if (!owner) return { ok: false, error: "Unauthorized" };
 
@@ -63,7 +63,7 @@ export async function createCommunitySpaceAction(
       },
     });
     revalidateCommunity(row.slug);
-    return { ok: true, id: row.id };
+    return { ok: true, id: row.id, slug: row.slug };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Could not create space";
     if (msg.includes("Unique constraint") || msg.includes("community_spaces_slug")) {

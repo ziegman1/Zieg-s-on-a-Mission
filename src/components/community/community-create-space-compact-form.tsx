@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { createCommunitySpaceAction } from "@/app/admin/community/actions";
 import { CommunityPostCoverUpload } from "@/components/community/community-post-cover-upload";
@@ -61,9 +60,9 @@ export function CommunityCreateSpaceCompactForm({
   onCreated,
 }: {
   autoFocus?: boolean;
-  onCreated: () => void;
+  /** Called only after the server action succeeds — parent closes sheet and navigates. */
+  onCreated: (slug: string) => void;
 }) {
-  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [icon, setIcon] = useState<CommunitySpaceIcon>(DEFAULT_COMMUNITY_ICON);
@@ -86,13 +85,12 @@ export function CommunityCreateSpaceCompactForm({
         setError(res.error);
         return;
       }
-      onCreated();
-      router.refresh();
+      onCreated(res.slug);
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3.5">
+    <form onSubmit={handleSubmit} className="space-y-3.5 pb-1">
       <div className="space-y-1.5">
         <Label htmlFor={titleId} className="text-xs text-brand-ink/65">
           Space name
@@ -104,7 +102,8 @@ export function CommunityCreateSpaceCompactForm({
           placeholder="e.g. Prayer & Praise Room"
           disabled={isPending}
           autoFocus={autoFocus}
-          className="h-10 rounded-xl border-black/[0.08] bg-white text-[15px]"
+          enterKeyHint="next"
+          className="h-10 rounded-xl border-black/[0.08] bg-white text-[15px] scroll-mt-3"
         />
       </div>
 
@@ -156,7 +155,11 @@ export function CommunityCreateSpaceCompactForm({
         label="Cover image (optional)"
       />
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? (
+        <p className="text-xs text-red-600" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       <Button
         type="submit"

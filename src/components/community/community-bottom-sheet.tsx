@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ function BottomSheetContent({
   children,
   title,
   description,
+  open,
   onClose,
   onSwipeClose,
   keyboardInset = 0,
@@ -36,11 +37,19 @@ function BottomSheetContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   title: string;
   description?: string;
+  open: boolean;
   onClose?: () => void;
   onSwipeClose?: () => void;
   keyboardInset?: number;
 }) {
   const dragRef = useRef({ startY: 0, dragging: false });
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      bodyRef.current?.scrollTo({ top: 0 });
+    }
+  }, [open, title]);
 
   function onHandlePointerDown(e: React.PointerEvent) {
     dragRef.current = { startY: e.clientY, dragging: true };
@@ -57,17 +66,23 @@ function BottomSheetContent({
     dragRef.current.dragging = false;
   }
 
+  const keyboardMaxHeight =
+    keyboardInset > 0
+      ? `calc(100dvh - env(safe-area-inset-top, 0px) - ${keyboardInset}px - 0.5rem)`
+      : undefined;
+
   return (
     <DialogPrimitive.Portal>
       <BottomSheetOverlay />
       <DialogPrimitive.Content
         className={cn(
-          "mh-sheet-content fixed inset-x-0 bottom-0 z-[61] flex max-h-[min(92dvh,720px)] w-full flex-col",
+          "mh-sheet-content fixed inset-x-0 bottom-0 z-[61] flex w-full flex-col",
+          "max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top,0px)-0.5rem))]",
           "rounded-t-[1.35rem] bg-white/98 shadow-[0_-16px_48px_rgba(30,54,68,0.12)] outline-none",
           "border-t border-black/[0.05] backdrop-blur-xl",
-          "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
           className,
         )}
+        style={keyboardMaxHeight ? { maxHeight: keyboardMaxHeight } : undefined}
         {...props}
       >
         <div
@@ -80,8 +95,8 @@ function BottomSheetContent({
         >
           <div className="h-1 w-11 rounded-full bg-black/14" />
         </div>
-        <div className="flex shrink-0 items-start justify-between gap-3 px-4 pb-2.5">
-          <div className="min-w-0">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-black/[0.05] bg-white/98 px-4 pb-3 pt-0.5">
+          <div className="min-w-0 pr-2">
             <DialogPrimitive.Title className="font-serif text-lg font-medium tracking-wide text-brand-ink">
               {title}
             </DialogPrimitive.Title>
@@ -106,9 +121,11 @@ function BottomSheetContent({
           </DialogPrimitive.Close>
         </div>
         <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 transition-[padding] duration-150"
+          ref={bodyRef}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-3 pb-4 mh-scrollbar-none"
           style={{
             paddingBottom: `calc(1rem + ${keyboardInset}px + env(safe-area-inset-bottom, 0px))`,
+            WebkitOverflowScrolling: "touch",
           }}
         >
           {children}
@@ -139,6 +156,7 @@ export function CommunityBottomSheet({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <BottomSheetContent
+        open={open}
         title={title}
         description={description}
         onClose={() => onOpenChange(false)}

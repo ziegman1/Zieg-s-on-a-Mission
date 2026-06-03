@@ -49,6 +49,36 @@ describe("Mission Hub topbar create", () => {
   });
 });
 
+describe("Mission Hub create space flow", () => {
+  it("navigates to the new space after successful mobile creation", () => {
+    const flow = readFileSync(
+      resolve(process.cwd(), "src/components/community/community-create-space-flow.tsx"),
+      "utf8",
+    );
+    const compact = readFileSync(
+      resolve(process.cwd(), "src/components/community/community-create-space-compact-form.tsx"),
+      "utf8",
+    );
+
+    expect(flow).toContain("useVisualViewportKeyboardInset");
+    expect(flow).toContain("router.push(`/community/${slug}`)");
+    expect(flow).toContain("onCreated={finishSpaceCreated}");
+    expect(compact).toContain("onCreated(res.slug)");
+    expect(compact).not.toContain("router.refresh");
+  });
+
+  it("uses keyboard-aware bottom sheet layout", () => {
+    const sheet = readFileSync(
+      resolve(process.cwd(), "src/components/community/community-bottom-sheet.tsx"),
+      "utf8",
+    );
+
+    expect(sheet).toContain("safe-area-inset-top");
+    expect(sheet).toContain("keyboardMaxHeight");
+    expect(sheet).toContain("bodyRef");
+  });
+});
+
 describe("Space notification category", () => {
   it("stores categories in community space settings JSON schema", () => {
     const settingsTypes = readFileSync(
