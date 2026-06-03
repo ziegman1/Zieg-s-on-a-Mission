@@ -21,6 +21,11 @@ import type {
   CommunityPostType,
 } from "@/lib/community/types";
 import { deliverPostPublishNotifications } from "@/lib/community/deliver-post-publish-notifications";
+import type { Prisma } from "@prisma/client";
+import {
+  buildUrgentPrayerPostMetadata,
+  isUrgentPrayerRequestAllowed,
+} from "@/lib/community/urgent-prayer-metadata";
 import { prisma } from "@/lib/db";
 
 const POST_TYPE_VALUES = new Set(COMMUNITY_POST_TYPES.map((t) => t.value));
@@ -100,9 +105,26 @@ export async function createCommunityPostAction(
   const data = parsed.data;
   const space = await prisma.communitySpaceRecord.findUnique({
     where: { id: data.spaceId },
-    select: { slug: true },
+    select: { slug: true, settings: true },
   });
   if (!space) return { ok: false, error: "Space not found" };
+
+  if (data.urgentPrayerRequest) {
+    if (!isUrgentPrayerRequestAllowed({
+      spaceSlug: space.slug,
+      settings: space.settings,
+      postType: data.postType,
+    })) {
+      return {
+        ok: false,
+        error: "Urgent prayer requests are only available in the Prayer and Praise Room.",
+      };
+    }
+  }
+
+  const metadata: Prisma.InputJsonValue | undefined = data.urgentPrayerRequest
+    ? (buildUrgentPrayerPostMetadata() as unknown as Prisma.InputJsonValue)
+    : undefined;
 
   try {
     const row = await prisma.communityPostRecord.create({
@@ -116,6 +138,7 @@ export async function createCommunityPostAction(
         status: data.status,
         coverImageUrl: data.coverImageUrl?.trim() || null,
         publishedAt: parsePublishedAt(data.status, data.publishedAt),
+        ...(metadata ? { metadata } : {}),
       },
     });
     if (data.status === "published") {

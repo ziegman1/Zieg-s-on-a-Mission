@@ -6,6 +6,7 @@ export const COMMUNITY_NOTIFICATION_TYPES = [
   "member_joined",
   "newsletter_published",
   "blog_published",
+  "urgent_prayer_request",
 ] as const;
 
 export type CommunityNotificationType = (typeof COMMUNITY_NOTIFICATION_TYPES)[number];

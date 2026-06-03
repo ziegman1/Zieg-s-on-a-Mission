@@ -1,9 +1,9 @@
 import "server-only";
 
-import { evaluatePostPublishNotificationEligibility } from "@/lib/community/post-notification-preferences";
-import { notificationCategoryFromSpaceSettings } from "@/lib/community/space-notification-category";
+import { evaluateUrgentPrayerNotificationEligibility } from "@/lib/community/urgent-prayer-notification-preferences";
 import {
-  upsertNewPostPublishedNotification,
+  buildUrgentPrayerPublishedNotificationBody,
+  upsertUrgentPrayerRequestNotification,
 } from "@/lib/community/notifications";
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -11,29 +11,26 @@ import {
 } from "@/lib/community/settings-types";
 import { getUserNotificationPreferences } from "@/lib/community/user-notification-prefs";
 import { prisma } from "@/lib/db";
-import { getNewsletterPublishEmailDisabledReason } from "@/lib/mission-hub/newsletter-publish-email";
-import { queueAndSendPostPublishEmail } from "@/lib/mission-hub/post-publish-email";
 import { isMissionHubEmailNotificationsEnabled } from "@/lib/mission-hub/email-config";
+import { getNewsletterPublishEmailDisabledReason } from "@/lib/mission-hub/newsletter-publish-email";
+import { queueAndSendUrgentPrayerEmail } from "@/lib/mission-hub/urgent-prayer-email";
 import {
   isMissionHubEmailDebugEnabled,
   type MissionHubEmailSendPolicy,
 } from "@/lib/mission-hub/test-email-recipients";
-import { BLOG_SOURCE_KIND } from "@/lib/blog/mission-hub-announcement";
-import { deliverUrgentPrayerRequestNotifications } from "@/lib/community/deliver-urgent-prayer-notifications";
-import { isUrgentPrayerRequest } from "@/lib/community/urgent-prayer-metadata";
-import { NEWSLETTER_SOURCE_KIND } from "@/lib/newsletter/mission-hub-announcement";
+import type { DeliverPostPublishNotificationsOptions } from "./deliver-post-publish-notifications";
 
-export type PostPublishSkipEntry = {
+export type DeliverUrgentPrayerSkipEntry = {
   userId: string;
   email?: string;
   reason: string;
 };
 
-export type DeliverPostPublishNotificationsResult = {
+export type DeliverUrgentPrayerNotificationsResult = {
   postId: string;
   spaceId: string;
   spaceSlug: string;
-  skippedNewsletterAnnouncement: boolean;
+  urgentPrayerRequest: true;
   totalMembersWithAccounts: number;
   inAppNotificationsSent: number;
   inAppNotificationsUpdated: number;
@@ -43,86 +40,33 @@ export type DeliverPostPublishNotificationsResult = {
   emailNotificationsSkipped: number;
   emailSkippedNoAddress: number;
   skippedMutedOrDisabled: number;
-  skippedRecipients: PostPublishSkipEntry[];
+  skippedRecipients: DeliverUrgentPrayerSkipEntry[];
   resendMessageIds: string[];
 };
 
-export type DeliverPostPublishNotificationsOptions = {
-  authorUserId?: string | null;
-  forceResendEmail?: boolean;
-  emailPolicy?: MissionHubEmailSendPolicy;
+type UrgentPrayerPostRow = {
+  id: string;
+  spaceId: string;
+  title: string | null;
+  body: string;
+  excerpt: string | null;
+  authorUserId: string | null;
+  space: {
+    id: string;
+    slug: string;
+    title: string;
+    status: string;
+  };
 };
 
 /**
- * Notify eligible Mission Hub members when a post is published.
- * Skips newsletter announcement posts (handled by newsletter publish flow).
+ * Dedicated fan-out for urgent prayer request posts.
+ * Replaces generic post publish email/in-app notifications.
  */
-export async function deliverPostPublishNotifications(
-  postId: string,
+export async function deliverUrgentPrayerRequestNotifications(
+  post: UrgentPrayerPostRow,
   options: DeliverPostPublishNotificationsOptions = {},
-): Promise<DeliverPostPublishNotificationsResult | null> {
-  const post = await prisma.communityPostRecord.findFirst({
-    where: { id: postId, status: "published" },
-    select: {
-      id: true,
-      spaceId: true,
-      title: true,
-      body: true,
-      excerpt: true,
-      sourceKind: true,
-      metadata: true,
-      authorUserId: true,
-      space: {
-        select: { id: true, slug: true, title: true, status: true, settings: true },
-      },
-    },
-  });
-
-  if (!post || post.space.status !== "published") {
-    return null;
-  }
-
-  if (post.sourceKind === NEWSLETTER_SOURCE_KIND || post.sourceKind === BLOG_SOURCE_KIND) {
-    return {
-      postId: post.id,
-      spaceId: post.spaceId,
-      spaceSlug: post.space.slug,
-      skippedNewsletterAnnouncement: true,
-      totalMembersWithAccounts: 0,
-      inAppNotificationsSent: 0,
-      inAppNotificationsUpdated: 0,
-      emailNotificationsSent: 0,
-      emailNotificationsDeduped: 0,
-      emailNotificationsFailed: 0,
-      emailNotificationsSkipped: 0,
-      emailSkippedNoAddress: 0,
-      skippedMutedOrDisabled: 0,
-      skippedRecipients: [],
-      resendMessageIds: [],
-    };
-  }
-
-  if (isUrgentPrayerRequest(post.metadata)) {
-    const urgentResult = await deliverUrgentPrayerRequestNotifications(post, options);
-    return {
-      postId: urgentResult.postId,
-      spaceId: urgentResult.spaceId,
-      spaceSlug: urgentResult.spaceSlug,
-      skippedNewsletterAnnouncement: false,
-      totalMembersWithAccounts: urgentResult.totalMembersWithAccounts,
-      inAppNotificationsSent: urgentResult.inAppNotificationsSent,
-      inAppNotificationsUpdated: urgentResult.inAppNotificationsUpdated,
-      emailNotificationsSent: urgentResult.emailNotificationsSent,
-      emailNotificationsDeduped: urgentResult.emailNotificationsDeduped,
-      emailNotificationsFailed: urgentResult.emailNotificationsFailed,
-      emailNotificationsSkipped: urgentResult.emailNotificationsSkipped,
-      emailSkippedNoAddress: urgentResult.emailSkippedNoAddress,
-      skippedMutedOrDisabled: urgentResult.skippedMutedOrDisabled,
-      skippedRecipients: urgentResult.skippedRecipients,
-      resendMessageIds: urgentResult.resendMessageIds,
-    };
-  }
-
+): Promise<DeliverUrgentPrayerNotificationsResult> {
   const members = await prisma.communityMemberRecord.findMany({
     where: { status: "active", userId: { not: null } },
     select: {
@@ -143,7 +87,12 @@ export async function deliverPostPublishNotifications(
   const authorId = options.authorUserId ?? post.authorUserId ?? null;
   const emailEnabled = isMissionHubEmailNotificationsEnabled();
   const emailDisabledReason = getNewsletterPublishEmailDisabledReason();
-  const emailPolicy = options.emailPolicy ?? { smokeTest: false };
+  const emailPolicy: MissionHubEmailSendPolicy = options.emailPolicy ?? { smokeTest: false };
+  const notificationBody = buildUrgentPrayerPublishedNotificationBody(
+    post.title,
+    post.excerpt,
+    post.body,
+  );
 
   let inAppNotificationsSent = 0;
   let inAppNotificationsUpdated = 0;
@@ -153,10 +102,8 @@ export async function deliverPostPublishNotifications(
   let emailNotificationsSkipped = 0;
   let emailSkippedNoAddress = 0;
   let skippedMutedOrDisabled = 0;
-  const skippedRecipients: PostPublishSkipEntry[] = [];
+  const skippedRecipients: DeliverUrgentPrayerSkipEntry[] = [];
   const resendMessageIds: string[] = [];
-
-  const notificationCategory = notificationCategoryFromSpaceSettings(post.space.settings);
 
   for (const userId of userIds) {
     if (authorId && userId === authorId) {
@@ -171,9 +118,8 @@ export async function deliverPostPublishNotifications(
       prefs = mergeNotificationPreferences(null);
     }
 
-    const eligibility = evaluatePostPublishNotificationEligibility(prefs, {
+    const eligibility = evaluateUrgentPrayerNotificationEligibility(prefs, {
       spaceId: post.spaceId,
-      notificationCategory,
     });
 
     if (!eligibility.emailChannel && !eligibility.inAppChannel) {
@@ -187,15 +133,12 @@ export async function deliverPostPublishNotifications(
     }
 
     if (eligibility.inAppChannel) {
-      const outcome = await upsertNewPostPublishedNotification({
+      const outcome = await upsertUrgentPrayerRequestNotification({
         recipientUserId: userId,
         postId: post.id,
         spaceId: post.spaceId,
         spaceSlug: post.space.slug,
-        spaceName: post.space.title,
-        title: post.title,
-        body: post.body,
-        excerpt: post.excerpt,
+        body: notificationBody,
         actorUserId: authorId,
       });
       if (outcome === "created") inAppNotificationsSent += 1;
@@ -212,13 +155,12 @@ export async function deliverPostPublishNotifications(
       continue;
     }
 
-    const emailOutcome = await queueAndSendPostPublishEmail({
+    const emailOutcome = await queueAndSendUrgentPrayerEmail({
       recipientUserId: userId,
       recipientEmail,
       postId: post.id,
       spaceId: post.spaceId,
       spaceSlug: post.space.slug,
-      spaceName: post.space.title,
       title: post.title,
       body: post.body,
       excerpt: post.excerpt,
@@ -250,11 +192,11 @@ export async function deliverPostPublishNotifications(
     }
   }
 
-  const result: DeliverPostPublishNotificationsResult = {
+  const result: DeliverUrgentPrayerNotificationsResult = {
     postId: post.id,
     spaceId: post.spaceId,
     spaceSlug: post.space.slug,
-    skippedNewsletterAnnouncement: false,
+    urgentPrayerRequest: true,
     totalMembersWithAccounts: userIds.length,
     inAppNotificationsSent,
     inAppNotificationsUpdated,
@@ -268,13 +210,11 @@ export async function deliverPostPublishNotifications(
     resendMessageIds,
   };
 
-  if (isMissionHubEmailDebugEnabled()) {
-    console.info("[mission-hub-email] deliverPostPublishNotifications", {
+  if (isMissionHubEmailDebugEnabled() || process.env.NODE_ENV !== "production") {
+    console.info("[urgent-prayer] deliverUrgentPrayerRequestNotifications", {
       ...result,
       emailEnabled,
       emailDisabledReason,
-      targetSpace: post.space.slug,
-      recipientCount: userIds.length,
     });
   }
 

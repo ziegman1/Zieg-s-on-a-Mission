@@ -4,6 +4,7 @@ export type MissionHubEmailNotificationKind =
   | "newsletter_published"
   | "blog_published"
   | "post_published"
+  | "urgent_prayer_request"
   | "new_post"
   | "weekly_digest"
   | "invitation";
@@ -18,4 +19,8 @@ export function blogPublishEmailDedupeKey(blogPostId: string): string {
 
 export function postPublishEmailDedupeKey(postId: string): string {
   return `post:${postId}:email`;
+}
+
+export function urgentPrayerPublishEmailDedupeKey(postId: string): string {
+  return `urgent-prayer:${postId}:email`;
 }

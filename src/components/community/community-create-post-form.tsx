@@ -29,6 +29,7 @@ import {
 } from "@/lib/community/composer-types";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import type { CommunityPostDbStatus, CommunityPostType } from "@/lib/community/types";
+import { canShowUrgentPrayerRequestOption } from "@/lib/community/urgent-prayer-metadata";
 import { CommunityAvatar } from "@/components/community/community-avatar";
 import { CommunityPostCoverUpload } from "@/components/community/community-post-cover-upload";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ type FormState = {
   status: CommunityPostDbStatus;
   coverImageUrl: string;
   publishedAt: string;
+  urgentPrayerRequest: boolean;
 };
 
 function buildEmptyForm(
@@ -71,6 +73,7 @@ function buildEmptyForm(
     status: "published",
     coverImageUrl: "",
     publishedAt: nowDatetimeLocalValue(),
+    urgentPrayerRequest: false,
   };
 }
 
@@ -86,6 +89,7 @@ function buildPayload(form: FormState): CommunityPostFormInput {
     status: form.status,
     coverImageUrl: form.coverImageUrl.trim() || undefined,
     publishedAt: form.status === "published" ? form.publishedAt : undefined,
+    urgentPrayerRequest: form.urgentPrayerRequest || undefined,
   };
 }
 
@@ -166,6 +170,15 @@ export function CommunityCreatePostForm({
   }
 
   const canPost = publishedSpaces.length > 0 && form.body.trim().length > 0;
+
+  const selectedSpace = publishedSpaces.find((s) => s.id === form.spaceId);
+  const showUrgentPrayerOption =
+    selectedSpace &&
+    canShowUrgentPrayerRequestOption({
+      spaceSlug: selectedSpace.slug,
+      notificationCategory: selectedSpace.notificationCategory,
+      postType: form.postType,
+    });
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
@@ -271,6 +284,28 @@ export function CommunityCreatePostForm({
           variant="light"
           compact
         />
+
+        {showUrgentPrayerOption ? (
+          <label className="flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.urgentPrayerRequest}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, urgentPrayerRequest: e.target.checked }))
+              }
+              className="mt-0.5 h-4 w-4 rounded border-amber-300 text-brand-primary focus:ring-brand-primary/30"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-brand-ink">
+                Mark as urgent prayer request
+              </span>
+              <span className="block text-[11px] text-brand-ink/60 mt-0.5 leading-snug">
+                Urgent prayer requests send a dedicated email notification to Mission Hub
+                members, inviting them to pray and respond.
+              </span>
+            </span>
+          </label>
+        ) : null}
 
         <button
           type="button"

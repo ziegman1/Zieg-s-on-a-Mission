@@ -1,9 +1,12 @@
 /** Space row for in-app owner create post composer (all statuses). */
+import type { SpaceNotificationCategory } from "@/lib/community/space-notification-category-values";
+
 export type CommunityComposerSpace = {
   id: string;
   title: string;
   slug: string;
   status: string;
+  notificationCategory?: SpaceNotificationCategory;
 };
 
 export function publishedComposerSpaces(

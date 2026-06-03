@@ -22,6 +22,8 @@ export const communityPostInputSchema = z.object({
   status: z.enum(["draft", "published", "archived"]),
   coverImageUrl: z.string().max(2000).optional(),
   publishedAt: z.string().optional(),
+  /** Admin-only: send urgent prayer email + in-app notification fan-out. */
+  urgentPrayerRequest: z.boolean().optional(),
 });
 
 export type CommunityPostFormInput = z.infer<typeof communityPostInputSchema>;

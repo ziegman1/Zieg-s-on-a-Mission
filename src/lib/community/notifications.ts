@@ -8,6 +8,7 @@ import {
 } from "@/lib/community/prayer-response-body";
 import { prisma } from "@/lib/db";
 import { blogPublishNotificationDedupeKey } from "@/lib/blog/mission-hub-dedupe";
+import { urgentPrayerPublishNotificationDedupeKey } from "@/lib/community/urgent-prayer-dedupe";
 import {
   newPostPublishNotificationDedupeKey,
   newsletterPublishNotificationDedupeKey,
@@ -150,7 +151,9 @@ function recordToItem(row: {
       ? buildNewsletterNotificationHref(row)
       : row.type === "blog_published"
         ? buildBlogNotificationHref(row)
-        : buildNotificationHref(spaceSlug, row.postId);
+        : row.type === URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE
+          ? buildNotificationHref(spaceSlug, row.postId)
+          : buildNotificationHref(spaceSlug, row.postId);
   return {
     id: row.id,
     type: row.type,
@@ -508,6 +511,80 @@ export async function upsertNewPostPublishedNotification(input: {
     type: "new_post" as const,
     title: buildNewPostPublishedNotificationTitle(input.spaceName),
     body: notificationBody,
+    postId: input.postId,
+    commentId: null,
+    actorUserId: input.actorUserId ?? null,
+    actorMemberId: null,
+    dedupeKey,
+    metadata: metadata as unknown as import("@prisma/client").Prisma.InputJsonValue,
+    readAt: null,
+  };
+
+  if (existing) {
+    await prisma.communityNotificationRecord.update({
+      where: { id: existing.id },
+      data: { ...data, readAt: null, createdAt: new Date() },
+    });
+    return "updated";
+  }
+
+  await prisma.communityNotificationRecord.create({
+    data: {
+      recipientUserId: input.recipientUserId,
+      ...data,
+    },
+  });
+  return "created";
+}
+
+export const URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE = "urgent_prayer_request" as const;
+export const URGENT_PRAYER_REQUEST_NOTIFICATION_TITLE = "Urgent prayer request";
+
+export { urgentPrayerPublishNotificationDedupeKey } from "@/lib/community/urgent-prayer-dedupe";
+
+export function buildUrgentPrayerPublishedNotificationBody(
+  title: string | null,
+  excerpt: string | null,
+  body: string,
+): string {
+  const headline = title?.trim() || "We are asking for your prayers.";
+  const preview =
+    excerpt?.trim() || body.trim().slice(0, 200) || "Please join us in prayer in Mission Hub.";
+  return `${headline}\n\n${preview}`;
+}
+
+/** Create or refresh a deduped in-app notification for an urgent prayer request. */
+export async function upsertUrgentPrayerRequestNotification(input: {
+  recipientUserId: string;
+  postId: string;
+  spaceId: string;
+  spaceSlug: string;
+  body: string;
+  actorUserId?: string | null;
+}): Promise<"created" | "updated"> {
+  if (input.actorUserId && input.actorUserId === input.recipientUserId) {
+    return "updated";
+  }
+
+  const dedupeKey = urgentPrayerPublishNotificationDedupeKey(input.postId);
+  const metadata = {
+    sourceKind: "post",
+    sourceId: input.postId,
+    sourcePostId: input.postId,
+    spaceId: input.spaceId,
+    spaceSlug: input.spaceSlug,
+    urgentPrayerRequest: true,
+  } satisfies Record<string, string | boolean>;
+
+  const existing = await prisma.communityNotificationRecord.findFirst({
+    where: { recipientUserId: input.recipientUserId, dedupeKey },
+    select: { id: true },
+  });
+
+  const data = {
+    type: URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE,
+    title: URGENT_PRAYER_REQUEST_NOTIFICATION_TITLE,
+    body: input.body,
     postId: input.postId,
     commentId: null,
     actorUserId: input.actorUserId ?? null,

@@ -28,7 +28,12 @@ vi.mock("@/lib/mission-hub/post-publish-email", () => ({
   queueAndSendPostPublishEmail: vi.fn(),
 }));
 
+vi.mock("@/lib/community/deliver-urgent-prayer-notifications", () => ({
+  deliverUrgentPrayerRequestNotifications: vi.fn(),
+}));
+
 import { prisma } from "@/lib/db";
+import { deliverUrgentPrayerRequestNotifications } from "@/lib/community/deliver-urgent-prayer-notifications";
 import { upsertNewPostPublishedNotification } from "@/lib/community/notifications";
 import { getUserNotificationPreferences } from "@/lib/community/user-notification-prefs";
 import { queueAndSendPostPublishEmail } from "@/lib/mission-hub/post-publish-email";
@@ -41,6 +46,7 @@ const publishedPost = {
   body: "Body text",
   excerpt: null,
   sourceKind: null,
+  metadata: {},
   authorUserId: "author-1",
   space: {
     id: "space-1",
@@ -189,5 +195,39 @@ describe("deliverPostPublishNotifications", () => {
         spaceName: "Prayer Room",
       }),
     );
+  });
+
+  it("routes urgent prayer posts to dedicated delivery instead of generic email", async () => {
+    vi.mocked(prisma.communityPostRecord.findFirst).mockResolvedValue({
+      ...publishedPost,
+      metadata: { urgentPrayerRequest: true },
+    } as never);
+    vi.mocked(deliverUrgentPrayerRequestNotifications).mockResolvedValue({
+      postId: "post-1",
+      spaceId: "space-1",
+      spaceSlug: "prayer",
+      urgentPrayerRequest: true,
+      totalMembersWithAccounts: 2,
+      inAppNotificationsSent: 1,
+      inAppNotificationsUpdated: 0,
+      emailNotificationsSent: 1,
+      emailNotificationsDeduped: 0,
+      emailNotificationsFailed: 0,
+      emailNotificationsSkipped: 0,
+      emailSkippedNoAddress: 0,
+      skippedMutedOrDisabled: 0,
+      skippedRecipients: [],
+      resendMessageIds: ["msg_urgent"],
+    });
+
+    const result = await deliverPostPublishNotifications("post-1");
+
+    expect(deliverUrgentPrayerRequestNotifications).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "post-1" }),
+      {},
+    );
+    expect(upsertNewPostPublishedNotification).not.toHaveBeenCalled();
+    expect(queueAndSendPostPublishEmail).not.toHaveBeenCalled();
+    expect(result?.emailNotificationsSent).toBe(1);
   });
 });
