@@ -1,6 +1,7 @@
 "use server";
 
 import { getHubFeedFingerprint } from "@/lib/community/feed-fingerprint";
+import { getPublishedSpacesFingerprint } from "@/lib/community/spaces-fingerprint";
 import {
   countUnreadNotifications,
   requireNotificationRecipientUserId,
@@ -10,6 +11,7 @@ import { prisma } from "@/lib/db";
 export type MissionHubRefreshSnapshot = {
   feedVersion: string;
   latestPostId: string | null;
+  spacesVersion: string;
   unreadCount: number;
   latestNotificationAt: string | null;
 };
@@ -23,8 +25,9 @@ export async function fetchMissionHubRefreshSnapshotAction(
   { ok: true; snapshot: MissionHubRefreshSnapshot } | { ok: false; error: string }
 > {
   try {
-    const [feed, userId] = await Promise.all([
+    const [feed, spacesVersion, userId] = await Promise.all([
       getHubFeedFingerprint(spaceSlug ?? null),
+      getPublishedSpacesFingerprint(),
       requireNotificationRecipientUserId(),
     ]);
 
@@ -49,6 +52,7 @@ export async function fetchMissionHubRefreshSnapshotAction(
       snapshot: {
         feedVersion: feed.version,
         latestPostId: feed.latestPostId,
+        spacesVersion,
         unreadCount,
         latestNotificationAt,
       },

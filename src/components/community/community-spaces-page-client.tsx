@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import type { CommunitySpace } from "@/lib/community/types";
+import { useCommunityPublishedSpaces } from "./community-published-spaces-context";
 import { CommunitySpaceIcon } from "./community-space-icon";
 import { MissionHubPageHeader } from "./mission-hub-page-header";
 
 export function CommunitySpacesPageClient({
-  spaces,
+  spaces: spacesProp,
 }: {
   spaces: CommunitySpace[];
 }) {
+  const spaces = useCommunityPublishedSpaces(spacesProp);
   return (
     <>
       <MissionHubPageHeader

@@ -24,6 +24,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
+import { useMissionHubRefreshOptional } from "./mission-hub-refresh-context";
 
 /** Mobile sheet + desktop dialog for creating a space. */
 export function CommunityCreateSpaceFlow({
@@ -34,6 +35,7 @@ export function CommunityCreateSpaceFlow({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const missionHubRefresh = useMissionHubRefreshOptional();
   const keyboardInset = useVisualViewportKeyboardInset(open);
   const [form, setForm] = useState<SpaceFormState>(() => ({
     ...emptySpaceForm(),
@@ -64,8 +66,16 @@ export function CommunityCreateSpaceFlow({
 
   function finishSpaceCreated(slug: string) {
     handleOpenChange(false);
+    void missionHubRefresh?.refresh("manual", { force: true });
+
+    const path = `/community/${encodeURIComponent(slug)}`;
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+      window.location.assign(path);
+      return;
+    }
+
+    router.push(path);
     router.refresh();
-    router.push(`/community/${slug}`);
   }
 
   function handleDesktopSubmit(e: React.FormEvent) {

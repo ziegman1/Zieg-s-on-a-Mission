@@ -61,12 +61,17 @@ export function MissionHubRefreshProvider({
   const router = useRouter();
   const pathname = usePathname();
   const { isFeedRoute, spaceSlug } = missionHubFeedPathFromPathname(pathname);
+  const isCommunityHubRoute =
+    pathname.startsWith("/community") &&
+    !pathname.startsWith("/community/login") &&
+    !pathname.startsWith("/community/join");
 
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [feedHasUpdates, setFeedHasUpdates] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const baselineFeedVersion = useRef<string | null>(null);
+  const baselineSpacesVersion = useRef<string | null>(null);
   const baselineNotificationAt = useRef<string | null>(null);
   const lastRefreshAt = useRef(0);
   const refreshInFlight = useRef(false);
@@ -80,6 +85,7 @@ export function MissionHubRefreshProvider({
     (
       snapshot: {
         feedVersion: string;
+        spacesVersion: string;
         unreadCount: number;
         latestNotificationAt: string | null;
       },
@@ -90,19 +96,25 @@ export function MissionHubRefreshProvider({
         dispatchMissionHubNotificationsSync(snapshot.unreadCount);
       }
 
-      if (opts.compareFeed && isFeedRoute && baselineFeedVersion.current) {
-        const feedChanged = snapshot.feedVersion !== baselineFeedVersion.current;
+      if (opts.compareFeed && (isFeedRoute || isCommunityHubRoute)) {
+        const feedChanged =
+          baselineFeedVersion.current !== null &&
+          snapshot.feedVersion !== baselineFeedVersion.current;
+        const spacesChanged =
+          baselineSpacesVersion.current !== null &&
+          snapshot.spacesVersion !== baselineSpacesVersion.current;
         const notifChanged =
           snapshot.latestNotificationAt !== baselineNotificationAt.current;
-        if (feedChanged || notifChanged) {
+        if (feedChanged || spacesChanged || notifChanged) {
           setFeedHasUpdates(true);
         }
       }
 
       baselineFeedVersion.current = snapshot.feedVersion;
+      baselineSpacesVersion.current = snapshot.spacesVersion;
       baselineNotificationAt.current = snapshot.latestNotificationAt;
     },
-    [isFeedRoute, notificationUserId],
+    [isCommunityHubRoute, isFeedRoute, notificationUserId],
   );
 
   const loadSnapshot = useCallback(async () => {
@@ -129,7 +141,7 @@ export function MissionHubRefreshProvider({
           });
         }
 
-        if (isFeedRoute || source === "pull" || source === "focus" || opts?.force) {
+        if (isFeedRoute || isCommunityHubRoute || source === "pull" || source === "focus" || opts?.force) {
           router.refresh();
         }
 
@@ -140,7 +152,7 @@ export function MissionHubRefreshProvider({
         setIsRefreshing(false);
       }
     },
-    [applySnapshot, isFeedRoute, loadSnapshot, router],
+    [applySnapshot, isCommunityHubRoute, isFeedRoute, loadSnapshot, router],
   );
 
   const acknowledgeFeedUpdates = useCallback(() => {

@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import type { CommunityComposerSpace } from "@/lib/community/composer-types";
 import type { CommunityOwner } from "@/lib/community/owner-types";
@@ -8,6 +10,7 @@ import { MH } from "@/lib/community/hub-design";
 import { CommunityFeedShell } from "./community-feed-shell";
 import { CommunityFeedToolbar } from "./community-feed-toolbar";
 import { CommunityLeftNav } from "./community-left-nav";
+import { useCommunityPublishedSpaces } from "./community-published-spaces-context";
 import { cn } from "@/lib/utils";
 
 export function CommunityAppShell({
@@ -32,16 +35,19 @@ export function CommunityAppShell({
   spaceDetail?: CommunitySpaceDetail | null;
   children: ReactNode;
 }) {
+  const livePublishedSpaces = useCommunityPublishedSpaces(publishedSpaces);
   const spiritual = spaceDetail
     ? isSpiritualRoom(spaceDetail.experience.spaceType, spaceDetail.slug)
     : false;
-  const pillSpaces = spiritual ? filterSpacesForFeedPills(publishedSpaces) : publishedSpaces;
+  const pillSpaces = spiritual
+    ? filterSpacesForFeedPills(livePublishedSpaces)
+    : livePublishedSpaces;
 
   return (
     <div className={cn("w-full px-2 sm:px-3 pt-1 pb-3", MH.bottomNavH, "lg:pb-4")}>
       <div className="max-w-[92rem] mx-auto flex gap-0 lg:gap-5">
         <CommunityLeftNav
-          publishedSpaces={publishedSpaces}
+          publishedSpaces={livePublishedSpaces}
           plannedSpaces={plannedSpaces}
           showAdminCreate={showAdminCreate}
           activeSlug={activeSlug}

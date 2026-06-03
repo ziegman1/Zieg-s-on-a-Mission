@@ -12,6 +12,7 @@ import { normalizeSpaceTypeRaw } from "@/lib/community/space-interaction";
 import { parseSpaceType } from "@/lib/community/space-experience";
 import { resolveSortOrderForNewSpace } from "@/lib/community/space-order";
 import { mergeSpaceSettingsWithNotificationCategory } from "@/lib/community/space-notification-category";
+import { isReservedCommunitySpaceSlug } from "@/lib/community/reserved-space-slugs";
 import { prisma } from "@/lib/db";
 
 function revalidateCommunitySpaceOrder(...slugs: (string | undefined)[]): void {
@@ -43,6 +44,12 @@ export async function createCommunitySpaceAction(
   const data = parsed.data;
   const slug = data.slug || slugifyCommunityTitle(data.title);
   if (!slug) return { ok: false, error: "Slug is required" };
+  if (isReservedCommunitySpaceSlug(slug)) {
+    return {
+      ok: false,
+      error: "That slug is reserved for Mission Hub navigation. Choose a different name.",
+    };
+  }
 
   const formPayload = {
     ...data,
@@ -89,6 +96,12 @@ export async function updateCommunitySpaceAction(
   const data = parsed.data;
   const slug = data.slug || slugifyCommunityTitle(data.title);
   if (!slug) return { ok: false, error: "Slug is required" };
+  if (isReservedCommunitySpaceSlug(slug)) {
+    return {
+      ok: false,
+      error: "That slug is reserved for Mission Hub navigation. Choose a different name.",
+    };
+  }
 
   const formPayload = {
     ...data,

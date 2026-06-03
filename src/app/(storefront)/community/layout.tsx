@@ -2,17 +2,21 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { MissionHubShell } from "@/components/community/mission-hub-shell";
+import { CommunityPublishedSpacesProvider } from "@/components/community/community-published-spaces-context";
 import { getCurrentCommunityMember } from "@/lib/community/members";
 import { getAdminMembersHubPreview } from "@/lib/community/admin-members-preview";
 import { countUnreadNotifications } from "@/lib/community/notifications";
 import { listComposerSpacesForOwner } from "@/lib/community/composer-spaces";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
+import { listPublishedCommunitySpaces } from "@/lib/community/spaces";
 import { MISSION_HUB_PWA } from "@/lib/community/mission-hub-pwa";
 import { getSiteCopy } from "@/lib/site-copy";
 import { needsPartnershipOnboarding } from "@/lib/community/partnership-preferences";
 import { getUserPartnershipPreferences } from "@/lib/community/user-partnership-prefs";
 import { isCommunityMemberRole } from "@/lib/auth-roles";
 import { MissionHubPartnershipGate } from "@/components/community/mission-hub-partnership-gate";
+
+export const dynamic = "force-dynamic";
 
 export const viewport: Viewport = {
   themeColor: MISSION_HUB_PWA.themeColor,
@@ -54,12 +58,16 @@ export default async function CommunityLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [owner, member, copy, headersList, session] = await Promise.all([
+  const [owner, member, copy, headersList, session, publishedSpaces] = await Promise.all([
     getCurrentCommunityOwner(),
     getCurrentCommunityMember(),
     getSiteCopy(),
     headers(),
     auth(),
+    listPublishedCommunitySpaces().catch((e) => {
+      console.error("[community layout] published spaces:", e);
+      return [];
+    }),
   ]);
 
   const notificationUserId = session?.user?.id ?? null;
@@ -111,24 +119,26 @@ export default async function CommunityLayout({
   }
 
   return (
-    <MissionHubShell
-      owner={owner}
-      member={member}
-      siteName={copy.site.name}
-      showBottomNav={showBottomNav}
-      showInstallHint={!isAuthPage && !isSettingsPage}
-      accountImageUrl={session?.user?.image ?? null}
-      notificationUserId={notificationUserId}
-      initialUnreadCount={initialUnreadCount}
-      composerSpaces={composerSpaces}
-      membersPreview={membersPreview}
-    >
-      <MissionHubPartnershipGate
-        needsOnboarding={showPartnershipOnboarding}
-        initialPrefs={partnershipPrefs}
+    <CommunityPublishedSpacesProvider initialSpaces={publishedSpaces}>
+      <MissionHubShell
+        owner={owner}
+        member={member}
+        siteName={copy.site.name}
+        showBottomNav={showBottomNav}
+        showInstallHint={!isAuthPage && !isSettingsPage}
+        accountImageUrl={session?.user?.image ?? null}
+        notificationUserId={notificationUserId}
+        initialUnreadCount={initialUnreadCount}
+        composerSpaces={composerSpaces}
+        membersPreview={membersPreview}
       >
-        {children}
-      </MissionHubPartnershipGate>
-    </MissionHubShell>
+        <MissionHubPartnershipGate
+          needsOnboarding={showPartnershipOnboarding}
+          initialPrefs={partnershipPrefs}
+        >
+          {children}
+        </MissionHubPartnershipGate>
+      </MissionHubShell>
+    </CommunityPublishedSpacesProvider>
   );
 }

@@ -61,7 +61,8 @@ describe("Mission Hub create space flow", () => {
     );
 
     expect(flow).toContain("useVisualViewportKeyboardInset");
-    expect(flow).toContain("router.push(`/community/${slug}`)");
+    expect(flow).toContain("window.location.assign(path)");
+    expect(flow).toContain("useMissionHubRefreshOptional");
     expect(flow).toContain("onCreated={finishSpaceCreated}");
     expect(compact).toContain("onCreated(res.slug)");
     expect(compact).not.toContain("router.refresh");
@@ -76,6 +77,17 @@ describe("Mission Hub create space flow", () => {
     expect(sheet).toContain("safe-area-inset-top");
     expect(sheet).toContain("keyboardMaxHeight");
     expect(sheet).toContain("bodyRef");
+  });
+
+  it("loads published spaces in the community layout for live nav refresh", () => {
+    const layout = readFileSync(
+      resolve(process.cwd(), "src/app/(storefront)/community/layout.tsx"),
+      "utf8",
+    );
+
+    expect(layout).toContain("listPublishedCommunitySpaces");
+    expect(layout).toContain("CommunityPublishedSpacesProvider");
+    expect(layout).toContain('export const dynamic = "force-dynamic"');
   });
 });
 
