@@ -1,18 +1,35 @@
 import { auth } from "@/auth";
 import { isAdminRole } from "@/lib/admin-users";
 import type { CommunityNotificationType } from "@/lib/community/notification-types";
-import { isCommunityNotificationType } from "@/lib/community/notification-types";
 import {
   isVoicePrayerBody,
   prayerResponseNotificationExcerpt,
 } from "@/lib/community/prayer-response-body";
 import { prisma } from "@/lib/db";
 import { blogPublishNotificationDedupeKey } from "@/lib/blog/mission-hub-dedupe";
+import { mapNotificationRecordToItem } from "@/lib/community/notification-record-mapper";
+import {
+  BLOG_PUBLISHED_NOTIFICATION_TITLE,
+  BLOG_PUBLISHED_NOTIFICATION_TYPE,
+  NEWSLETTER_PUBLISHED_NOTIFICATION_TITLE,
+  NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE,
+  URGENT_PRAYER_REQUEST_NOTIFICATION_TITLE,
+  URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE,
+} from "@/lib/community/notification-type-constants";
 import { urgentPrayerPublishNotificationDedupeKey } from "@/lib/community/urgent-prayer-dedupe";
 import {
   newPostPublishNotificationDedupeKey,
   newsletterPublishNotificationDedupeKey,
 } from "@/lib/newsletter/mission-hub-dedupe";
+
+export {
+  BLOG_PUBLISHED_NOTIFICATION_TITLE,
+  BLOG_PUBLISHED_NOTIFICATION_TYPE,
+  NEWSLETTER_PUBLISHED_NOTIFICATION_TITLE,
+  NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE,
+  URGENT_PRAYER_REQUEST_NOTIFICATION_TITLE,
+  URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE,
+} from "@/lib/community/notification-type-constants";
 
 const OWNER_ROLES = ["ADMIN", "STAFF"] as const;
 
@@ -33,139 +50,6 @@ export async function countUnreadNotifications(userId: string): Promise<number> 
   return prisma.communityNotificationRecord.count({
     where: { recipientUserId: userId, readAt: null },
   });
-}
-
-function buildNotificationHref(spaceSlug: string | null, postId: string | null): string {
-  if (spaceSlug && postId) return `/community/${spaceSlug}#post-${postId}`;
-  if (spaceSlug) return `/community/${spaceSlug}`;
-  return "/community";
-}
-
-function parseNewsletterPublishedMetadata(
-  metadata: unknown,
-): NewsletterPublishedNotificationMetadata | null {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-  const m = metadata as Record<string, unknown>;
-  if (m.sourceKind !== "newsletter") return null;
-  const newsletterPath =
-    typeof m.newsletterPath === "string" && m.newsletterPath.trim()
-      ? m.newsletterPath.trim()
-      : null;
-  if (!newsletterPath) return null;
-  return {
-    sourceKind: "newsletter",
-    sourceId: typeof m.sourceId === "string" ? m.sourceId : "",
-    sourcePostId: typeof m.sourcePostId === "string" ? m.sourcePostId : "",
-    newsletterSlug: typeof m.newsletterSlug === "string" ? m.newsletterSlug : "",
-    newsletterPath,
-    missionHubSpaceSlug:
-      typeof m.missionHubSpaceSlug === "string" ? m.missionHubSpaceSlug : "",
-    ministryUpdatesPostId:
-      typeof m.ministryUpdatesPostId === "string" ? m.ministryUpdatesPostId : undefined,
-    ministryUpdatesSpaceSlug:
-      typeof m.ministryUpdatesSpaceSlug === "string"
-        ? m.ministryUpdatesSpaceSlug
-        : undefined,
-    newsletterSpacePostId:
-      typeof m.newsletterSpacePostId === "string" ? m.newsletterSpacePostId : undefined,
-  };
-}
-
-function buildNewsletterNotificationHref(
-  row: {
-    postId: string | null;
-    post: { status: string; space: { slug: string } } | null;
-    metadata: unknown;
-  },
-): string {
-  const meta = parseNewsletterPublishedMetadata(row.metadata);
-  if (row.post?.status === "published" && row.post.space.slug && row.postId) {
-    return buildNotificationHref(row.post.space.slug, row.postId);
-  }
-  if (
-    meta?.ministryUpdatesSpaceSlug &&
-    meta.ministryUpdatesPostId &&
-    row.postId === meta.ministryUpdatesPostId
-  ) {
-    return buildNotificationHref(meta.ministryUpdatesSpaceSlug, meta.ministryUpdatesPostId);
-  }
-  if (meta?.missionHubSpaceSlug && meta.sourcePostId) {
-    return buildNotificationHref(meta.missionHubSpaceSlug, meta.sourcePostId);
-  }
-  return meta?.newsletterPath ?? "/community";
-}
-
-function parseBlogPublishedMetadata(
-  metadata: unknown,
-): BlogPublishedNotificationMetadata | null {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-  const m = metadata as Record<string, unknown>;
-  if (m.sourceKind !== "blog") return null;
-  const blogPath =
-    typeof m.blogPath === "string" && m.blogPath.trim() ? m.blogPath.trim() : null;
-  if (!blogPath) return null;
-  return {
-    sourceKind: "blog",
-    sourceId: typeof m.sourceId === "string" ? m.sourceId : "",
-    sourcePostId: typeof m.sourcePostId === "string" ? m.sourcePostId : "",
-    blogSlug: typeof m.blogSlug === "string" ? m.blogSlug : "",
-    blogPath,
-    missionHubSpaceSlug:
-      typeof m.missionHubSpaceSlug === "string" ? m.missionHubSpaceSlug : "",
-  };
-}
-
-function buildBlogNotificationHref(
-  row: {
-    postId: string | null;
-    post: { status: string; space: { slug: string } } | null;
-    metadata: unknown;
-  },
-): string {
-  const meta = parseBlogPublishedMetadata(row.metadata);
-  if (row.post?.status === "published" && row.post.space.slug && row.postId) {
-    return buildNotificationHref(row.post.space.slug, row.postId);
-  }
-  if (meta?.missionHubSpaceSlug && meta.sourcePostId) {
-    return buildNotificationHref(meta.missionHubSpaceSlug, meta.sourcePostId);
-  }
-  return meta?.blogPath ?? "/blog";
-}
-
-function recordToItem(row: {
-  id: string;
-  type: string;
-  title: string;
-  body: string | null;
-  readAt: Date | null;
-  createdAt: Date;
-  postId: string | null;
-  commentId: string | null;
-  metadata: unknown;
-  post: { status: string; space: { slug: string } } | null;
-}): import("@/lib/community/notification-types").CommunityNotificationItem | null {
-  if (!isCommunityNotificationType(row.type)) return null;
-  const spaceSlug = row.post?.space.slug ?? null;
-  const href =
-    row.type === NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE
-      ? buildNewsletterNotificationHref(row)
-      : row.type === "blog_published"
-        ? buildBlogNotificationHref(row)
-        : row.type === URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE
-          ? buildNotificationHref(spaceSlug, row.postId)
-          : buildNotificationHref(spaceSlug, row.postId);
-  return {
-    id: row.id,
-    type: row.type,
-    title: row.title,
-    body: row.body,
-    readAt: row.readAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString(),
-    postId: row.postId,
-    commentId: row.commentId,
-    spaceSlug,
-    href,
-  };
 }
 
 export type NotificationsListForUser = {
@@ -198,7 +82,7 @@ export async function listNotificationsGroupedForUser(
   });
 
   const items = rows
-    .map(recordToItem)
+    .map(mapNotificationRecordToItem)
     .filter((n): n is NonNullable<typeof n> => n !== null);
 
   const unread: NotificationsListForUser["unread"] = [];
@@ -267,9 +151,6 @@ export async function markAllNotificationsRead(userId: string): Promise<number> 
   });
   return result.count;
 }
-
-export const NEWSLETTER_PUBLISHED_NOTIFICATION_TYPE = "newsletter_published" as const;
-export const NEWSLETTER_PUBLISHED_NOTIFICATION_TITLE = "New newsletter published";
 
 export { newsletterPublishNotificationDedupeKey } from "@/lib/newsletter/mission-hub-dedupe";
 
@@ -383,9 +264,6 @@ export async function upsertNewsletterPublishedNotification(input: {
   });
   return "created";
 }
-
-export const BLOG_PUBLISHED_NOTIFICATION_TYPE = "blog_published" as const;
-export const BLOG_PUBLISHED_NOTIFICATION_TITLE = "New blog article published";
 
 export { blogPublishNotificationDedupeKey } from "@/lib/blog/mission-hub-dedupe";
 
@@ -536,9 +414,6 @@ export async function upsertNewPostPublishedNotification(input: {
   });
   return "created";
 }
-
-export const URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE = "urgent_prayer_request" as const;
-export const URGENT_PRAYER_REQUEST_NOTIFICATION_TITLE = "Urgent prayer request";
 
 export { urgentPrayerPublishNotificationDedupeKey } from "@/lib/community/urgent-prayer-dedupe";
 
