@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { focusMissionHubCommentInput } from "@/lib/community/use-mobile-composer-focus";
+import {
+  scrollMissionHubPostIntoView,
+  shouldAutoScrollToFeed,
+} from "@/lib/community/mission-hub-scroll";
 import Link from "next/link";
 import { CommunityPostCoverImage } from "./community-post-cover-image";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
@@ -78,8 +82,14 @@ export function CommunityPostCard({
 
   useEffect(() => {
     if (!commentsOpen) return;
-    const el = document.getElementById(`post-${post.id}`);
-    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (
+      !shouldAutoScrollToFeed({
+        userInitiated: true,
+      })
+    ) {
+      return;
+    }
+    scrollMissionHubPostIntoView(post.id, { userInitiated: true });
   }, [commentsOpen, post.id]);
   const returnPath = showSpaceLabel ? "/community" : `/community/${post.spaceSlug}`;
 
@@ -233,16 +243,15 @@ export function CommunityPostCard({
         )}
       </div>
 
-      {!prayerSpace && post.spaceAllowComments ? (
+      {!prayerSpace && post.spaceAllowComments && commentsOpen ? (
         <div
           className={cn(
             "pt-0 border-t transition-[opacity,padding] duration-150",
             spiritual
               ? "px-3.5 sm:px-4 border-black/[0.03]"
               : "px-3.5 sm:px-4 border-black/[0.04]",
-            commentsOpen ? "pb-3.5 opacity-100" : "h-0 min-h-0 overflow-hidden opacity-0 pointer-events-none border-t-0 pb-0",
+            "pb-3.5 opacity-100",
           )}
-          aria-hidden={!commentsOpen}
         >
           <CommunityComments
             postId={post.id}

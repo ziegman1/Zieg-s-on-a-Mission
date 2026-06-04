@@ -35,6 +35,8 @@ export function useMobileComposerFocus(
   inputRef: RefObject<HTMLTextAreaElement | HTMLInputElement | null>,
   /** Bump when the comment panel opens to re-run mobile focus. */
   focusKey = 0,
+  /** When false, focus without scrolling the viewport (default for passive mounts). */
+  scrollIntoViewOnFocus = true,
 ) {
   useEffect(() => {
     if (!enabled) return;
@@ -43,13 +45,15 @@ export function useMobileComposerFocus(
       const el = inputRef.current;
       if (!el || el.disabled) return false;
       try {
-        el.focus({ preventScroll: false });
+        el.focus({ preventScroll: !scrollIntoViewOnFocus });
         const len = el.value.length;
         el.setSelectionRange(len, len);
       } catch {
         el.focus();
       }
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      if (scrollIntoViewOnFocus) {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
       return true;
     };
 
@@ -74,5 +78,5 @@ export function useMobileComposerFocus(
       cancelAnimationFrame(raf);
       for (const id of timers) window.clearTimeout(id);
     };
-  }, [enabled, focusKey, inputRef]);
+  }, [enabled, focusKey, inputRef, scrollIntoViewOnFocus]);
 }

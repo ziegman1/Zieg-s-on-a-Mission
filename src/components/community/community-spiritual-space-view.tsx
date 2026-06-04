@@ -21,6 +21,10 @@ import { CommunityPrayerToast } from "./community-prayer-toast";
 import { CommunitySpiritualEmptyState } from "./community-spiritual-empty-state";
 import { CommunitySpaceHero } from "./community-space-hero";
 import { CommunitySpaceWelcomeIntro } from "./community-space-welcome-intro";
+import {
+  scrollMissionHubFeedIntoView,
+  shouldAutoScrollToFeed,
+} from "@/lib/community/mission-hub-scroll";
 
 export function CommunitySpiritualSpaceView({
   space,
@@ -62,8 +66,17 @@ export function CommunitySpiritualSpaceView({
   }, []);
 
   const scrollToFeed = useCallback(() => {
-    feedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+    if (
+      !shouldAutoScrollToFeed({
+        userInitiated: true,
+        hasWelcomeHero: true,
+        spaceSlug: space.slug,
+      })
+    ) {
+      return;
+    }
+    scrollMissionHubFeedIntoView(feedRef.current);
+  }, [space.slug]);
 
   useEffect(() => {
     const kind = parsePrayerRoomComposerKind(searchParams.get("compose"));
