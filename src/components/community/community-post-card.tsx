@@ -35,12 +35,14 @@ export function CommunityPostCard({
   variant = "default",
   owner = null,
   composerSpaces = [],
+  isLatestInFeed = false,
 }: {
   post: CommunityPostFeedItem;
   showSpaceLabel?: boolean;
   variant?: "default" | "spiritual";
   owner?: CommunityOwner | null;
   composerSpaces?: CommunityComposerSpace[];
+  isLatestInFeed?: boolean;
 }) {
   const [post, setPost] = useState(postProp);
   const [removed, setRemoved] = useState(false);
@@ -99,6 +101,7 @@ export function CommunityPostCard({
   return (
     <article
       id={`post-${post.id}`}
+      data-mission-hub-latest-post={isLatestInFeed ? "true" : undefined}
       className={cn(
         "scroll-mt-[5.5rem] overflow-hidden",
         spiritual

@@ -10,6 +10,8 @@ import { listComposerSpacesForOwner } from "@/lib/community/composer-spaces";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
 import { listPublishedPostsFeed } from "@/lib/community/posts";
 import { listPublishedCommunitySpaces } from "@/lib/community/spaces";
+import { filterHubAllFeedPosts } from "@/lib/community/feed-filters";
+import { resolveMissionHubLandingMode } from "@/lib/community/mission-hub-scroll";
 import { getVisitorKey } from "@/lib/community/visitor-key";
 import {
   communityIntroIsVisible,
@@ -57,6 +59,9 @@ export default async function CommunityPage() {
 
   const hasPublished = publishedSpaces.length > 0;
   const hasPosts = posts.length > 0;
+  const displayPosts = filterHubAllFeedPosts(posts);
+  const latestPostId = displayPosts[0]?.id ?? null;
+  const landingMode = resolveMissionHubLandingMode("/community", { latestPostId });
   const plannedSpaces = hasPublished ? [] : PLACEHOLDER_COMMUNITY_SPACES;
 
   return (
@@ -78,6 +83,8 @@ export default async function CommunityPage() {
             showSpaceLabel
             owner={owner}
             composerSpaces={composerSpaces}
+            landingMode={landingMode}
+            landingRouteKey="/community"
           />
         ) : (
           <CommunityFeedEmpty

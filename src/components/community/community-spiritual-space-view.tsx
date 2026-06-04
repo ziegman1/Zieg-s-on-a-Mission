@@ -24,7 +24,9 @@ import { CommunitySpaceWelcomeIntro } from "./community-space-welcome-intro";
 import {
   scrollMissionHubFeedIntoView,
   shouldAutoScrollToFeed,
+  spaceShouldLandAtHero,
 } from "@/lib/community/mission-hub-scroll";
+import { MissionHubInitialLandingScroll } from "./mission-hub-initial-landing-scroll";
 
 export function CommunitySpiritualSpaceView({
   space,
@@ -69,14 +71,18 @@ export function CommunitySpiritualSpaceView({
     if (
       !shouldAutoScrollToFeed({
         userInitiated: true,
-        hasWelcomeHero: true,
+        hasWelcomeHero: spaceShouldLandAtHero({
+          slug: space.slug,
+          spaceType: space.experience.spaceType,
+          coverImageUrl: space.experience.coverImageUrl,
+        }),
         spaceSlug: space.slug,
       })
     ) {
       return;
     }
     scrollMissionHubFeedIntoView(feedRef.current);
-  }, [space.slug]);
+  }, [space.slug, space.experience.spaceType, space.experience.coverImageUrl]);
 
   useEffect(() => {
     const kind = parsePrayerRoomComposerKind(searchParams.get("compose"));
@@ -110,6 +116,10 @@ export function CommunitySpiritualSpaceView({
 
   return (
     <>
+      <MissionHubInitialLandingScroll
+        mode="hero"
+        routeKey={`/community/${space.slug}`}
+      />
       <div className="space-y-3 sm:space-y-5">
         <CommunitySpaceHero space={space} />
         <CommunitySpacePageHeader title={space.title} />

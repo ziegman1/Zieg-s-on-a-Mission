@@ -13,7 +13,6 @@ import {
 } from "./mission-hub-live-layer";
 import { MissionHubNavBoundary } from "./mission-hub-nav-boundary";
 import { MissionHubStandaloneInit } from "./mission-hub-standalone-init";
-import { MissionHubInitialScrollGuard } from "./mission-hub-initial-scroll-guard";
 import { MissionHubSwRegister } from "./mission-hub-sw-register";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +55,6 @@ export function MissionHubShell({
       )}
     >
       <MissionHubStandaloneInit />
-      <MissionHubInitialScrollGuard />
       <MissionHubSwRegister />
       <MissionHubRefreshRoot
         notificationUserId={notificationUserId}
