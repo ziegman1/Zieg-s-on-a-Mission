@@ -9,6 +9,7 @@ import { attachCommentCountsToFeedPosts } from "@/lib/community/comments";
 import { attachReactionsToFeedPosts } from "@/lib/community/reactions";
 import { interactionFromSpaceRow, spaceExperienceSelect } from "@/lib/community/space-experience";
 import { filterHubAllFeedPosts, hubAllFeedPostWhere } from "@/lib/community/feed-filters";
+import { attachBlogAnnouncementToFeedItem } from "@/lib/blog/mission-hub-announcement";
 import { attachNewsletterAnnouncementToFeedItem } from "@/lib/newsletter/mission-hub-announcement";
 import type { CommunityPostFeedItem, CommunityPostFeedItemBase, CommunityPostType } from "@/lib/community/types";
 import { prisma } from "@/lib/db";
@@ -67,9 +68,15 @@ function recordToFeedItem(
       spaceEngagementPrompt: interaction.engagementPrompt,
       spaceType: interaction.spaceType,
     };
-    return attachNewsletterAnnouncementToFeedItem(base, {
+    const withNewsletter = attachNewsletterAnnouncementToFeedItem(base, {
       sourceKind: row.sourceKind ?? null,
       metadata: row.metadata ?? {},
+    });
+    return attachBlogAnnouncementToFeedItem(withNewsletter, {
+      sourceKind: row.sourceKind ?? null,
+      metadata: row.metadata ?? {},
+      postType: row.postType,
+      publishedAt: base.publishedAt,
     });
   } catch (e) {
     console.warn("[community feed] recordToFeedItem skipped row", row.id, e);

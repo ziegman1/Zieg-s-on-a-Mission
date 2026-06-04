@@ -84,6 +84,16 @@ export type CommunityPostFeedItemBase = {
   spaceType: string;
   /** Present when post is a Newsletter Builder announcement (links to /newsletters/[slug]) */
   newsletterAnnouncement?: NewsletterAnnouncementFeedLink | null;
+  /** Present when post is a Blog Builder announcement (links to /blog/[slug]) */
+  blogAnnouncement?: BlogAnnouncementFeedLink | null;
+};
+
+/** Parsed from `community_posts.metadata` for blog publish announcements */
+export type BlogAnnouncementFeedLink = {
+  blogPath: string;
+  blogSlug: string;
+  blogPostId: string;
+  publishedAt: string | null;
 };
 
 /** Parsed from `community_posts.metadata` for newsletter publish announcements */

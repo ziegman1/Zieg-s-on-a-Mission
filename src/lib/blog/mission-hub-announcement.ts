@@ -3,6 +3,10 @@ import { spaceFormDataFromInput } from "@/lib/community/space-form";
 import { mergeSpaceSettingsWithNotificationCategory } from "@/lib/community/space-notification-category";
 import { resolveSortOrderForNewSpace } from "@/lib/community/space-order";
 import { buildCompactSpaceCreatePayload } from "@/lib/community/compact-space-create-payload";
+import type {
+  BlogAnnouncementFeedLink,
+  CommunityPostFeedItemBase,
+} from "@/lib/community/types";
 import { prisma } from "@/lib/db";
 import type { BlogPostRecord } from "./types";
 
@@ -27,6 +31,74 @@ export type UpsertMissionHubBlogAnnouncementResult = {
 
 export function blogPublicPath(slug: string): string {
   return `/blog/${slug.trim()}`;
+}
+
+export function formatBlogPublishedDateLabel(publishedAt: string | null): string | null {
+  if (!publishedAt?.trim()) return null;
+  try {
+    return new Date(publishedAt).toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return null;
+  }
+}
+
+export function parseBlogAnnouncementMetadata(
+  metadata: unknown,
+  sourceKind: string | null,
+  postType?: string | null,
+): Omit<BlogAnnouncementFeedLink, "publishedAt"> | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const m = metadata as Record<string, unknown>;
+  if (m.kind !== "blog_announcement") return null;
+
+  const fromBlogSource = sourceKind === BLOG_SOURCE_KIND;
+  const fromBlogPostType = postType === "blog";
+  if (!fromBlogSource && !fromBlogPostType) return null;
+
+  const slug = typeof m.blogSlug === "string" ? m.blogSlug.trim() : "";
+  const path =
+    typeof m.blogPath === "string" && m.blogPath.trim()
+      ? m.blogPath.trim()
+      : slug
+        ? blogPublicPath(slug)
+        : "";
+  if (!path) return null;
+
+  return {
+    blogPath: path,
+    blogSlug: slug,
+    blogPostId: typeof m.blogPostId === "string" ? m.blogPostId : "",
+  };
+}
+
+export function attachBlogAnnouncementToFeedItem<
+  T extends CommunityPostFeedItemBase,
+>(
+  item: T,
+  row: {
+    sourceKind: string | null;
+    metadata: unknown;
+    postType?: string | null;
+    publishedAt?: string | null;
+  },
+): T {
+  const parsed = parseBlogAnnouncementMetadata(
+    row.metadata,
+    row.sourceKind,
+    row.postType ?? item.postType,
+  );
+  if (!parsed) return item;
+  return {
+    ...item,
+    blogAnnouncement: {
+      ...parsed,
+      publishedAt: row.publishedAt ?? item.publishedAt ?? null,
+    },
+  };
 }
 
 function firstParagraph(body: string): string {
