@@ -13,6 +13,15 @@ describe("admin members hub preview", () => {
     expect(layout).toContain("membersPreview={membersPreview}");
   });
 
+  it("preview includes active this week metric", () => {
+    const preview = readFileSync(
+      resolve(process.cwd(), "src/lib/community/admin-members-preview.ts"),
+      "utf8",
+    );
+    expect(preview).toContain("countActiveMembersThisWeek");
+    expect(preview).toContain("activeThisWeek");
+  });
+
   it("panel action loads full list on demand", () => {
     const actions = readFileSync(
       resolve(process.cwd(), "src/app/(storefront)/community/hub-admin-members-actions.ts"),

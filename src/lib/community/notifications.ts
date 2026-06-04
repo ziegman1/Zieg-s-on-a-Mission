@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import { isAdminRole } from "@/lib/admin-users";
 import type { CommunityNotificationType } from "@/lib/community/notification-types";
 import {
   isVoicePrayerBody,
@@ -796,47 +795,4 @@ export async function notifyMemberJoined(input: {
   }
 }
 
-/** Resolve actor display name from member or visitor key. */
-export async function resolveReactionActor(visitorKey: string): Promise<{
-  actorUserId: string | null;
-  actorMemberId: string | null;
-  actorDisplayName: string;
-  actorIsOwner: boolean;
-}> {
-  const session = await auth();
-  if (session?.user?.id && isAdminRole(session.user.role)) {
-    return {
-      actorUserId: session.user.id,
-      actorMemberId: null,
-      actorDisplayName:
-        session.user.name?.trim() || session.user.email?.split("@")[0] || "Owner",
-      actorIsOwner: true,
-    };
-  }
-
-  const member = await prisma.communityMemberRecord.findFirst({
-    where: { visitorKey },
-    select: {
-      id: true,
-      userId: true,
-      firstName: true,
-      lastName: true,
-    },
-  });
-
-  if (member) {
-    return {
-      actorUserId: member.userId,
-      actorMemberId: member.id,
-      actorDisplayName: `${member.firstName.trim()} ${member.lastName.trim()}`.trim(),
-      actorIsOwner: false,
-    };
-  }
-
-  return {
-    actorUserId: session?.user?.id ?? null,
-    actorMemberId: null,
-    actorDisplayName: "Someone",
-    actorIsOwner: false,
-  };
-}
+export { resolveReactionActor } from "@/lib/community/community-actor";

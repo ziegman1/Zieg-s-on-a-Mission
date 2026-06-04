@@ -1,3 +1,4 @@
+import { resolveReactionDisplayNamesByVisitorKeys } from "@/lib/community/community-actor";
 import { COMMUNITY_REACTION_TYPES } from "@/lib/community/types";
 import type { CommunityReactionType, ReactionCounts } from "@/lib/community/types";
 import { prisma } from "@/lib/db";
@@ -188,20 +189,7 @@ export async function listPostReactionDetails(
   });
 
   const keys = [...new Set(rows.map((r) => r.visitorKey))];
-  const members =
-    keys.length > 0
-      ? await prisma.communityMemberRecord.findMany({
-          where: { visitorKey: { in: keys } },
-          select: { visitorKey: true, firstName: true, lastName: true },
-        })
-      : [];
-
-  const nameByKey = new Map(
-    members.map((m) => [
-      m.visitorKey,
-      `${m.firstName.trim()} ${m.lastName.trim()}`.trim() || "Member",
-    ]),
-  );
+  const nameByKey = await resolveReactionDisplayNamesByVisitorKeys(keys);
 
   const result: PostReactionDetail[] = [];
   for (const row of rows) {

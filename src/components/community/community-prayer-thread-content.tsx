@@ -20,12 +20,13 @@ import { CommunityJoinPrompt } from "./community-join-prompt";
 import { CommunityMemberProfileForm } from "./community-member-profile-form";
 import { Button } from "@/components/ui/button";
 import { MISSION_HUB_REFRESH_EVENT } from "@/lib/community/mission-hub-refresh";
-import { cn } from "@/lib/utils";
+import { countVoiceResponsesInThreads } from "@/lib/community/prayer-room-engagement-metrics";
 
 export function CommunityPrayerThreadContent({
   postId,
   returnPath,
   onCommentCountChange,
+  onResponseMetricsChange,
   onRequestSharePrayer,
   allowComments = true,
   spaceType,
@@ -35,6 +36,10 @@ export function CommunityPrayerThreadContent({
   postId: string;
   returnPath?: string;
   onCommentCountChange?: (count: number) => void;
+  onResponseMetricsChange?: (metrics: {
+    commentCount: number;
+    voiceResponseCount: number;
+  }) => void;
   onRequestSharePrayer?: () => void;
   allowComments?: boolean;
   spaceType?: string;
@@ -59,8 +64,12 @@ export function CommunityPrayerThreadContent({
       }
       setThreads(res.threads);
       onCommentCountChange?.(res.commentCount);
+      onResponseMetricsChange?.({
+        commentCount: res.commentCount,
+        voiceResponseCount: countVoiceResponsesInThreads(res.threads),
+      });
     });
-  }, [postId, onCommentCountChange]);
+  }, [postId, onCommentCountChange, onResponseMetricsChange]);
 
   useEffect(() => {
     loadComments();
@@ -93,6 +102,10 @@ export function CommunityPrayerThreadContent({
   }) {
     setThreads(result.threads);
     onCommentCountChange?.(result.commentCount);
+    onResponseMetricsChange?.({
+      commentCount: result.commentCount,
+      voiceResponseCount: countVoiceResponsesInThreads(result.threads),
+    });
   }
 
   return (

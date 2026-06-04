@@ -10,6 +10,7 @@ import { createCommunityAccount } from "@/lib/community/account";
 import { joinCommunitySchema, updateMemberProfileSchema } from "@/lib/community/member-form";
 import {
   getCurrentCommunityMember,
+  syncMemberVisitorKeyForUser,
   updateMemberProfileForUser,
 } from "@/lib/community/members";
 import { getOrSetVisitorKey } from "@/lib/community/visitor-key";
@@ -88,7 +89,7 @@ export async function communityLoginAction(
   const prisma = prismaForCredentialsAuth();
   const user = await prisma.user.findFirst({
     where: { email: { equals: trimmedEmail, mode: "insensitive" } },
-    select: { role: true, passwordHash: true },
+    select: { id: true, role: true, passwordHash: true },
   });
 
   if (!user) {
@@ -143,6 +144,13 @@ export async function communityLoginAction(
 
   if (!signInResult.ok) {
     return { error: signInResult.error };
+  }
+
+  if (user.role === "CUSTOMER") {
+    const visitorKey = await getOrSetVisitorKey();
+    await syncMemberVisitorKeyForUser(user.id, visitorKey).catch((err) =>
+      console.error("[community/login] visitorKey sync:", err),
+    );
   }
 
   return { error: null };

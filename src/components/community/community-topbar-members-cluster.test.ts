@@ -53,6 +53,8 @@ describe("Mission Hub topbar members cluster", () => {
     );
     expect(panel).toContain("filterAdminMemberRows");
     expect(panel).toContain("Active today");
+    expect(panel).toContain("Active this week");
+    expect(panel).not.toContain('label="Unread"');
     expect(panel).toContain('type="search"');
   });
 });

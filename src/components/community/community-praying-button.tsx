@@ -12,17 +12,26 @@ export function CommunityPrayingButton({
   onToggle,
   className,
   showCount = false,
+  peoplePrayingLabel = false,
 }: {
   count: number;
   active: boolean;
   disabled?: boolean;
   onToggle: () => void;
   className?: string;
-  /** When true, append reaction count (e.g. "Praying · 3"). Prayer room feed uses false. */
+  /** When true, append reaction count (e.g. "Praying · 3"). */
   showCount?: boolean;
+  /** Prayer room: show "People praying · N" when count > 0 and showCount is true. */
+  peoplePrayingLabel?: boolean;
 }) {
   const label =
-    showCount && count > 0 ? `Praying · ${count}` : "Praying";
+    showCount && count > 0
+      ? peoplePrayingLabel
+        ? count === 1
+          ? "People praying · 1"
+          : `People praying · ${count}`
+        : `Praying · ${count}`
+      : "Praying";
 
   return (
     <button

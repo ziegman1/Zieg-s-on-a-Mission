@@ -96,19 +96,12 @@ export function CommunityMembersAdminPanel({
     });
   }, [members, query]);
 
-  const totalUnread = useMemo(
-    () => (members ?? []).reduce((sum, m) => sum + m.unreadNotificationCount, 0),
-    [members],
-  );
-
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
         <StatPill label="Members" value={preview.totalMembers} />
         <StatPill label="Active today" value={preview.activeToday} />
-        {members && totalUnread > 0 ? (
-          <StatPill label="Unread" value={totalUnread} />
-        ) : null}
+        <StatPill label="Active this week" value={preview.activeThisWeek} />
       </div>
 
       <label className="relative block">

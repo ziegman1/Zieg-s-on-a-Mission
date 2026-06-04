@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toggleCommunityPostReactionAction } from "@/app/(storefront)/community/reaction-actions";
+import {
+  derivePostPrayerEngagementMetrics,
+  formatResponsesLabel,
+  formatVoicePrayersLabel,
+  responsesThreadAriaLabel,
+} from "@/lib/community/prayer-room-engagement-metrics";
 import type { SpaceInteractionPreset } from "@/lib/community/space-interaction";
 import type { CommunityReactionType, ReactionCounts } from "@/lib/community/types";
 import { CommunityPrayerComposerSheet } from "./community-prayer-composer-sheet";
@@ -24,11 +30,21 @@ const shareCtaClass = cn(
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-1",
 );
 
+const metricPillClass = cn(
+  "shrink-0 inline-flex items-center rounded-full px-2.5 py-1",
+  "text-[12px] font-medium leading-tight text-brand-primary/80",
+  "bg-brand-primary/6 ring-1 ring-brand-primary/12",
+  "hover:bg-brand-primary/10 hover:text-brand-primary",
+  "transition-colors duration-150 touch-manipulation active:opacity-80",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30",
+);
+
 export function CommunityPrayerEngagement({
   postId,
   initialCounts,
   initialMyReactions,
   initialCommentCount,
+  initialVoiceResponseCount = 0,
   allowReactions = true,
   allowComments = true,
   preset,
@@ -42,6 +58,7 @@ export function CommunityPrayerEngagement({
   initialCounts: ReactionCounts;
   initialMyReactions: CommunityReactionType[];
   initialCommentCount: number;
+  initialVoiceResponseCount?: number;
   allowReactions?: boolean;
   allowComments?: boolean;
   preset: SpaceInteractionPreset;
@@ -55,7 +72,8 @@ export function CommunityPrayerEngagement({
   const [isPraying, setIsPraying] = useState(
     () => initialMyReactions.includes(PRAYING_REACTION_TYPE),
   );
-  const [prayerCount, setPrayerCount] = useState(initialCommentCount);
+  const [responseCount, setResponseCount] = useState(initialCommentCount);
+  const [voiceResponseCount, setVoiceResponseCount] = useState(initialVoiceResponseCount);
   const [countPulse, setCountPulse] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [threadOpen, setThreadOpen] = useState(false);
@@ -64,11 +82,23 @@ export function CommunityPrayerEngagement({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const prayingCount = counts.prayed ?? 0;
+  const metrics = useMemo(
+    () =>
+      derivePostPrayerEngagementMetrics({
+        reactionCounts: counts,
+        commentCount: responseCount,
+        voiceResponseCount,
+      }),
+    [counts, responseCount, voiceResponseCount],
+  );
 
   useEffect(() => {
-    setPrayerCount(initialCommentCount);
+    setResponseCount(initialCommentCount);
   }, [initialCommentCount]);
+
+  useEffect(() => {
+    setVoiceResponseCount(initialVoiceResponseCount);
+  }, [initialVoiceResponseCount]);
 
   useEffect(() => {
     setIsPraying(initialMyReactions.includes(PRAYING_REACTION_TYPE));
@@ -99,7 +129,7 @@ export function CommunityPrayerEngagement({
   }
 
   function handlePrayerShared(commentCount: number) {
-    setPrayerCount(commentCount);
+    setResponseCount(commentCount);
     setThreadRefreshKey((k) => k + 1);
     setCountPulse(true);
     window.setTimeout(() => setCountPulse(false), 700);
@@ -108,10 +138,9 @@ export function CommunityPrayerEngagement({
   }
 
   const shareLabel = preset.comments.emptyCta;
-  const threadAriaLabel =
-    prayerCount === 0
-      ? "View prayers — none shared yet"
-      : `View ${prayerCount} ${prayerCount === 1 ? "prayer" : "prayers"}`;
+  const responsesLabel = formatResponsesLabel(metrics.responseCount);
+  const voicePrayersLabel = formatVoicePrayersLabel(metrics.voiceResponseCount);
+  const threadAriaLabel = responsesThreadAriaLabel(metrics.responseCount);
 
   if (!allowReactions && !allowComments) {
     return null;
@@ -123,10 +152,12 @@ export function CommunityPrayerEngagement({
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           {allowReactions ? (
             <CommunityPrayingButton
-              count={prayingCount}
+              count={metrics.peoplePrayingCount}
               active={isPraying}
               disabled={isPending}
               onToggle={togglePraying}
+              showCount={metrics.peoplePrayingCount > 0}
+              peoplePrayingLabel
             />
           ) : null}
 
@@ -138,25 +169,21 @@ export function CommunityPrayerEngagement({
         </div>
 
         {allowComments ? (
-          <button
-            type="button"
-            onClick={() => setThreadOpen(true)}
-            aria-label={threadAriaLabel}
-            className={cn(
-              "shrink-0 inline-flex items-center gap-0.5 py-1 pl-1 min-h-[2rem] min-w-[2rem] justify-center",
-              "text-brand-primary/70 hover:text-brand-primary",
-              "transition-colors duration-150 touch-manipulation active:opacity-80",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30 rounded-md",
-              countPulse && "text-brand-primary",
-            )}
-          >
-            <span className="text-[15px] leading-none" aria-hidden>
-              🙏
-            </span>
-            <span className="tabular-nums text-[13px] font-semibold leading-none">
-              {prayerCount}
-            </span>
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {voicePrayersLabel ? (
+              <span className={cn(metricPillClass, "cursor-default")} aria-label={voicePrayersLabel}>
+                {voicePrayersLabel}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setThreadOpen(true)}
+              aria-label={threadAriaLabel}
+              className={cn(metricPillClass, countPulse && "text-brand-primary ring-brand-primary/25")}
+            >
+              {responsesLabel}
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -178,9 +205,13 @@ export function CommunityPrayerEngagement({
         postId={postId}
         preset={preset}
         returnPath={returnPath}
-        prayerCount={prayerCount}
+        prayerCount={responseCount}
         refreshKey={threadRefreshKey}
-        onCommentCountChange={setPrayerCount}
+        onCommentCountChange={setResponseCount}
+        onResponseMetricsChange={({ commentCount, voiceResponseCount: voiceCount }) => {
+          setResponseCount(commentCount);
+          setVoiceResponseCount(voiceCount);
+        }}
         onRequestSharePrayer={() => {
           setThreadOpen(false);
           setComposerOpen(true);

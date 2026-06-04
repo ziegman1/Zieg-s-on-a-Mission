@@ -10,6 +10,7 @@ import type {
 } from "@/lib/community/admin-members-portal-types";
 import { prisma } from "@/lib/db";
 
+export { countActiveMembersThisWeek } from "@/lib/community/admin-members-active-week";
 export type { AdminMemberDetail, AdminMemberPortalRow } from "@/lib/community/admin-members-portal-types";
 export {
   displayEmail,

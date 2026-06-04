@@ -8,4 +8,5 @@ export type AdminMembersHubPreview = {
   avatars: AdminMemberAvatarPreview[];
   totalMembers: number;
   activeToday: number;
+  activeThisWeek: number;
 };

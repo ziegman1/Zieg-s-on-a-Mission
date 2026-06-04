@@ -2,6 +2,7 @@ import { getCommunityAdminStats } from "@/lib/community/admin-community-stats";
 import { listAllCommunitySpacesForAdmin } from "@/lib/community/spaces";
 import { CommunityAdminDashboard } from "./community-admin-dashboard";
 import { CommunitySpacesManager } from "./community-spaces-manager";
+import { WeeklyDigestPreviewPanel } from "./weekly-digest-preview-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function AdminCommunityPage() {
         </p>
       </div>
       {stats ? <CommunityAdminDashboard stats={stats} /> : null}
+      <WeeklyDigestPreviewPanel />
       <div className="space-y-6">
         <h2 className="font-serif text-2xl text-brand-primary tracking-wide">Spaces</h2>
         {dbError ? (

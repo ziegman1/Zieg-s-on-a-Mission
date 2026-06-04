@@ -1,6 +1,10 @@
 "use client";
 
-import { summarizePrayerRoomActivity } from "@/lib/community/prayer-room-composer";
+import {
+  derivePrayerRoomWelcomeMetrics,
+  formatViewRequestsLabel,
+  viewRequestsAriaLabel,
+} from "@/lib/community/prayer-room-engagement-metrics";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
 import { CommunityPrayerRoomJoinCta } from "./community-prayer-room-join-cta";
 import { cn } from "@/lib/utils";
@@ -16,13 +20,8 @@ export function CommunityPrayerRoomWelcomeActions({
   onScrollToFeed: () => void;
   className?: string;
 }) {
-  const summary = summarizePrayerRoomActivity(posts);
-  const activityCount = summary.total;
-
-  const activityAriaLabel =
-    activityCount === 0
-      ? "View room activity — no posts yet"
-      : `View room activity — ${activityCount} ${activityCount === 1 ? "post" : "posts"} shared`;
+  const metrics = derivePrayerRoomWelcomeMetrics(posts);
+  const viewLabel = formatViewRequestsLabel(metrics.requestPostCount);
 
   return (
     <div className={cn("px-2", className)}>
@@ -32,20 +31,17 @@ export function CommunityPrayerRoomWelcomeActions({
         <button
           type="button"
           onClick={onScrollToFeed}
-          aria-label={activityAriaLabel}
+          aria-label={viewRequestsAriaLabel(metrics.requestPostCount)}
           className={cn(
-            "ml-auto shrink-0 inline-flex items-center gap-0.5 py-1 pl-1 min-h-[2.5rem] min-w-[2.5rem] justify-center",
-            "text-brand-primary/70 hover:text-brand-primary",
+            "ml-auto shrink-0 inline-flex items-center rounded-full px-3 py-1.5",
+            "text-[12px] font-semibold leading-tight text-brand-primary",
+            "bg-brand-primary/8 ring-1 ring-brand-primary/15",
+            "hover:bg-brand-primary/12 hover:text-brand-primary",
             "transition-colors duration-150 touch-manipulation active:opacity-80",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30 rounded-md",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30",
           )}
         >
-          <span className="text-[15px] leading-none" aria-hidden>
-            🙏
-          </span>
-          <span className="tabular-nums text-[13px] font-semibold leading-none">
-            {activityCount}
-          </span>
+          {viewLabel}
         </button>
       </div>
     </div>

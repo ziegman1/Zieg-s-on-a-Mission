@@ -13,6 +13,7 @@ export function CommunityPrayerThreadSheet({
   prayerCount,
   refreshKey,
   onCommentCountChange,
+  onResponseMetricsChange,
   onRequestSharePrayer,
   allowComments,
   spaceType,
@@ -26,6 +27,10 @@ export function CommunityPrayerThreadSheet({
   prayerCount: number;
   refreshKey: number;
   onCommentCountChange: (count: number) => void;
+  onResponseMetricsChange?: (metrics: {
+    commentCount: number;
+    voiceResponseCount: number;
+  }) => void;
   onRequestSharePrayer: () => void;
   allowComments: boolean;
   spaceType?: string;
@@ -48,6 +53,7 @@ export function CommunityPrayerThreadSheet({
         postId={postId}
         returnPath={returnPath}
         onCommentCountChange={onCommentCountChange}
+        onResponseMetricsChange={onResponseMetricsChange}
         onRequestSharePrayer={() => {
           onOpenChange(false);
           onRequestSharePrayer();

@@ -120,6 +120,8 @@ export type CommunityPostFeedItem = CommunityPostFeedItemBase & {
   reactionCounts: ReactionCounts;
   myReactions: CommunityReactionType[];
   commentCount: number;
+  /** Published voice prayer comments on this post (subset of commentCount). */
+  voiceResponseCount: number;
 };
 
 /** Future `community_posts` row shape (full DB) */

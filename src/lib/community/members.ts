@@ -345,3 +345,54 @@ export async function updateOwnerUserProfile(
     },
   });
 }
+
+/** Keep member visitorKey aligned with the current browser cookie after sign-in or reactions. */
+export async function syncMemberVisitorKeyForUser(
+  userId: string,
+  visitorKey: string,
+): Promise<void> {
+  const key = visitorKey.trim();
+  if (!key) return;
+
+  const member = await prisma.communityMemberRecord.findUnique({
+    where: { userId },
+    select: { id: true, visitorKey: true },
+  });
+  if (!member || member.visitorKey === key) return;
+
+  const conflict = await prisma.communityMemberRecord.findUnique({
+    where: { visitorKey: key },
+    select: { id: true },
+  });
+  if (conflict && conflict.id !== member.id) return;
+
+  await prisma.communityMemberRecord.update({
+    where: { id: member.id },
+    data: { visitorKey: key },
+  });
+}
+
+export async function syncMemberVisitorKeyForMember(
+  memberId: string,
+  visitorKey: string,
+): Promise<void> {
+  const key = visitorKey.trim();
+  if (!key) return;
+
+  const member = await prisma.communityMemberRecord.findUnique({
+    where: { id: memberId },
+    select: { id: true, visitorKey: true },
+  });
+  if (!member || member.visitorKey === key) return;
+
+  const conflict = await prisma.communityMemberRecord.findUnique({
+    where: { visitorKey: key },
+    select: { id: true },
+  });
+  if (conflict && conflict.id !== member.id) return;
+
+  await prisma.communityMemberRecord.update({
+    where: { id: member.id },
+    data: { visitorKey: key },
+  });
+}

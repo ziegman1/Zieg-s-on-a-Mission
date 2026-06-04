@@ -206,6 +206,7 @@ export function CommunityPostCard({
             initialCounts={post.reactionCounts}
             initialMyReactions={post.myReactions}
             initialCommentCount={commentCount}
+            initialVoiceResponseCount={post.voiceResponseCount ?? 0}
             allowReactions={post.spaceAllowReactions}
             allowComments={post.spaceAllowComments}
             preset={preset}

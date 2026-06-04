@@ -9,6 +9,7 @@ import {
   togglePostReaction,
 } from "@/lib/community/reactions";
 import { notifyReactionAdded, resolveReactionActor } from "@/lib/community/notifications";
+import { syncMemberVisitorKeyForMember } from "@/lib/community/members";
 import type { CommunityReactionType } from "@/lib/community/types";
 import { getSpaceInteractionByPostId } from "@/lib/community/spaces";
 import { getOrSetVisitorKey } from "@/lib/community/visitor-key";
@@ -55,6 +56,11 @@ export async function toggleCommunityPostReactionAction(
     const result = await togglePostReaction(postId, visitorKey, reactionType);
     if (result.added) {
       const actor = await resolveReactionActor(visitorKey);
+      if (actor.actorMemberId) {
+        await syncMemberVisitorKeyForMember(actor.actorMemberId, visitorKey).catch(
+          (err) => console.error("[reactions] visitorKey sync:", err),
+        );
+      }
       await notifyReactionAdded({
         postId,
         reactionType,
@@ -104,6 +110,11 @@ export async function setCommunityPostReactionAction(
     const result = await setPostReaction(postId, visitorKey, reactionType);
     if (result.added) {
       const actor = await resolveReactionActor(visitorKey);
+      if (actor.actorMemberId) {
+        await syncMemberVisitorKeyForMember(actor.actorMemberId, visitorKey).catch(
+          (err) => console.error("[reactions] visitorKey sync:", err),
+        );
+      }
       await notifyReactionAdded({
         postId,
         reactionType,

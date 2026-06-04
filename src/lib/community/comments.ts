@@ -1,5 +1,6 @@
 import type { CommunityMemberRecord, CommunityPostCommentRecord } from "@prisma/client";
 import { formatMemberDisplayName, ownerCommentDisplayName } from "@/lib/community/members";
+import { isVoicePrayerBody } from "@/lib/community/prayer-response-body";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import { prisma } from "@/lib/db";
 import type {
@@ -173,26 +174,51 @@ export async function countPublishedCommentsForPost(postId: string): Promise<num
   });
 }
 
+export type PublishedCommentMetrics = {
+  commentCount: number;
+  voiceResponseCount: number;
+};
+
+export async function countPublishedCommentMetricsForPosts(
+  postIds: string[],
+): Promise<Record<string, PublishedCommentMetrics>> {
+  if (postIds.length === 0) return {};
+
+  const rows = await prisma.communityPostCommentRecord.findMany({
+    where: { postId: { in: postIds }, ...publishedCommentWhere },
+    select: { postId: true, body: true },
+  });
+
+  const metrics: Record<string, PublishedCommentMetrics> = {};
+  for (const row of rows) {
+    const current = metrics[row.postId] ?? { commentCount: 0, voiceResponseCount: 0 };
+    current.commentCount += 1;
+    if (isVoicePrayerBody(row.body)) {
+      current.voiceResponseCount += 1;
+    }
+    metrics[row.postId] = current;
+  }
+  return metrics;
+}
+
 export async function countPublishedCommentsForPosts(
   postIds: string[],
 ): Promise<Record<string, number>> {
-  if (postIds.length === 0) return {};
-  const groups = await prisma.communityPostCommentRecord.groupBy({
-    by: ["postId"],
-    where: { postId: { in: postIds }, ...publishedCommentWhere },
-    _count: { _all: true },
-  });
-  return Object.fromEntries(groups.map((g) => [g.postId, g._count._all]));
+  const metrics = await countPublishedCommentMetricsForPosts(postIds);
+  return Object.fromEntries(
+    Object.entries(metrics).map(([postId, m]) => [postId, m.commentCount]),
+  );
 }
 
 export async function attachCommentCountsToFeedPosts<T extends { id: string }>(
   posts: T[],
-): Promise<(T & { commentCount: number })[]> {
+): Promise<(T & { commentCount: number; voiceResponseCount: number })[]> {
   if (posts.length === 0) return [];
-  const counts = await countPublishedCommentsForPosts(posts.map((p) => p.id));
+  const metrics = await countPublishedCommentMetricsForPosts(posts.map((p) => p.id));
   return posts.map((post) => ({
     ...post,
-    commentCount: counts[post.id] ?? 0,
+    commentCount: metrics[post.id]?.commentCount ?? 0,
+    voiceResponseCount: metrics[post.id]?.voiceResponseCount ?? 0,
   }));
 }
 

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { countActiveMembersThisWeek } from "@/lib/community/admin-members-active-week";
 import { formatMemberDisplayName } from "@/lib/community/members";
 import type {
   AdminMemberAvatarPreview,
@@ -52,7 +53,7 @@ function startOfToday(): Date {
 export async function getAdminMembersHubPreview(): Promise<AdminMembersHubPreview> {
   const today = startOfToday();
 
-  const [totalMembers, activeToday, recentRows] = await Promise.all([
+  const [totalMembers, activeToday, activeThisWeek, recentRows] = await Promise.all([
     prisma.communityMemberRecord.count({ where: { status: "active" } }),
     prisma.communityMemberRecord.count({
       where: {
@@ -63,6 +64,7 @@ export async function getAdminMembersHubPreview(): Promise<AdminMembersHubPrevie
         ],
       },
     }),
+    countActiveMembersThisWeek(),
     prisma.communityMemberRecord.findMany({
       where: { status: "active" },
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
@@ -81,5 +83,6 @@ export async function getAdminMembersHubPreview(): Promise<AdminMembersHubPrevie
     avatars: pickAvatarStrip(recentRows),
     totalMembers,
     activeToday,
+    activeThisWeek,
   };
 }

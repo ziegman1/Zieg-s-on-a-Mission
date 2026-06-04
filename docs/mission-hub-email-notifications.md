@@ -68,3 +68,51 @@ Behavior:
 - `notification_kind` on delivery log: `newsletter_published`, `post_published`, `weekly_digest`, `invitation`
 - Shared queue: `src/lib/mission-hub/email-delivery-queue.ts`
 - Dedupe helpers: `src/lib/mission-hub/email-dedupe.ts`
+
+## Weekly digest (Friday cron)
+
+Scheduled **“This Week in Mission Hub”** email for eligible members. Manual preview/test/send remains on **`/admin/community`**.
+
+### Required env vars (production)
+
+| Variable | Purpose |
+|----------|---------|
+| `ENABLE_MISSION_HUB_EMAIL_NOTIFICATIONS=true` | Master email feature flag |
+| `MISSION_HUB_WEEKLY_DIGEST_CRON_ENABLED=true` | Enable scheduled Friday send |
+| `CRON_SECRET` | Protects `/api/cron/mission-hub-weekly-digest` (Vercel sends `Authorization: Bearer …`) |
+| `RESEND_API_KEY` | Resend API |
+| `MISSION_HUB_FROM_EMAIL` | From address |
+| `MISSION_HUB_REPLY_TO_EMAIL` | Reply-to (recommended) |
+
+### Cron endpoint
+
+- **Path:** `GET /api/cron/mission-hub-weekly-digest`
+- **Config:** `vercel.json` → `"schedule": "0 12 * * 5"` (**Friday 12:00 UTC**)
+
+### Schedule & DST
+
+Vercel Cron uses a fixed UTC time (no automatic DST shift):
+
+| US Eastern | Local delivery time |
+|------------|---------------------|
+| **EDT** (Mar–Nov) | **8:00 AM** at 12:00 UTC |
+| **EST** (Nov–Mar) | **7:00 AM** at 12:00 UTC |
+
+To target **8:00 AM EST** instead (9:00 AM during EDT), change the schedule to `0 13 * * 5` in `vercel.json`.
+
+### Enable / disable
+
+1. Set `MISSION_HUB_WEEKLY_DIGEST_CRON_ENABLED=true` on Vercel Production.
+2. Set `CRON_SECRET` (random string); redeploy so `vercel.json` cron is registered.
+3. To disable: set `MISSION_HUB_WEEKLY_DIGEST_CRON_ENABLED=false` (cron still hits the route but returns `skipped`, no emails).
+
+### Behavior
+
+- Uses `deliverWeeklyMissionHubDigest({ broadcastToMembers: true })` (Phase 2).
+- Skips when cron flag off, email flag off, or `hasContent` is false.
+- Dedupe: `weekly-digest:{YYYY-WW}:email` per recipient — duplicate Friday runs do not resend.
+- Logs summary: `startedAt`, `dateRange`, `eligibleRecipients`, `sent`, `deduped`, `skipped`, `failed`, `hasContent`.
+
+### Manual fallback
+
+**Admin → Mission Hub → Weekly digest:** Preview, **Send test to me**, **Send to members**, **Force resend**.
