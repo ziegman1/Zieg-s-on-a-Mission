@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import {
 } from "@/app/(storefront)/community/auth-actions";
 import { COMMUNITY_COVER_MAX_BYTES } from "@/lib/community/media-upload";
 import { safeCallbackUrl } from "@/lib/auth-callback";
+import { storeMissionHubAuthCallback } from "@/lib/community/welcome-intro";
 import { CommunityAuthCard } from "./community-auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,10 @@ export function CommunityJoinForm() {
   const searchParams = useSearchParams();
   const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
   const [state, formAction, pending] = useActionState(joinCommunityAction, initial);
+
+  useEffect(() => {
+    storeMissionHubAuthCallback(callbackUrl);
+  }, [callbackUrl]);
   const [profileImageUrl, setProfileImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -64,7 +69,11 @@ export function CommunityJoinForm() {
         </p>
       }
     >
-      <form action={formAction} className="space-y-4">
+      <form
+        action={formAction}
+        className="space-y-4"
+        onSubmit={() => storeMissionHubAuthCallback(callbackUrl)}
+      >
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <input type="hidden" name="profileImageUrl" value={profileImageUrl} />
         {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}

@@ -562,6 +562,7 @@ model CommunityHubSettingsRecord {
   welcomeText     String?  @map("welcome_text")
   invitationTitle String?  @map("invitation_title")
   invitationBody  String?  @map("invitation_body")
+  welcomePostPath String?  @map("welcome_post_path")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("community_hub_settings")

@@ -1,12 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { useRouter } from "next/navigation";
 import { focusMissionHubCommentInput } from "@/lib/community/use-mobile-composer-focus";
 import {
   scrollMissionHubPostIntoView,
   shouldAutoScrollToFeed,
 } from "@/lib/community/mission-hub-scroll";
+import {
+  shouldAutoOpenWelcomeComments,
+  stripWelcomeIntroOpenCommentsFromUrl,
+} from "@/lib/community/welcome-intro";
 import Link from "next/link";
 import { CommunityPostCoverImage } from "./community-post-cover-image";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
@@ -69,6 +74,8 @@ export function CommunityPostCard({
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [composerFocusKey, setComposerFocusKey] = useState(0);
   const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
+  const router = useRouter();
+  const welcomeCommentsOpenedRef = useRef(false);
 
   const openCommentsWithKeyboard = useCallback(() => {
     flushSync(() => {
@@ -93,6 +100,25 @@ export function CommunityPostCard({
     }
     scrollMissionHubPostIntoView(post.id, { userInitiated: true });
   }, [commentsOpen, post.id]);
+
+  useEffect(() => {
+    if (welcomeCommentsOpenedRef.current) return;
+    if (typeof window === "undefined") return;
+    if (
+      !shouldAutoOpenWelcomeComments({
+        postId: post.id,
+        search: window.location.search,
+        hash: window.location.hash,
+      })
+    ) {
+      return;
+    }
+    welcomeCommentsOpenedRef.current = true;
+    openCommentsWithKeyboard();
+    const cleaned = stripWelcomeIntroOpenCommentsFromUrl(window.location.href);
+    router.replace(cleaned, { scroll: false });
+  }, [openCommentsWithKeyboard, post.id, router]);
+
   const returnPath = showSpaceLabel ? "/community" : `/community/${post.spaceSlug}`;
 
   const parsedBody = parsePrayerResponseBody(post.body);

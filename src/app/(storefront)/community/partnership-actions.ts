@@ -5,8 +5,19 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { isCommunityMemberRole } from "@/lib/auth-roles";
 import { isAdminRole } from "@/lib/admin-users";
-import { partnershipPreferencesFromSelection } from "@/lib/community/partnership-preferences";
-import { saveUserPartnershipPreferences } from "@/lib/community/user-partnership-prefs";
+import { getWelcomePostPathForIntro } from "@/lib/community/hub-settings";
+import {
+  needsPartnershipOnboarding,
+  partnershipPreferencesFromSelection,
+} from "@/lib/community/partnership-preferences";
+import {
+  buildWelcomeIntroRedirectUrl,
+  shouldRedirectToWelcomeIntro,
+} from "@/lib/community/welcome-intro";
+import {
+  getUserPartnershipPreferences,
+  saveUserPartnershipPreferences,
+} from "@/lib/community/user-partnership-prefs";
 import { getCurrentCommunityMember } from "@/lib/community/members";
 
 const partnershipSelectionSchema = z.object({
@@ -19,6 +30,10 @@ const partnershipSelectionSchema = z.object({
 });
 
 export type PartnershipSelectionInput = z.infer<typeof partnershipSelectionSchema>;
+
+export type SavePartnershipPreferencesResult =
+  | { ok: true; redirectTo: string | null }
+  | { ok: false; error: string };
 
 async function requirePartnershipUser(): Promise<
   { ok: true; userId: string } | { ok: false; error: string }
@@ -41,7 +56,8 @@ async function requirePartnershipUser(): Promise<
 
 export async function savePartnershipPreferencesAction(
   input: PartnershipSelectionInput,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+  options?: { authCallbackUrl?: string | null },
+): Promise<SavePartnershipPreferencesResult> {
   const authResult = await requirePartnershipUser();
   if (!authResult.ok) return authResult;
 
@@ -50,7 +66,20 @@ export async function savePartnershipPreferencesAction(
     return { ok: false, error: "Invalid partnership preferences" };
   }
 
-  const prefs = partnershipPreferencesFromSelection(parsed.data, true);
+  const existing = await getUserPartnershipPreferences(authResult.userId);
+  const wasOnboardingPending = needsPartnershipOnboarding(existing);
+
+  const runWelcomeRedirect = shouldRedirectToWelcomeIntro({
+    welcomeIntroCompleted: existing?.welcomeIntroCompleted ?? false,
+    wasOnboardingPending,
+    authCallbackUrl: options?.authCallbackUrl,
+  });
+
+  const prefs = partnershipPreferencesFromSelection(parsed.data, true, {
+    welcomeIntroCompleted: runWelcomeRedirect
+      ? true
+      : (existing?.welcomeIntroCompleted ?? false),
+  });
 
   try {
     await saveUserPartnershipPreferences(authResult.userId, prefs);
@@ -61,5 +90,16 @@ export async function savePartnershipPreferencesAction(
 
   revalidatePath("/community", "layout");
   revalidatePath("/community/settings");
-  return { ok: true };
+
+  if (!runWelcomeRedirect) {
+    return { ok: true, redirectTo: null };
+  }
+
+  try {
+    const welcomePath = await getWelcomePostPathForIntro();
+    return { ok: true, redirectTo: buildWelcomeIntroRedirectUrl(welcomePath) };
+  } catch (e) {
+    console.error("[savePartnershipPreferences] welcome path:", e);
+    return { ok: true, redirectTo: null };
+  }
 }

@@ -14,6 +14,8 @@ export type PartnershipPrefKey = (typeof PARTNERSHIP_PREF_KEYS)[number];
 export type PartnershipPreferences = Record<PartnershipPrefKey, boolean> & {
   /** ISO timestamp — null until onboarding is completed or preferences are saved. */
   onboardingCompletedAt: string | null;
+  /** One-time welcome post intro after partnership onboarding (default false). */
+  welcomeIntroCompleted: boolean;
 };
 
 export const PARTNERSHIP_PREF_LABELS: Record<
@@ -63,6 +65,7 @@ export function createDefaultPartnershipPreferences(
   return {
     ...DEFAULT_PARTNERSHIP_ONBOARDING_SELECTION,
     onboardingCompletedAt: completed ? new Date().toISOString() : null,
+    welcomeIntroCompleted: false,
   };
 }
 
@@ -73,12 +76,16 @@ export function mergePartnershipPreferences(raw: unknown): PartnershipPreference
   const out: PartnershipPreferences = {
     ...DEFAULT_PARTNERSHIP_ONBOARDING_SELECTION,
     onboardingCompletedAt: null,
+    welcomeIntroCompleted: false,
   };
   for (const key of PARTNERSHIP_PREF_KEYS) {
     if (typeof o[key] === "boolean") out[key] = o[key];
   }
   if (typeof o.onboardingCompletedAt === "string" && o.onboardingCompletedAt.trim()) {
     out.onboardingCompletedAt = o.onboardingCompletedAt;
+  }
+  if (typeof o.welcomeIntroCompleted === "boolean") {
+    out.welcomeIntroCompleted = o.welcomeIntroCompleted;
   }
   return out;
 }
@@ -91,10 +98,12 @@ export function needsPartnershipOnboarding(raw: unknown): boolean {
 export function partnershipPreferencesFromSelection(
   selection: Record<PartnershipPrefKey, boolean>,
   markComplete: boolean,
+  options?: { welcomeIntroCompleted?: boolean },
 ): PartnershipPreferences {
   return {
     ...selection,
     onboardingCompletedAt: markComplete ? new Date().toISOString() : null,
+    welcomeIntroCompleted: options?.welcomeIntroCompleted ?? false,
   };
 }
 

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { savePartnershipPreferencesAction } from "@/app/(storefront)/community/partnership-actions";
 import type { PartnershipPreferences } from "@/lib/community/partnership-preferences";
+import { readMissionHubAuthCallback } from "@/lib/community/welcome-intro";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +23,7 @@ export function MissionHubPartnershipOnboarding({
   initialPrefs?: PartnershipPreferences | null;
   onCompleted: () => void;
 }) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -50,12 +53,17 @@ export function MissionHubPartnershipOnboarding({
             onSubmit={(selection) => {
               setError(null);
               startTransition(async () => {
-                const res = await savePartnershipPreferencesAction(selection);
+                const res = await savePartnershipPreferencesAction(selection, {
+                  authCallbackUrl: readMissionHubAuthCallback(),
+                });
                 if (!res.ok) {
                   setError(res.error);
                   return;
                 }
                 onCompleted();
+                if (res.redirectTo) {
+                  router.push(res.redirectTo);
+                }
               });
             }}
           />

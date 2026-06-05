@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -9,6 +9,7 @@ import {
   type CommunityAuthState,
 } from "@/app/(storefront)/community/auth-actions";
 import { buildOwnerLoginUrl, safeCallbackUrl } from "@/lib/auth-callback";
+import { storeMissionHubAuthCallback } from "@/lib/community/welcome-intro";
 import { CommunityAuthCard } from "./community-auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,10 @@ export function CommunityLoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
   const [state, formAction, pending] = useActionState(communityLoginAction, initial);
+
+  useEffect(() => {
+    storeMissionHubAuthCallback(callbackUrl);
+  }, [callbackUrl]);
 
   return (
     <CommunityAuthCard
@@ -49,7 +54,11 @@ export function CommunityLoginForm() {
         </div>
       }
     >
-      <form action={formAction} className="space-y-4">
+      <form
+        action={formAction}
+        className="space-y-4"
+        onSubmit={() => storeMissionHubAuthCallback(callbackUrl)}
+      >
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
         {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
         <div className="space-y-1.5">

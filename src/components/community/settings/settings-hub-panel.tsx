@@ -87,6 +87,22 @@ export function SettingsHubPanel({
               placeholder="Optional intro shown in the hub"
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="hub-welcome-post-path">New member welcome post path</Label>
+            <Input
+              id="hub-welcome-post-path"
+              value={hub.welcomePostPath ?? ""}
+              onChange={(e) => setHub((h) => ({ ...h, welcomePostPath: e.target.value }))}
+              placeholder="/community/start-here#post-…"
+              className="bg-white font-mono text-xs"
+            />
+            <p className="text-[11px] text-brand-ink/50 leading-relaxed">
+              After partnership onboarding, new members land here once (with comments open).
+              Use a Mission Hub path and optional <code className="text-[10px]">#post-…</code>{" "}
+              anchor. Falls back to <code className="text-[10px]">/community/start-here</code>{" "}
+              when empty.
+            </p>
+          </div>
           <div className="pt-2 border-t border-black/[0.04] space-y-3">
             <p className="text-xs font-semibold text-brand-ink/50 uppercase tracking-wide">
               Partnership invitation (sidebar)

@@ -209,6 +209,8 @@ export type CommunityHubSettings = {
   welcomeText: string | null;
   invitationTitle: string | null;
   invitationBody: string | null;
+  /** Path for new-member welcome intro, e.g. /community/start-here#post-abc */
+  welcomePostPath: string | null;
 };
 
 export const DEFAULT_HUB_INVITATION = {
@@ -302,6 +304,7 @@ export const updateHubSettingsSchema = z.object({
   welcomeText: z.string().max(2000).optional().or(z.literal("")),
   invitationTitle: z.string().max(160).optional().or(z.literal("")),
   invitationBody: z.string().max(2000).optional().or(z.literal("")),
+  welcomePostPath: z.string().max(500).optional().or(z.literal("")),
 });
 
 export const changePasswordSchema = z

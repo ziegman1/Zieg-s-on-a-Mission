@@ -28,6 +28,7 @@ describe("partnership preferences", () => {
     );
     expect(needsPartnershipOnboarding(prefs)).toBe(false);
     expect(mergePartnershipPreferences(prefs)?.newsletters).toBe(true);
+    expect(prefs.welcomeIntroCompleted).toBe(false);
   });
 
   it("syncs ministry updates and newsletters to notification prefs", () => {
