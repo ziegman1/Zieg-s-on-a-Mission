@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  createCommentActivateGestureState,
+  handleCommentActivateClick,
+  handleCommentActivatePointerDown,
+} from "@/lib/community/comment-activate-gesture";
 import { MessageCircle } from "lucide-react";
 import {
   setCommunityPostReactionAction,
@@ -67,7 +72,7 @@ export function CommunityEngagementBar({
   initialMyReactions: CommunityReactionType[];
   commentCount: number;
   commentsOpen: boolean;
-  /** Close comments (when already open). */
+  /** Close comments (prayer-space toggle only — not used by the default Comment pill). */
   onCommentsToggle: () => void;
   /** Open comments from pointerdown — keeps iOS keyboard in the user-gesture window. */
   onCommentsActivate?: () => void;
@@ -167,12 +172,19 @@ export function CommunityEngagementBar({
     />
   );
 
+  const commentGestureRef = useRef(createCommentActivateGestureState());
+
   const commentButtonHandlers = {
-    onPointerDown: () => {
-      if (!commentsOpen) onCommentsActivate?.();
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      handleCommentActivatePointerDown(
+        commentGestureRef.current,
+        commentsOpen,
+        () => e.preventDefault(),
+        () => onCommentsActivate?.(),
+      );
     },
     onClick: () => {
-      if (commentsOpen) onCommentsToggle();
+      handleCommentActivateClick(commentGestureRef.current, () => onCommentsActivate?.());
     },
   };
 
@@ -188,7 +200,7 @@ export function CommunityEngagementBar({
       )}
     >
       <MessageCircle className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")} aria-hidden />
-      <span>{commentsOpen ? copy.toggleLabelOpen : copy.toggleLabel}</span>
+      <span>{copy.toggleLabel}</span>
       <span className="tabular-nums text-[11px] opacity-80">{countLabel}</span>
     </button>
   );

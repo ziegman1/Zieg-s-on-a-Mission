@@ -42,6 +42,7 @@ describe("mobile comment composer UX", () => {
     expect(card).toContain("focusMissionHubCommentInput");
     expect(card).toContain("openCommentsWithKeyboard");
     expect(card).toContain("onCommentsActivate");
+    expect(card).not.toMatch(/if \(commentsOpen\) return;/);
 
     const bar = readFileSync(
       resolve(process.cwd(), "src/components/community/community-engagement-bar.tsx"),
@@ -49,6 +50,9 @@ describe("mobile comment composer UX", () => {
     );
     expect(bar).toContain("onPointerDown");
     expect(bar).toContain("onCommentsActivate");
+    expect(bar).toContain("handleCommentActivatePointerDown");
+    expect(bar).toContain("handleCommentActivateClick");
+    expect(bar).not.toContain("if (commentsOpen) onCommentsToggle()");
 
     const hook = readFileSync(
       resolve(process.cwd(), "src/lib/community/use-mobile-composer-focus.ts"),

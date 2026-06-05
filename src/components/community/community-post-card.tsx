@@ -71,13 +71,12 @@ export function CommunityPostCard({
   const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
 
   const openCommentsWithKeyboard = useCallback(() => {
-    if (commentsOpen) return;
     flushSync(() => {
       setCommentsOpen(true);
       setComposerFocusKey((k) => k + 1);
     });
     focusMissionHubCommentInput(post.id);
-  }, [commentsOpen, post.id]);
+  }, [post.id]);
 
   const closeComments = useCallback(() => {
     setCommentsOpen(false);
