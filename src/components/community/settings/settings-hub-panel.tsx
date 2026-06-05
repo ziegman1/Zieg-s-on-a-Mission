@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { saveHubSettingsAction } from "@/app/(storefront)/community/settings-actions";
-import type { CommunityHubSettings, SettingsPageData } from "@/lib/community/settings-types";
+import {
+  normalizeHubSettingsInput,
+  type CommunityHubSettings,
+} from "@/lib/community/settings-types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,7 +19,9 @@ export function SettingsHubPanel({
 }: {
   initial: CommunityHubSettings;
 }) {
-  const [hub, setHub] = useState(initial);
+  const [hub, setHub] = useState(() =>
+    normalizeHubSettingsInput(initial) as CommunityHubSettings,
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -24,8 +29,27 @@ export function SettingsHubPanel({
     e.preventDefault();
     setError(null);
     startTransition(async () => {
+      const payload = normalizeHubSettingsInput(hub);
+      if (process.env.NODE_ENV === "development") {
+        console.info("saveHubSettingsAction payload", payload);
+      }
       const res = await saveHubSettingsAction(hub);
-      if (!res.ok) setError(res.error);
+      if (!res.ok) {
+        if (process.env.NODE_ENV === "development" && res.validationIssues?.length) {
+          console.error("saveHubSettingsAction validation", res.validationIssues);
+        }
+        const details = res.validationIssues
+          ?.map((issue) => {
+            const received =
+              issue.received === undefined
+                ? ""
+                : ` (received ${JSON.stringify(issue.received)})`;
+            return `${issue.path}: ${issue.message}${received}`;
+          })
+          .join("; ");
+        setError(details ? `${res.error} — ${details}` : res.error);
+        return;
+      }
     });
   }
 

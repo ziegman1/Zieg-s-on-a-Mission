@@ -296,16 +296,137 @@ export const updateNotificationPrefsSchema = z.object({
   mutedSpaceIds: z.array(z.string().uuid()).default([]),
 });
 
+export type HubSettingsValidationIssue = {
+  path: string;
+  message: string;
+  received?: unknown;
+};
+
+const HUB_SETTINGS_IMAGE_URL_FIELDS = new Set<string>(["logoUrl", "coverImageUrl"]);
+
+function preprocessHubNullableString(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value !== "string") return "";
+  return value.trim();
+}
+
+/** UI placeholder / stub values that must not be validated as real URLs. */
+export function isPlaceholderHubImageUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (
+    trimmed === "https://…" ||
+    trimmed === "https://..." ||
+    trimmed === "http://…" ||
+    trimmed === "http://..."
+  ) {
+    return true;
+  }
+  return /^https?:\/\/[.\u2026…]+$/u.test(trimmed);
+}
+
+function preprocessHubImageUrl(value: unknown): string {
+  const trimmed = preprocessHubNullableString(value);
+  if (isPlaceholderHubImageUrl(trimmed)) return "";
+  return trimmed;
+}
+
+function optionalHubTextField(max: number) {
+  return z.preprocess(preprocessHubNullableString, z.string().max(max));
+}
+
+function optionalHubUrlField(max: number) {
+  return z.preprocess(
+    preprocessHubImageUrl,
+    z.union([z.literal(""), z.string().url().max(max)]),
+  );
+}
+
 export const updateHubSettingsSchema = z.object({
-  title: z.string().max(120).optional().or(z.literal("")),
-  tagline: z.string().max(200).optional().or(z.literal("")),
-  logoUrl: z.string().url().max(2000).optional().or(z.literal("")),
-  coverImageUrl: z.string().url().max(2000).optional().or(z.literal("")),
-  welcomeText: z.string().max(2000).optional().or(z.literal("")),
-  invitationTitle: z.string().max(160).optional().or(z.literal("")),
-  invitationBody: z.string().max(2000).optional().or(z.literal("")),
-  welcomePostPath: z.string().max(500).optional().or(z.literal("")),
+  title: optionalHubTextField(120),
+  tagline: optionalHubTextField(200),
+  logoUrl: optionalHubUrlField(2000),
+  coverImageUrl: optionalHubUrlField(2000),
+  welcomeText: optionalHubTextField(2000),
+  invitationTitle: optionalHubTextField(160),
+  invitationBody: optionalHubTextField(2000),
+  welcomePostPath: optionalHubTextField(500),
 });
+
+export type UpdateHubSettingsInput = z.infer<typeof updateHubSettingsSchema>;
+
+const HUB_SETTINGS_STRING_FIELDS = [
+  "title",
+  "tagline",
+  "logoUrl",
+  "coverImageUrl",
+  "welcomeText",
+  "welcomePostPath",
+  "invitationTitle",
+  "invitationBody",
+] as const satisfies ReadonlyArray<keyof UpdateHubSettingsInput>;
+
+function hubSettingsFieldValue(
+  key: keyof UpdateHubSettingsInput,
+  value: unknown,
+): string {
+  if (HUB_SETTINGS_IMAGE_URL_FIELDS.has(key)) {
+    return preprocessHubImageUrl(value);
+  }
+  return preprocessHubNullableString(value);
+}
+
+/** Coerce null/undefined optional hub string fields to "" for client state and logging. */
+export function normalizeHubSettingsInput(input: unknown): UpdateHubSettingsInput {
+  const obj =
+    typeof input === "object" && input !== null
+      ? (input as Record<string, unknown>)
+      : {};
+
+  return Object.fromEntries(
+    HUB_SETTINGS_STRING_FIELDS.map((key) => [
+      key,
+      hubSettingsFieldValue(key, obj[key]),
+    ]),
+  ) as UpdateHubSettingsInput;
+}
+
+export function parseUpdateHubSettingsInput(input: unknown) {
+  return updateHubSettingsSchema.safeParse(input);
+}
+
+export function hubSettingsValidationIssues(
+  error: z.ZodError,
+  input?: unknown,
+): HubSettingsValidationIssue[] {
+  const obj =
+    typeof input === "object" && input !== null
+      ? (input as Record<string, unknown>)
+      : null;
+
+  return error.issues.map((issue) => {
+    const pathKey = issue.path[0];
+    return {
+      path: issue.path.length > 0 ? issue.path.map(String).join(".") : "settings",
+      message: issue.message,
+      ...(obj && typeof pathKey === "string" ? { received: obj[pathKey] } : {}),
+    };
+  });
+}
+
+export function formatHubSettingsValidationError(
+  error: z.ZodError,
+  input?: unknown,
+): string {
+  const details = hubSettingsValidationIssues(error, input).map(
+    (issue) => `${issue.path}: ${issue.message}`,
+  );
+  if (details.length === 0) return "Invalid hub settings";
+  if (process.env.NODE_ENV === "development") {
+    return `Invalid hub settings: ${details.join("; ")}`;
+  }
+  return `Invalid hub settings (${details[0]})`;
+}
 
 export const changePasswordSchema = z
   .object({

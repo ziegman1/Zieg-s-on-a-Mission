@@ -14,8 +14,11 @@ import { getCurrentCommunityOwner } from "@/lib/community/owner";
 import {
   changePasswordSchema,
   communitySpaceSettingsSchema,
+  formatHubSettingsValidationError,
+  hubSettingsValidationIssues,
   mergeSpaceSettings,
-  updateHubSettingsSchema,
+  normalizeHubSettingsInput,
+  parseUpdateHubSettingsInput,
   updateNotificationPrefsSchema,
   updateProfileSettingsSchema,
   type NotificationPreferences,
@@ -184,13 +187,29 @@ export async function changePasswordAction(
 
 export async function saveHubSettingsAction(
   input: unknown,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true }
+  | { ok: false; error: string; validationIssues?: { path: string; message: string; received?: unknown }[] }
+> {
   const admin = await requireAdmin();
   if (!admin.ok) return admin;
 
-  const parsed = updateHubSettingsSchema.safeParse(input);
+  const normalizedInput = normalizeHubSettingsInput(input);
+  const parsed = parseUpdateHubSettingsInput(input);
   if (!parsed.success) {
-    return { ok: false, error: "Invalid hub settings" };
+    const validationIssues = hubSettingsValidationIssues(parsed.error, input);
+    console.error("Invalid hub settings validation", {
+      received: input,
+      normalized: normalizedInput,
+      issues: parsed.error.issues,
+      flattened: parsed.error.flatten(),
+      validationIssues,
+    });
+    return {
+      ok: false,
+      error: formatHubSettingsValidationError(parsed.error, input),
+      validationIssues,
+    };
   }
 
   try {
