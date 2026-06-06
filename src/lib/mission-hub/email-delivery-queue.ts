@@ -13,6 +13,7 @@ import {
   type MissionHubEmailSendPolicy,
 } from "@/lib/mission-hub/test-email-recipients";
 import { sendMissionHubEmail } from "@/lib/mission-hub/resend-client";
+import { isEmailSuppressedForMissionHub } from "@/lib/mission-hub/email-suppressions";
 
 /**
  * Queue + send a deduped Mission Hub email and persist delivery row.
@@ -34,6 +35,16 @@ export async function queueMissionHubEmailDelivery(
       });
     }
     return { action: "skipped", reason: gate.reason };
+  }
+
+  if (await isEmailSuppressedForMissionHub(input.recipientEmail)) {
+    if (isMissionHubEmailDebugEnabled()) {
+      console.info("[mission-hub-email] skipped suppressed recipient", {
+        to: input.recipientEmail,
+        dedupeKey: input.dedupeKey,
+      });
+    }
+    return { action: "skipped", reason: "email_suppressed" };
   }
 
   const existing = await prisma.missionHubEmailDeliveryRecord.findUnique({

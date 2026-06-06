@@ -1,6 +1,16 @@
 import { z } from "zod";
 import type { PartnershipPreferences } from "@/lib/community/partnership-preferences";
 import {
+  DEFAULT_CATEGORY_FREQUENCIES,
+  deriveCategoryFrequenciesFromLegacy,
+  mergeCategoryFrequencies,
+  MISSION_HUB_EMAIL_CATEGORIES,
+  NOTIFICATION_FREQUENCIES,
+  syncLegacyBooleansFromCategoryFrequencies,
+  type MissionHubEmailCategory,
+  type NotificationFrequency,
+} from "@/lib/mission-hub/notification-category-preferences";
+import {
   DEFAULT_SPACE_NOTIFICATION_CATEGORY,
   SPACE_NOTIFICATION_CATEGORY_VALUES,
   parseSpaceNotificationCategory,
@@ -57,6 +67,15 @@ export type NotificationPreferences = Record<NotificationPrefKey, boolean> & {
   push: boolean;
   /** Space UUIDs where the member muted notifications */
   mutedSpaceIds: string[];
+  /** Per-category Mission Hub email frequency (Mail Suite is separate). */
+  categoryFrequencies: Record<MissionHubEmailCategory, NotificationFrequency>;
+};
+
+export {
+  MISSION_HUB_EMAIL_CATEGORIES,
+  NOTIFICATION_FREQUENCIES,
+  type MissionHubEmailCategory,
+  type NotificationFrequency,
 };
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
@@ -72,6 +91,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   email: true,
   push: false,
   mutedSpaceIds: [],
+  categoryFrequencies: { ...DEFAULT_CATEGORY_FREQUENCIES },
 };
 
 export const NOTIFICATION_PREF_LABELS: Record<
@@ -144,8 +164,41 @@ export function mergeNotificationPreferences(
       (id): id is string => typeof id === "string" && id.trim().length > 0,
     );
   }
-  return out;
+
+  const hasStoredFrequencies =
+    o.categoryFrequencies != null && typeof o.categoryFrequencies === "object";
+  out.categoryFrequencies = hasStoredFrequencies
+    ? mergeCategoryFrequencies(o.categoryFrequencies)
+    : deriveCategoryFrequenciesFromLegacy(o);
+
+  return syncLegacyBooleansFromCategoryFrequencies(out);
 }
+
+const categoryFrequencySchema = z.enum(NOTIFICATION_FREQUENCIES);
+
+export const updateNotificationPrefsSchema = z.object({
+  commentsOnPosts: z.boolean(),
+  repliesToComments: z.boolean(),
+  prayerResponses: z.boolean(),
+  newPosts: z.boolean(),
+  ministryUpdates: z.boolean(),
+  praiseReports: z.boolean(),
+  newsletters: z.boolean(),
+  weeklyDigest: z.boolean(),
+  inApp: z.boolean(),
+  email: z.boolean(),
+  push: z.boolean(),
+  mutedSpaceIds: z.array(z.string().uuid()).default([]),
+  categoryFrequencies: z
+    .object({
+      ministryUpdates: categoryFrequencySchema,
+      prayerRequests: categoryFrequencySchema,
+      praiseReports: categoryFrequencySchema,
+      newsletters: categoryFrequencySchema,
+      communityActivity: categoryFrequencySchema,
+    })
+    .optional(),
+});
 
 export const communitySpaceSettingsSchema = z.object({
   allowComments: z.boolean().default(true),
@@ -279,21 +332,6 @@ export const updateProfileSettingsSchema = z.object({
   bio: z.string().max(280).optional().or(z.literal("")),
   profileImageUrl: z.string().url().max(2000).optional().or(z.literal("")),
   ownerName: z.string().max(120).optional(),
-});
-
-export const updateNotificationPrefsSchema = z.object({
-  commentsOnPosts: z.boolean(),
-  repliesToComments: z.boolean(),
-  prayerResponses: z.boolean(),
-  newPosts: z.boolean(),
-  ministryUpdates: z.boolean(),
-  praiseReports: z.boolean(),
-  newsletters: z.boolean(),
-  weeklyDigest: z.boolean(),
-  inApp: z.boolean(),
-  email: z.boolean(),
-  push: z.boolean(),
-  mutedSpaceIds: z.array(z.string().uuid()).default([]),
 });
 
 export type HubSettingsValidationIssue = {

@@ -24,6 +24,8 @@ export type AdminMemberPortalRow = {
   emailEnabled: boolean;
   newslettersEnabled: boolean;
   newPostsEnabled: boolean;
+  usesDigestEmail: boolean;
+  missionHubUnsubscribed: boolean;
   mutedSpaceIds: string[];
   mutedSpaceSlugs: string[];
   unreadNotificationCount: number;

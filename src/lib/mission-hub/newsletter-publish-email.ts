@@ -14,6 +14,7 @@ import {
   newsletterPublicPath,
 } from "@/lib/newsletter/mission-hub-announcement";
 import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
+import { finalizeMissionHubEmailContent } from "@/lib/mission-hub/email-compliance-footer";
 
 export const NEWSLETTER_PUBLISH_EMAIL_SUBJECT = "New newsletter from Zieg's on a Mission";
 
@@ -47,8 +48,6 @@ export function buildNewsletterPublishEmailContent(input: {
     "",
     `Read the newsletter: ${newsletterPublicUrl}`,
     `View in Mission Hub: ${input.missionHubPostUrl}`,
-    "",
-    `Notification preferences: ${settingsUrl}`,
   ].join("\n");
 
   const html = `
@@ -63,10 +62,6 @@ export function buildNewsletterPublishEmailContent(input: {
   </p>
   <p style="margin: 0 0 24px; font-size: 14px;">
     <a href="${escapeHtml(input.missionHubPostUrl)}">View in Mission Hub (${NEWSLETTER_SPACE_SLUG})</a>
-  </p>
-  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-  <p style="font-size: 12px; color: #737373; margin: 0;">
-    <a href="${escapeHtml(settingsUrl)}">Manage notification preferences</a> in Mission Hub.
   </p>
 </body>
 </html>`.trim();
@@ -99,9 +94,14 @@ export async function queueAndSendNewsletterPublishEmail(input: {
   forceResend?: boolean;
   emailPolicy?: MissionHubEmailSendPolicy;
 }): Promise<QueueNewsletterEmailResult> {
-  const content = buildNewsletterPublishEmailContent({
+  const built = buildNewsletterPublishEmailContent({
     newsletter: input.newsletter,
     missionHubPostUrl: input.missionHubPostUrl,
+  });
+  const content = finalizeMissionHubEmailContent({
+    ...built,
+    recipientUserId: input.recipientUserId,
+    recipientEmail: input.recipientEmail,
   });
 
   return queueMissionHubEmailDelivery(
@@ -118,8 +118,8 @@ export async function queueAndSendNewsletterPublishEmail(input: {
         sourceId: input.newsletter.id,
         sourcePostId: extractPostIdFromMissionHubUrl(input.missionHubPostUrl),
         newsletterSlug: input.newsletter.slug,
-        newsletterPublicUrl: content.newsletterPublicUrl,
-        missionHubPostUrl: content.missionHubPostUrl,
+        newsletterPublicUrl: built.newsletterPublicUrl,
+        missionHubPostUrl: built.missionHubPostUrl,
       },
       forceResend: input.forceResend,
     },

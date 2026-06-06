@@ -2,7 +2,9 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { listMembersForAdminPortal } from "@/lib/community/admin-members-portal";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
+import { loadMissionHubNotificationAdminStats } from "@/lib/mission-hub/admin-notification-reporting";
 import { AdminMembersPortal } from "@/components/community/admin-members-portal";
+import { MissionHubNotificationStatsPanel } from "@/components/community/mission-hub-notification-stats-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +30,16 @@ export default async function AdminCommunityMembersPage() {
   }
 
   let members: Awaited<ReturnType<typeof listMembersForAdminPortal>> = [];
+  let notificationStats: Awaited<
+    ReturnType<typeof loadMissionHubNotificationAdminStats>
+  > | null = null;
   let dbError: string | null = null;
 
   try {
-    members = await listMembersForAdminPortal();
+    [members, notificationStats] = await Promise.all([
+      listMembersForAdminPortal(),
+      loadMissionHubNotificationAdminStats(),
+    ]);
     console.info("[admin/members] query", { count: members.length });
   } catch (e) {
     console.error("[admin/members] query failed", e);
@@ -54,7 +62,12 @@ export default async function AdminCommunityMembersPage() {
       {dbError ? (
         <p className="text-red-400 text-sm max-w-2xl leading-relaxed">{dbError}</p>
       ) : (
-        <AdminMembersPortal initialMembers={members} />
+        <>
+          {notificationStats ? (
+            <MissionHubNotificationStatsPanel stats={notificationStats} />
+          ) : null}
+          <AdminMembersPortal initialMembers={members} />
+        </>
       )}
     </div>
   );

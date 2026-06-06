@@ -13,6 +13,13 @@ import {
 import type { CommunityNotificationItem } from "@/lib/community/notification-types";
 import { formatCommunityPostDate } from "@/lib/community/format-post-date";
 import {
+  applyOptimisticMarkAllRead,
+  resolveDisplayUnreadCount,
+  restoreMarkAllReadSnapshot,
+  type MarkAllReadSnapshot,
+} from "@/lib/community/notification-bell-client";
+import {
+  dispatchMissionHubNotificationsSync,
   MISSION_HUB_NOTIFICATIONS_SYNC_EVENT,
   MISSION_HUB_REFRESH_EVENT,
 } from "@/lib/community/mission-hub-refresh";
@@ -79,7 +86,7 @@ export function CommunityNotificationsBell({
   initialUnreadCount?: number;
 }) {
   const [open, setOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
+  const [localUnreadCount, setLocalUnreadCount] = useState(initialUnreadCount);
   const [unreadItems, setUnreadItems] = useState<CommunityNotificationItem[]>([]);
   const [readItems, setReadItems] = useState<CommunityNotificationItem[]>([]);
   const [readExpanded, setReadExpanded] = useState(false);
@@ -87,19 +94,35 @@ export function CommunityNotificationsBell({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
+  const markAllInFlight = useRef(false);
   const hubRefresh = useMissionHubRefreshOptional();
+
+  const setDisplayedUnreadCount = useCallback(
+    (count: number) => {
+      hubRefresh?.setUnreadCount(count);
+      if (!hubRefresh) {
+        setLocalUnreadCount(count);
+      }
+      dispatchMissionHubNotificationsSync(count);
+    },
+    [hubRefresh],
+  );
+
+  const displayUnreadCount = resolveDisplayUnreadCount(
+    hubRefresh?.unreadCount,
+    localUnreadCount,
+  );
 
   const refreshCount = useCallback(async () => {
     try {
       const result = await fetchUnreadNotificationCountAction();
       if (result.ok) {
-        setUnreadCount(result.count);
-        hubRefresh?.setUnreadCount(result.count);
+        setDisplayedUnreadCount(result.count);
       }
     } catch (e) {
       console.error("[notifications bell] refresh count failed:", e);
     }
-  }, [hubRefresh]);
+  }, [setDisplayedUnreadCount]);
 
   const loadPanel = useCallback(async () => {
     setLoading(true);
@@ -113,22 +136,19 @@ export function CommunityNotificationsBell({
       }
       setUnreadItems(result.unread);
       setReadItems(result.read);
-      setUnreadCount(result.unreadCount);
-      hubRefresh?.setUnreadCount(result.unreadCount);
+      setDisplayedUnreadCount(result.unreadCount);
       if (result.read.length === 0) setReadExpanded(false);
     } catch (e) {
       setLoading(false);
       console.error("[notifications bell] load panel failed:", e);
       setError("Could not load notifications");
     }
-  }, [hubRefresh]);
-
-  const displayUnreadCount = hubRefresh?.unreadCount ?? unreadCount;
+  }, [setDisplayedUnreadCount]);
 
   useEffect(() => {
-    setUnreadCount(initialUnreadCount);
-    hubRefresh?.setUnreadCount(initialUnreadCount);
-  }, [initialUnreadCount, hubRefresh]);
+    if (hubRefresh) return;
+    setLocalUnreadCount(initialUnreadCount);
+  }, [hubRefresh, initialUnreadCount]);
 
   useEffect(() => {
     if (!open) return;
@@ -136,25 +156,22 @@ export function CommunityNotificationsBell({
   }, [open, loadPanel]);
 
   useEffect(() => {
-    if (!hubRefresh) return;
-    setUnreadCount(hubRefresh.unreadCount);
-  }, [hubRefresh?.unreadCount, hubRefresh]);
-
-  useEffect(() => {
+    if (hubRefresh) return;
     function onSync(e: Event) {
       const detail = (e as CustomEvent<{ unreadCount: number }>).detail;
       if (typeof detail?.unreadCount === "number") {
-        setUnreadCount(detail.unreadCount);
+        setLocalUnreadCount(detail.unreadCount);
       }
     }
     window.addEventListener(MISSION_HUB_NOTIFICATIONS_SYNC_EVENT, onSync);
     return () => window.removeEventListener(MISSION_HUB_NOTIFICATIONS_SYNC_EVENT, onSync);
-  }, []);
+  }, [hubRefresh]);
 
   useEffect(() => {
     if (!open) return;
     const id = setInterval(() => {
       if (document.visibilityState !== "visible") return;
+      if (markAllInFlight.current) return;
       void loadPanel();
     }, 45_000);
     return () => clearInterval(id);
@@ -171,7 +188,7 @@ export function CommunityNotificationsBell({
   useEffect(() => {
     function onHubRefresh() {
       void refreshCount();
-      if (open) void loadPanel();
+      if (open && !markAllInFlight.current) void loadPanel();
     }
     window.addEventListener(MISSION_HUB_REFRESH_EVENT, onHubRefresh);
     return () => window.removeEventListener(MISSION_HUB_REFRESH_EVENT, onHubRefresh);
@@ -196,18 +213,35 @@ export function CommunityNotificationsBell({
   }, [open]);
 
   const handleMarkAllRead = () => {
+    const snapshot: MarkAllReadSnapshot = {
+      unreadItems: [...unreadItems],
+      readItems: [...readItems],
+      unreadCount: displayUnreadCount,
+    };
+
+    const optimistic = applyOptimisticMarkAllRead(
+      snapshot.unreadItems,
+      snapshot.readItems,
+      new Date().toISOString(),
+    );
+    setDisplayedUnreadCount(optimistic.unreadCount);
+    setUnreadItems(optimistic.unreadItems);
+    setReadItems(optimistic.readItems);
+
+    markAllInFlight.current = true;
     startTransition(async () => {
-      const result = await markAllNotificationsReadAction();
-      if (result.ok) {
-        const now = new Date().toISOString();
-        setUnreadCount(0);
-        hubRefresh?.setUnreadCount(0);
-        setReadItems((prev) => [
-          ...unreadItems.map((n) => ({ ...n, readAt: now })),
-          ...prev,
-        ]);
-        setUnreadItems([]);
-        setReadExpanded(true);
+      try {
+        const result = await markAllNotificationsReadAction();
+        if (!result.ok) {
+          const restored = restoreMarkAllReadSnapshot(snapshot);
+          setUnreadItems(restored.unreadItems);
+          setReadItems(restored.readItems);
+          setDisplayedUnreadCount(restored.unreadCount);
+          void loadPanel();
+          void refreshCount();
+        }
+      } finally {
+        markAllInFlight.current = false;
       }
     });
   };
@@ -217,8 +251,7 @@ export function CommunityNotificationsBell({
       const result = await clearReadNotificationsAction();
       if (result.ok) {
         setReadItems([]);
-        setUnreadCount(result.unreadCount);
-        hubRefresh?.setUnreadCount(result.unreadCount);
+        setDisplayedUnreadCount(result.unreadCount);
         setReadExpanded(false);
       }
     });
@@ -229,8 +262,7 @@ export function CommunityNotificationsBell({
       startTransition(async () => {
         const result = await markNotificationReadAction(item.id);
         if (result.ok) {
-          setUnreadCount(result.unreadCount);
-          hubRefresh?.setUnreadCount(result.unreadCount);
+          setDisplayedUnreadCount(result.unreadCount);
           setUnreadItems((prev) => prev.filter((n) => n.id !== item.id));
           setReadItems((prev) => [
             { ...item, readAt: new Date().toISOString() },

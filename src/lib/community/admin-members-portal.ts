@@ -8,6 +8,11 @@ import type {
   AdminMemberDetail,
   AdminMemberPortalRow,
 } from "@/lib/community/admin-members-portal-types";
+import {
+  memberUsesDailyDigest,
+  memberUsesWeeklyDigestCategories,
+} from "@/lib/mission-hub/notification-category-preferences";
+import { normalizeSuppressionEmail } from "@/lib/mission-hub/email-suppressions";
 import { prisma } from "@/lib/db";
 
 export { countActiveMembersThisWeek } from "@/lib/community/admin-members-active-week";
@@ -42,7 +47,7 @@ function maxIso(dates: (Date | null | undefined)[]): string | null {
 }
 
 export async function listMembersForAdminPortal(): Promise<AdminMemberPortalRow[]> {
-  const [rows, spaces] = await Promise.all([
+  const [rows, spaces, suppressions] = await Promise.all([
     prisma.communityMemberRecord.findMany({
       orderBy: { createdAt: "desc" },
       take: 1000,
@@ -62,7 +67,15 @@ export async function listMembersForAdminPortal(): Promise<AdminMemberPortalRow[
       where: { status: "published" },
       select: { id: true, slug: true },
     }),
+    prisma.emailSuppressionRecord.findMany({
+      where: { scope: { in: ["mission_hub", "all"] } },
+      select: { email: true },
+    }),
   ]);
+
+  const suppressedEmails = new Set(
+    suppressions.map((row) => normalizeSuppressionEmail(row.email)),
+  );
 
   const spaceSlugById = new Map(spaces.map((s) => [s.id, s.slug]));
   const memberIds = rows.map((r) => r.id);
@@ -129,6 +142,12 @@ export async function listMembersForAdminPortal(): Promise<AdminMemberPortalRow[
     const userId = row.userId;
     const userRole = row.user?.role ?? null;
 
+    const userEmail = row.user?.email ?? null;
+    const normalizedEmail = userEmail?.trim().toLowerCase() ?? null;
+    const missionHubUnsubscribed =
+      prefs.email === false ||
+      (normalizedEmail ? suppressedEmails.has(normalizedEmail) : false);
+
     return {
       id: row.id,
       userId,
@@ -136,7 +155,7 @@ export async function listMembersForAdminPortal(): Promise<AdminMemberPortalRow[
       lastName: row.lastName,
       displayName: row.displayName,
       email: row.email,
-      userEmail: row.user?.email ?? null,
+      userEmail,
       profileImageUrl: row.profileImageUrl,
       visitorKey: row.visitorKey,
       status,
@@ -152,9 +171,12 @@ export async function listMembersForAdminPortal(): Promise<AdminMemberPortalRow[
       commentCount: row._count.comments,
       postCount: userId ? (postCountMap.get(userId) ?? 0) : 0,
       inAppEnabled: prefs.inApp === true,
-      emailEnabled: prefs.email === true,
+      emailEnabled: prefs.email === true && !missionHubUnsubscribed,
       newslettersEnabled: prefs.newsletters !== false,
       newPostsEnabled: prefs.newPosts !== false,
+      usesDigestEmail:
+        memberUsesDailyDigest(prefs) || memberUsesWeeklyDigestCategories(prefs),
+      missionHubUnsubscribed,
       mutedSpaceIds,
       mutedSpaceSlugs: mutedSpaceIds
         .map((id) => spaceSlugById.get(id))
@@ -221,6 +243,9 @@ function buildPortalRowForMember(
     emailEnabled: prefs.email === true,
     newslettersEnabled: prefs.newsletters !== false,
     newPostsEnabled: prefs.newPosts !== false,
+    usesDigestEmail:
+      memberUsesDailyDigest(prefs) || memberUsesWeeklyDigestCategories(prefs),
+    missionHubUnsubscribed: prefs.email === false,
     mutedSpaceIds,
     mutedSpaceSlugs: mutedSpaceIds
       .map((id) => spaceSlugById.get(id))

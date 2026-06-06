@@ -12,6 +12,7 @@ import {
 import { queueMissionHubEmailDelivery } from "@/lib/mission-hub/email-delivery-queue";
 import type { QueueMissionHubEmailResult } from "@/lib/mission-hub/email-delivery-types";
 import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
+import { finalizeMissionHubEmailContent } from "@/lib/mission-hub/email-compliance-footer";
 import type { MissionHubEmailSendPolicy } from "@/lib/mission-hub/test-email-recipients";
 import type { WeeklyMissionHubDigest } from "@/lib/mission-hub/weekly-digest-core";
 
@@ -76,8 +77,6 @@ export function buildWeeklyDigestEmailContent(
     ...textSections,
     "",
     `Open Mission Hub: ${missionHubUrl}`,
-    "",
-    `Notification preferences: ${settingsUrl}`,
   ].join("\n");
 
   const htmlSections = activeSections
@@ -115,10 +114,6 @@ export function buildWeeklyDigestEmailContent(
   <p style="margin: 28px 0 12px;">
     <a href="${escapeHtml(missionHubUrl)}" style="display: inline-block; background: #5a8fb8; color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 600;">Open Mission Hub</a>
   </p>
-  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-  <p style="font-size: 12px; color: #737373; margin: 0;">
-    <a href="${escapeHtml(settingsUrl)}">Manage notification preferences</a> in Mission Hub.
-  </p>
 </body>
 </html>`.trim();
 
@@ -148,7 +143,12 @@ export async function queueAndSendWeeklyDigestEmail(input: {
     ? weeklyDigestTestEmailDedupeKey(endDate, input.recipientUserId)
     : weeklyDigestEmailDedupeKey(endDate);
 
-  const content = buildWeeklyDigestEmailContent(input.digest);
+  const built = buildWeeklyDigestEmailContent(input.digest);
+  const content = finalizeMissionHubEmailContent({
+    ...built,
+    recipientUserId: input.recipientUserId,
+    recipientEmail: input.recipientEmail,
+  });
 
   return queueMissionHubEmailDelivery(
     {
@@ -166,7 +166,7 @@ export async function queueAndSendWeeklyDigestEmail(input: {
         digestWeekKey: weekKey,
         dateRangeStart: input.digest.dateRange.start,
         dateRangeEnd: input.digest.dateRange.end,
-        missionHubPostUrl: content.missionHubUrl,
+        missionHubPostUrl: built.missionHubUrl,
       },
       forceResend: input.forceResend,
     },

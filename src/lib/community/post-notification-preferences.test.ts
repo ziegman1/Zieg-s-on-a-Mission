@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/lib/community/settings-types";
+import type { MissionHubEmailCategory, NotificationFrequency } from "@/lib/mission-hub/notification-category-preferences";
+import { syncLegacyBooleansFromCategoryFrequencies } from "@/lib/mission-hub/notification-category-preferences";
 import { evaluatePostPublishNotificationEligibility } from "./post-notification-preferences";
+
+function prefsWithCategory(
+  category: MissionHubEmailCategory,
+  frequency: NotificationFrequency,
+  overrides: Partial<typeof DEFAULT_NOTIFICATION_PREFERENCES> = {},
+) {
+  return syncLegacyBooleansFromCategoryFrequencies({
+    ...DEFAULT_NOTIFICATION_PREFERENCES,
+    ...overrides,
+    categoryFrequencies: {
+      ...DEFAULT_NOTIFICATION_PREFERENCES.categoryFrequencies,
+      [category]: frequency,
+    },
+  });
+}
 
 describe("evaluatePostPublishNotificationEligibility", () => {
   const base = { spaceId: "space-1" };
@@ -16,24 +33,16 @@ describe("evaluatePostPublishNotificationEligibility", () => {
     expect(result.skipReason).toBeNull();
   });
 
-  it("ministry_updates respects ministryUpdates, not newPosts alone", () => {
+  it("ministry_updates respects ministryUpdates frequency", () => {
     const enabled = evaluatePostPublishNotificationEligibility(
-      {
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-        newPosts: true,
-        ministryUpdates: true,
-      },
+      DEFAULT_NOTIFICATION_PREFERENCES,
       { ...base, notificationCategory: "ministry_updates" },
     );
     expect(enabled.preferenceKey).toBe("ministryUpdates");
     expect(enabled.emailChannel).toBe(true);
 
     const disabled = evaluatePostPublishNotificationEligibility(
-      {
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-        newPosts: true,
-        ministryUpdates: false,
-      },
+      prefsWithCategory("ministryUpdates", "never"),
       { ...base, notificationCategory: "ministry_updates" },
     );
     expect(disabled.emailChannel).toBe(false);
@@ -41,71 +50,53 @@ describe("evaluatePostPublishNotificationEligibility", () => {
     expect(disabled.skipReason).toBe("ministry_updates_disabled");
   });
 
-  it("newsletters category respects newsletters preference", () => {
+  it("newsletters category respects newsletters frequency", () => {
     const disabled = evaluatePostPublishNotificationEligibility(
-      {
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-        newPosts: true,
-        newsletters: false,
-      },
+      prefsWithCategory("newsletters", "never"),
       { ...base, notificationCategory: "newsletters" },
     );
     expect(disabled.preferenceKey).toBe("newsletters");
     expect(disabled.skipReason).toBe("newsletters_disabled");
   });
 
-  it("prayer_requests respects prayerResponses", () => {
+  it("prayer_requests respects prayerRequests frequency", () => {
     const disabled = evaluatePostPublishNotificationEligibility(
-      {
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-        newPosts: true,
-        prayerResponses: false,
-      },
+      prefsWithCategory("prayerRequests", "never"),
       { ...base, notificationCategory: "prayer_requests" },
     );
     expect(disabled.preferenceKey).toBe("prayerResponses");
     expect(disabled.skipReason).toBe("prayer_responses_disabled");
   });
 
-  it("praise_reports respects praiseReports", () => {
+  it("praise_reports respects praiseReports frequency", () => {
     const disabled = evaluatePostPublishNotificationEligibility(
-      {
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-        newPosts: true,
-        praiseReports: false,
-      },
+      prefsWithCategory("praiseReports", "never"),
       { ...base, notificationCategory: "praise_reports" },
     );
     expect(disabled.preferenceKey).toBe("praiseReports");
     expect(disabled.skipReason).toBe("praise_reports_disabled");
   });
 
-  it("blog_articles falls back to newPosts", () => {
+  it("blog_articles falls back to communityActivity", () => {
     const disabled = evaluatePostPublishNotificationEligibility(
-      {
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-        newPosts: false,
+      prefsWithCategory("communityActivity", "never", {
         ministryUpdates: true,
-      },
+      }),
       { ...base, notificationCategory: "blog_articles" },
     );
     expect(disabled.preferenceKey).toBe("newPosts");
     expect(disabled.skipReason).toBe("new_posts_disabled");
 
     const enabled = evaluatePostPublishNotificationEligibility(
-      {
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-        newPosts: true,
-        ministryUpdates: false,
-      },
+      prefsWithCategory("ministryUpdates", "never"),
       { ...base, notificationCategory: "blog_articles" },
     );
     expect(enabled.emailChannel).toBe(true);
   });
 
-  it("resources falls back to newPosts", () => {
+  it("resources falls back to communityActivity", () => {
     const result = evaluatePostPublishNotificationEligibility(
-      { ...DEFAULT_NOTIFICATION_PREFERENCES, newPosts: false },
+      prefsWithCategory("communityActivity", "never"),
       { ...base, notificationCategory: "resources" },
     );
     expect(result.preferenceKey).toBe("newPosts");
@@ -124,6 +115,15 @@ describe("evaluatePostPublishNotificationEligibility", () => {
     expect(result.emailChannel).toBe(false);
     expect(result.inAppChannel).toBe(false);
     expect(result.skipReason).toBe("space_muted");
+  });
+
+  it("weekly digest frequency does not send immediate email", () => {
+    const result = evaluatePostPublishNotificationEligibility(
+      prefsWithCategory("ministryUpdates", "weekly_digest"),
+      { ...base, notificationCategory: "ministry_updates" },
+    );
+    expect(result.emailChannel).toBe(false);
+    expect(result.inAppChannel).toBe(true);
   });
 
   it("email channel off blocks email but not in-app when preference is on", () => {
@@ -168,7 +168,7 @@ describe("evaluatePostPublishNotificationEligibility", () => {
 
   it("defaults to custom/newPosts when category omitted", () => {
     const result = evaluatePostPublishNotificationEligibility(
-      { ...DEFAULT_NOTIFICATION_PREFERENCES, newPosts: false },
+      prefsWithCategory("communityActivity", "never"),
       base,
     );
     expect(result.preferenceKey).toBe("newPosts");

@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { CommunityNotificationItem } from "@/lib/community/notification-types";
 import {
   countUnreadNotifications,
@@ -98,7 +97,6 @@ export async function clearReadNotificationsAction(): Promise<
   try {
     await deleteReadNotificationsForUser(authResult.userId);
     const unreadCount = await countUnreadNotifications(authResult.userId);
-    revalidatePath("/community");
     return { ok: true, unreadCount };
   } catch (e) {
     console.error(e);
@@ -117,7 +115,6 @@ export async function markNotificationReadAction(
   try {
     await markNotificationRead(authResult.userId, notificationId);
     const unreadCount = await countUnreadNotifications(authResult.userId);
-    revalidatePath("/community");
     return { ok: true, unreadCount };
   } catch (e) {
     console.error(e);
@@ -133,7 +130,6 @@ export async function markAllNotificationsReadAction(): Promise<
 
   try {
     await markAllNotificationsRead(authResult.userId);
-    revalidatePath("/community");
     return { ok: true, unreadCount: 0 };
   } catch (e) {
     console.error(e);

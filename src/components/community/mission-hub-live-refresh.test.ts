@@ -51,10 +51,12 @@ describe("Mission Hub live refresh integration", () => {
       "utf8",
     );
     expect(bell).toContain("useMissionHubRefreshOptional");
-    expect(bell).toContain("MISSION_HUB_NOTIFICATIONS_SYNC_EVENT");
+    expect(bell).toContain("dispatchMissionHubNotificationsSync");
     expect(bell).toContain("MISSION_HUB_REFRESH_EVENT");
-    expect(bell).toContain("displayUnreadCount");
+    expect(bell).toContain("resolveDisplayUnreadCount");
+    expect(bell).toContain("setDisplayedUnreadCount");
     expect(bell).toContain("visibilityState");
+    expect(bell).not.toContain("setUnreadCount(initialUnreadCount)");
   });
 
   it("comments reload on mission hub refresh event", () => {

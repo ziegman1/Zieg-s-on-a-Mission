@@ -8,6 +8,7 @@ import {
   memberWantsWeeklyDigest,
   toggleMutedSpace,
 } from "./notification-preferences";
+import { syncLegacyBooleansFromCategoryFrequencies } from "@/lib/mission-hub/notification-category-preferences";
 
 describe("default notification preferences", () => {
   it("enables ministry updates, newsletters, weekly digest, email, and in-app by default", () => {
@@ -23,10 +24,13 @@ describe("default notification preferences", () => {
   it("merges stored JSON with new fields", () => {
     const merged = mergeNotificationPreferences({
       newPosts: false,
+      commentsOnPosts: false,
+      repliesToComments: false,
       email: false,
     });
     expect(merged.newPosts).toBe(false);
     expect(merged.email).toBe(false);
+    expect(merged.categoryFrequencies.communityActivity).toBe("never");
     expect(merged.newsletters).toBe(true);
     expect(merged.weeklyDigest).toBe(true);
   });
@@ -34,10 +38,15 @@ describe("default notification preferences", () => {
 
 describe("evaluateNewsletterNotificationEligibility", () => {
   it("excludes user when newsletters are disabled", () => {
-    const e = evaluateNewsletterNotificationEligibility({
-      ...DEFAULT_NOTIFICATION_PREFERENCES,
-      newsletters: false,
-    });
+    const e = evaluateNewsletterNotificationEligibility(
+      syncLegacyBooleansFromCategoryFrequencies({
+        ...DEFAULT_NOTIFICATION_PREFERENCES,
+        categoryFrequencies: {
+          ...DEFAULT_NOTIFICATION_PREFERENCES.categoryFrequencies,
+          newsletters: "never",
+        },
+      }),
+    );
     expect(e.wantsNewsletterContent).toBe(false);
     expect(e.emailChannel).toBe(false);
     expect(e.inAppChannel).toBe(false);
@@ -79,7 +88,20 @@ describe("memberWantsWeeklyDigest", () => {
   it("requires weekly digest and email", () => {
     expect(memberWantsWeeklyDigest(DEFAULT_NOTIFICATION_PREFERENCES)).toBe(true);
     expect(
-      memberWantsWeeklyDigest({ ...DEFAULT_NOTIFICATION_PREFERENCES, weeklyDigest: false }),
+      memberWantsWeeklyDigest(
+        syncLegacyBooleansFromCategoryFrequencies({
+          ...DEFAULT_NOTIFICATION_PREFERENCES,
+          weeklyDigest: false,
+          categoryFrequencies: {
+            ...DEFAULT_NOTIFICATION_PREFERENCES.categoryFrequencies,
+            newsletters: "immediate",
+            ministryUpdates: "immediate",
+            prayerRequests: "immediate",
+            praiseReports: "immediate",
+            communityActivity: "immediate",
+          },
+        }),
+      ),
     ).toBe(false);
     expect(memberWantsWeeklyDigest({ ...DEFAULT_NOTIFICATION_PREFERENCES, email: false })).toBe(
       false,

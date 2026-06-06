@@ -7,6 +7,7 @@ import { queueMissionHubEmailDelivery } from "@/lib/mission-hub/email-delivery-q
 import type { QueueMissionHubEmailResult } from "@/lib/mission-hub/email-delivery-types";
 import type { MissionHubEmailSendPolicy } from "@/lib/mission-hub/test-email-recipients";
 import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
+import { finalizeMissionHubEmailContent } from "@/lib/mission-hub/email-compliance-footer";
 
 export const URGENT_PRAYER_EMAIL_SUBJECT =
   "Urgent Prayer Request from Jeremy & Lindsay";
@@ -66,8 +67,6 @@ export function buildUrgentPrayerEmailContent(input: {
     "You can leave a written prayer or record a voice prayer so we know you are praying with us.",
     "",
     `Open prayer request: ${postUrl}`,
-    "",
-    `Notification preferences: ${settingsUrl}`,
   ].join("\n");
 
   const html = `
@@ -81,10 +80,6 @@ export function buildUrgentPrayerEmailContent(input: {
   <p style="font-size: 14px; margin: 0 0 24px; color: #444;">You can leave a written prayer or record a voice prayer so we know you are praying with us.</p>
   <p style="margin: 0 0 24px;">
     <a href="${escapeHtml(postUrl)}" style="display: inline-block; background: #5a8fb8; color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 600;">Open Prayer Request</a>
-  </p>
-  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-  <p style="font-size: 12px; color: #737373; margin: 0;">
-    <a href="${escapeHtml(settingsUrl)}">Manage notification preferences</a> in Mission Hub.
   </p>
 </body>
 </html>`.trim();
@@ -108,12 +103,17 @@ export async function queueAndSendUrgentPrayerEmail(input: {
     return { action: "skipped", reason: "advanced_notifications_disabled" };
   }
 
-  const content = buildUrgentPrayerEmailContent({
+  const built = buildUrgentPrayerEmailContent({
     spaceSlug: input.spaceSlug,
     postId: input.postId,
     title: input.title,
     body: input.body,
     excerpt: input.excerpt,
+  });
+  const content = finalizeMissionHubEmailContent({
+    ...built,
+    recipientUserId: input.recipientUserId,
+    recipientEmail: input.recipientEmail,
   });
 
   return queueMissionHubEmailDelivery(
@@ -131,7 +131,7 @@ export async function queueAndSendUrgentPrayerEmail(input: {
         sourcePostId: input.postId,
         spaceId: input.spaceId,
         spaceSlug: input.spaceSlug,
-        missionHubPostUrl: content.postUrl,
+        missionHubPostUrl: built.postUrl,
       },
       forceResend: input.forceResend,
     },

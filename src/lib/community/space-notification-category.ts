@@ -1,6 +1,10 @@
 import type { CommunitySpaceSettings, NotificationPreferences } from "@/lib/community/settings-types";
 import { mergeSpaceSettings } from "@/lib/community/settings-types";
 import {
+  categoryFrequency,
+  spaceCategoryToEmailCategory,
+} from "@/lib/mission-hub/notification-category-preferences";
+import {
   DEFAULT_SPACE_NOTIFICATION_CATEGORY,
   SPACE_NOTIFICATION_CATEGORIES,
   SPACE_NOTIFICATION_CATEGORY_VALUES,
@@ -70,6 +74,8 @@ export function memberWantsCategoryNotification(
   prefs: NotificationPreferences,
   category: SpaceNotificationCategory,
 ): boolean {
-  const key = notificationPreferenceKeyForCategory(category);
-  return prefs[key] !== false;
+  const emailCategory = spaceCategoryToEmailCategory(category);
+  return categoryFrequency(prefs, emailCategory) !== "never";
 }
+
+export { spaceCategoryToEmailCategory };

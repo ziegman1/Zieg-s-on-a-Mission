@@ -6,6 +6,7 @@ import { queueMissionHubEmailDelivery } from "@/lib/mission-hub/email-delivery-q
 import type { QueueMissionHubEmailResult } from "@/lib/mission-hub/email-delivery-types";
 import type { MissionHubEmailSendPolicy } from "@/lib/mission-hub/test-email-recipients";
 import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
+import { finalizeMissionHubEmailContent } from "@/lib/mission-hub/email-compliance-footer";
 
 export function buildPostPublishEmailSubject(spaceName: string): string {
   return `New post in ${spaceName.trim() || "Mission Hub"}`;
@@ -46,8 +47,6 @@ export function buildPostPublishEmailContent(input: {
     excerpt,
     "",
     `View post: ${postUrl}`,
-    "",
-    `Notification preferences: ${settingsUrl}`,
   ].join("\n");
 
   const html = `
@@ -59,10 +58,6 @@ export function buildPostPublishEmailContent(input: {
   <p style="font-size: 16px; margin: 0 0 24px;">${escapeHtml(excerpt)}</p>
   <p style="margin: 0 0 24px;">
     <a href="${escapeHtml(postUrl)}" style="display: inline-block; background: #5a8fb8; color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 600;">View in Mission Hub</a>
-  </p>
-  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-  <p style="font-size: 12px; color: #737373; margin: 0;">
-    <a href="${escapeHtml(settingsUrl)}">Manage notification preferences</a>
   </p>
 </body>
 </html>`.trim();
@@ -101,13 +96,18 @@ export async function queueAndSendPostPublishEmail(input: {
   forceResend?: boolean;
   emailPolicy?: MissionHubEmailSendPolicy;
 }): Promise<QueueMissionHubEmailResult> {
-  const content = buildPostPublishEmailContent({
+  const built = buildPostPublishEmailContent({
     spaceName: input.spaceName,
     spaceSlug: input.spaceSlug,
     postId: input.postId,
     title: input.title,
     body: input.body,
     excerpt: input.excerpt,
+  });
+  const content = finalizeMissionHubEmailContent({
+    ...built,
+    recipientUserId: input.recipientUserId,
+    recipientEmail: input.recipientEmail,
   });
 
   return queueMissionHubEmailDelivery(
@@ -125,7 +125,7 @@ export async function queueAndSendPostPublishEmail(input: {
         sourcePostId: input.postId,
         spaceId: input.spaceId,
         spaceSlug: input.spaceSlug,
-        missionHubPostUrl: content.postUrl,
+        missionHubPostUrl: built.postUrl,
       },
       forceResend: input.forceResend,
     },

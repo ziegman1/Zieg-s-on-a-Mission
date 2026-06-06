@@ -6,8 +6,10 @@ import {
   DEFAULT_SPACE_NOTIFICATION_CATEGORY,
   memberWantsCategoryNotification,
   notificationPreferenceKeyForCategory,
+  spaceCategoryToEmailCategory,
   type SpaceNotificationCategory,
 } from "@/lib/community/space-notification-category";
+import { wantsImmediateEmailForCategory } from "@/lib/mission-hub/notification-category-preferences";
 
 export type PostNotificationSkipReason =
   | "new_posts_disabled"
@@ -70,7 +72,9 @@ export function evaluatePostPublishNotificationEligibility(
   }
 
   const wantsContent = memberWantsCategoryNotification(prefs, category);
-  const emailChannel = wantsContent && prefs.email === true;
+  const emailCategory = spaceCategoryToEmailCategory(category);
+  const emailChannel =
+    wantsContent && wantsImmediateEmailForCategory(prefs, emailCategory);
   const inAppChannel = wantsContent && prefs.inApp === true;
 
   let skipReason: PostNotificationSkipReason | null = null;

@@ -15,6 +15,7 @@ import { queueMissionHubEmailDelivery } from "@/lib/mission-hub/email-delivery-q
 import type { QueueMissionHubEmailResult } from "@/lib/mission-hub/email-delivery-types";
 import type { MissionHubEmailSendPolicy } from "@/lib/mission-hub/test-email-recipients";
 import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
+import { finalizeMissionHubEmailContent } from "@/lib/mission-hub/email-compliance-footer";
 
 export const BLOG_PUBLISH_EMAIL_SUBJECT = "New blog article from Zieg's on a Mission";
 
@@ -48,8 +49,6 @@ export function buildBlogPublishEmailContent(input: {
     "",
     `Read the article: ${blogPublicUrl}`,
     `View in Mission Hub: ${input.missionHubPostUrl}`,
-    "",
-    `Notification preferences: ${settingsUrl}`,
   ].join("\n");
 
   const html = `
@@ -64,10 +63,6 @@ export function buildBlogPublishEmailContent(input: {
   </p>
   <p style="margin: 0 0 24px; font-size: 14px;">
     <a href="${escapeHtml(input.missionHubPostUrl)}">View in Mission Hub (${BLOG_ARTICLES_SPACE_SLUG})</a>
-  </p>
-  <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
-  <p style="font-size: 12px; color: #737373; margin: 0;">
-    <a href="${escapeHtml(settingsUrl)}">Manage notification preferences</a> in Mission Hub.
   </p>
 </body>
 </html>`.trim();
@@ -104,9 +99,14 @@ export async function queueAndSendBlogPublishEmail(input: {
     return { action: "skipped", reason: "advanced_notifications_disabled" };
   }
 
-  const content = buildBlogPublishEmailContent({
+  const built = buildBlogPublishEmailContent({
     blog: input.blog,
     missionHubPostUrl: input.missionHubPostUrl,
+  });
+  const content = finalizeMissionHubEmailContent({
+    ...built,
+    recipientUserId: input.recipientUserId,
+    recipientEmail: input.recipientEmail,
   });
 
   return queueMissionHubEmailDelivery(
@@ -123,8 +123,8 @@ export async function queueAndSendBlogPublishEmail(input: {
         sourceId: input.blog.id,
         sourcePostId: extractPostIdFromMissionHubUrl(input.missionHubPostUrl),
         blogSlug: input.blog.slug,
-        blogPublicUrl: content.blogPublicUrl,
-        missionHubPostUrl: content.missionHubPostUrl,
+        blogPublicUrl: built.blogPublicUrl,
+        missionHubPostUrl: built.missionHubPostUrl,
       },
       forceResend: input.forceResend,
     },

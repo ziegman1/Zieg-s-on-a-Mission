@@ -69,6 +69,7 @@ model User {
   notificationsReceived CommunityNotificationRecord[] @relation("NotificationRecipient")
   notificationsSent     CommunityNotificationRecord[] @relation("NotificationActor")
   missionHubEmailDeliveries MissionHubEmailDeliveryRecord[]
+  emailSuppressions         EmailSuppressionRecord[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -551,6 +552,26 @@ model MissionHubEmailDeliveryRecord {
   @@index([dedupeKey])
   @@index([status, createdAt])
   @@map("mission_hub_email_deliveries")
+}
+
+/** Address-level email suppressions (Mission Hub scope — separate from Mail Suite). */
+model EmailSuppressionRecord {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String
+  /** mission_hub | all — Mail Suite uses a separate system */
+  scope     String   @default("mission_hub")
+  reason    String
+  userId    String?  @map("user_id")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([email, scope])
+  @@index([email])
+  @@index([scope])
+  @@map("email_suppressions")
 }
 
 model CommunityHubSettingsRecord {

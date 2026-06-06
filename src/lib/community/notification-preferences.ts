@@ -2,6 +2,11 @@ import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type NotificationPreferences,
 } from "@/lib/community/settings-types";
+import {
+  categoryFrequency,
+  memberUsesWeeklyDigestCategories,
+  wantsImmediateEmailForCategory,
+} from "@/lib/mission-hub/notification-category-preferences";
 
 export type NewsletterNotificationEligibility = {
   hasMissionHubAccess: boolean;
@@ -35,15 +40,17 @@ export function evaluateNewsletterNotificationEligibility(
     options.announcementSpaceId && muted.has(options.announcementSpaceId),
   );
 
-  const wantsNewsletterContent = prefs.newsletters !== false && !spaceMuted;
+  const wantsNewsletterContent =
+    categoryFrequency(prefs, "newsletters") !== "never" && !spaceMuted;
 
-  const emailChannel = wantsNewsletterContent && prefs.email === true;
+  const emailChannel =
+    wantsImmediateEmailForCategory(prefs, "newsletters") && !spaceMuted;
   const inAppChannel = wantsNewsletterContent && prefs.inApp === true;
   const pushChannel = wantsNewsletterContent && prefs.push === true;
 
   let skipReason: NewsletterNotificationSkipReason | null = null;
   if (!hasMissionHubAccess) skipReason = "no_hub_access";
-  else if (prefs.newsletters === false) skipReason = "newsletters_disabled";
+  else if (categoryFrequency(prefs, "newsletters") === "never") skipReason = "newsletters_disabled";
   else if (spaceMuted) skipReason = "space_muted";
   else if (!emailChannel && !inAppChannel && !pushChannel) skipReason = "all_channels_off";
 
@@ -60,7 +67,7 @@ export function evaluateNewsletterNotificationEligibility(
 
 /** Member is eligible for weekly digest preparation (delivery not sent). */
 export function memberWantsWeeklyDigest(prefs: NotificationPreferences): boolean {
-  return prefs.weeklyDigest !== false && prefs.email === true;
+  return memberUsesWeeklyDigestCategories(prefs);
 }
 
 export function normalizeMutedSpaceIds(raw: unknown): string[] {

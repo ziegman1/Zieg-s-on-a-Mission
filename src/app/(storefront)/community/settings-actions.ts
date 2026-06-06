@@ -27,7 +27,9 @@ import { voicePrayerSettingsPatch } from "@/lib/community/voice-prayer";
 import { revalidateCommunityFeeds } from "@/lib/community/post-author";
 import { normalizeSpaceTypeRaw } from "@/lib/community/space-interaction";
 import { parseSpaceType } from "@/lib/community/space-experience";
-import { updateUserNotificationPreferences } from "@/lib/community/user-notification-prefs";
+import { getUserNotificationPreferences } from "@/lib/community/user-notification-prefs";
+import { saveMissionHubNotificationPreferences } from "@/lib/mission-hub/mission-hub-email-preferences";
+import { syncLegacyBooleansFromCategoryFrequencies } from "@/lib/mission-hub/notification-category-preferences";
 import { prisma } from "@/lib/db";
 import { prismaForCredentialsAuth } from "@/lib/prisma-credentials";
 
@@ -139,10 +141,34 @@ export async function saveNotificationPrefsAction(
   }
 
   try {
-    await updateUserNotificationPreferences(
-      authResult.userId,
-      parsed.data as NotificationPreferences,
-    );
+    const current = await getUserNotificationPreferences(authResult.userId);
+    const merged = syncLegacyBooleansFromCategoryFrequencies({
+      ...current,
+      ...parsed.data,
+      categoryFrequencies: {
+        ...current.categoryFrequencies,
+        ...(parsed.data.categoryFrequencies ?? {}),
+      },
+    });
+
+    const user = await prisma.user.findUnique({
+      where: { id: authResult.userId },
+      select: { email: true },
+    });
+
+    if (user?.email) {
+      await saveMissionHubNotificationPreferences({
+        userId: authResult.userId,
+        email: user.email,
+        prefs: merged,
+      });
+    } else {
+      const { updateUserNotificationPreferences } = await import(
+        "@/lib/community/user-notification-prefs"
+      );
+      await updateUserNotificationPreferences(authResult.userId, merged);
+    }
+
     revalidateSettings();
     return { ok: true };
   } catch (e) {

@@ -28,6 +28,8 @@ function row(overrides: Partial<AdminMemberPortalRow>): AdminMemberPortalRow {
     emailEnabled: true,
     newslettersEnabled: true,
     newPostsEnabled: true,
+    usesDigestEmail: false,
+    missionHubUnsubscribed: false,
     mutedSpaceIds: [],
     mutedSpaceSlugs: [],
     unreadNotificationCount: 0,

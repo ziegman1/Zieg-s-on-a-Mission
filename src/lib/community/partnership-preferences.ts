@@ -1,4 +1,5 @@
 import type { NotificationPreferences } from "@/lib/community/settings-types";
+import { syncLegacyBooleansFromCategoryFrequencies } from "@/lib/mission-hub/notification-category-preferences";
 
 export const PARTNERSHIP_PREF_KEYS = [
   "ministryUpdates",
@@ -112,15 +113,30 @@ export function applyPartnershipToNotificationPreferences(
   partnership: PartnershipPreferences,
   notification: NotificationPreferences,
 ): NotificationPreferences {
-  return {
+  const categoryFrequencies = { ...notification.categoryFrequencies };
+
+  categoryFrequencies.ministryUpdates = partnership.ministryUpdates
+    ? categoryFrequencies.ministryUpdates === "never"
+      ? "immediate"
+      : categoryFrequencies.ministryUpdates
+    : "never";
+
+  categoryFrequencies.newsletters = partnership.newsletters
+    ? categoryFrequencies.newsletters === "never"
+      ? "weekly_digest"
+      : categoryFrequencies.newsletters
+    : "never";
+
+  if (partnership.urgentPrayerRequests || partnership.prayerTeam) {
+    if (categoryFrequencies.prayerRequests === "never") {
+      categoryFrequencies.prayerRequests = "immediate";
+    }
+  }
+
+  return syncLegacyBooleansFromCategoryFrequencies({
     ...notification,
-    ministryUpdates: partnership.ministryUpdates,
-    newsletters: partnership.newsletters,
-    prayerResponses:
-      partnership.urgentPrayerRequests || partnership.prayerTeam
-        ? true
-        : notification.prayerResponses,
-  };
+    categoryFrequencies,
+  });
 }
 
 export type PartnershipSegmentFilter =

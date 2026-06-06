@@ -5,44 +5,24 @@ import { saveNotificationPrefsAction } from "@/app/(storefront)/community/settin
 import { toggleMutedSpace } from "@/lib/community/notification-preferences";
 import {
   NOTIFICATION_CHANNEL_LABELS,
-  NOTIFICATION_PREF_KEYS,
-  NOTIFICATION_PREF_LABELS,
   type NotificationPreferences,
   type SettingsPageData,
 } from "@/lib/community/settings-types";
 import {
-  SettingsComingSoon,
+  EmailCategoryFrequencyFields,
+  EmailChannelToggle,
+} from "@/components/community/email-preferences-form";
+import {
   SettingsFieldGroup,
   SettingsPanel,
   SettingsSaveButton,
   SettingsToggleRow,
 } from "./settings-ui";
 
-const CONTENT_PREF_KEYS = NOTIFICATION_PREF_KEYS.filter(
-  (k) =>
-    k === "newPosts" ||
-    k === "ministryUpdates" ||
-    k === "newsletters" ||
-    k === "weeklyDigest" ||
-    k === "commentsOnPosts" ||
-    k === "repliesToComments" ||
-    k === "prayerResponses" ||
-    k === "praiseReports",
-);
-
-const PRIMARY_CONTENT_KEYS = ["newPosts", "ministryUpdates", "newsletters", "weeklyDigest"] as const;
-
 export function SettingsNotificationsPanel({ data }: { data: SettingsPageData }) {
   const [prefs, setPrefs] = useState<NotificationPreferences>(data.notificationPrefs);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-
-  function setKey<K extends keyof NotificationPreferences>(
-    key: K,
-    value: NotificationPreferences[K],
-  ) {
-    setPrefs((p) => ({ ...p, [key]: value }));
-  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,7 +39,7 @@ export function SettingsNotificationsPanel({ data }: { data: SettingsPageData })
     <form onSubmit={handleSubmit}>
       <SettingsPanel
         title="Notifications"
-        description="Choose how Mission Hub keeps you updated. Delivery is being prepared — your choices are saved now."
+        description="Choose how Mission Hub keeps you updated. Mission Hub email preferences are separate from Mail Suite."
         footer={<SettingsSaveButton pending={pending} />}
       >
         <SettingsFieldGroup>
@@ -71,54 +51,23 @@ export function SettingsNotificationsPanel({ data }: { data: SettingsPageData })
               label={NOTIFICATION_CHANNEL_LABELS.inApp.label}
               description={NOTIFICATION_CHANNEL_LABELS.inApp.description}
               checked={prefs.inApp}
-              onChange={(v) => setKey("inApp", v)}
+              onChange={(v) => setPrefs((p) => ({ ...p, inApp: v }))}
             />
-            <SettingsToggleRow
-              label={NOTIFICATION_CHANNEL_LABELS.email.label}
-              description={NOTIFICATION_CHANNEL_LABELS.email.description}
-              checked={prefs.email}
-              onChange={(v) => setKey("email", v)}
-            />
+            <EmailChannelToggle prefs={prefs} onChange={setPrefs} />
             <SettingsToggleRow
               label={NOTIFICATION_CHANNEL_LABELS.push.label}
               description={NOTIFICATION_CHANNEL_LABELS.push.description}
               checked={prefs.push}
-              onChange={(v) => setKey("push", v)}
+              onChange={(v) => setPrefs((p) => ({ ...p, push: v }))}
               disabled
             />
-            <SettingsComingSoon>Push delivery — coming with the mobile app</SettingsComingSoon>
           </div>
 
           <div className="space-y-4 pb-2 border-b border-black/[0.04]">
             <p className="text-xs font-semibold text-brand-ink/50 uppercase tracking-wide">
-              Mission Hub content
+              Email categories & frequency
             </p>
-            {PRIMARY_CONTENT_KEYS.map((key) => (
-              <SettingsToggleRow
-                key={key}
-                label={NOTIFICATION_PREF_LABELS[key].label}
-                description={NOTIFICATION_PREF_LABELS[key].description}
-                checked={prefs[key]}
-                onChange={(v) => setKey(key, v)}
-              />
-            ))}
-          </div>
-
-          <div className="space-y-4 pb-2 border-b border-black/[0.04]">
-            <p className="text-xs font-semibold text-brand-ink/50 uppercase tracking-wide">
-              Activity
-            </p>
-            {CONTENT_PREF_KEYS.filter(
-              (k) => !(PRIMARY_CONTENT_KEYS as readonly string[]).includes(k),
-            ).map((key) => (
-              <SettingsToggleRow
-                key={key}
-                label={NOTIFICATION_PREF_LABELS[key].label}
-                description={NOTIFICATION_PREF_LABELS[key].description}
-                checked={prefs[key]}
-                onChange={(v) => setKey(key, v)}
-              />
-            ))}
+            <EmailCategoryFrequencyFields prefs={prefs} onChange={setPrefs} />
           </div>
 
           {data.muteableSpaces.length > 0 ? (
