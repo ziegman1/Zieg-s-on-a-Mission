@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Loader2, MoreHorizontal, Pencil, Undo2 } from "lucide-react";
+import { Archive, Loader2, MoreHorizontal, Pencil, Share2, Undo2 } from "lucide-react";
 import {
   archiveCommunityPostAction,
   unpublishCommunityPostAction,
@@ -11,6 +11,7 @@ import type { CommunityComposerSpace } from "@/lib/community/composer-types";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
 import { CommunityEditPostDialog } from "./community-edit-post-dialog";
+import { CommunityPostShareDialog } from "./community-post-share-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ export function CommunityPostOwnerMenu({
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [menuError, setMenuError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -85,6 +87,10 @@ export function CommunityPostOwnerMenu({
               <Pencil className="h-4 w-4" aria-hidden />
               Edit post
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShareOpen(true)}>
+              <Share2 className="h-4 w-4" aria-hidden />
+              Share to Facebook
+            </DropdownMenuItem>
             {canUnpublish ? (
               <DropdownMenuItem
                 onSelect={() => runQuickAction(() => unpublishCommunityPostAction(post.id))}
@@ -109,6 +115,12 @@ export function CommunityPostOwnerMenu({
           </p>
         ) : null}
       </div>
+
+      <CommunityPostShareDialog
+        postId={post.id}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+      />
 
       <CommunityEditPostDialog
         postId={post.id}
