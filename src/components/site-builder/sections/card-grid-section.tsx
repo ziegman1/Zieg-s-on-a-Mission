@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { contentStr, sortedListItems, visibleListItems } from "@/lib/site-builder/content-utils";
 import { getFieldStyle } from "@/lib/site-builder/content-utils";
@@ -11,6 +12,44 @@ import { ContentElementsBlock } from "../content-elements-block";
 import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { cn } from "@/lib/utils";
+import type { ListItem } from "@/lib/site-builder/types";
+import { TextSectionCtaButtons } from "./text-section-cta-buttons";
+
+function renderTierCard(card: ListItem, cardCls: string, cardStyle: CSSProperties, showPerCardButton: boolean) {
+  return (
+    <Card className={cn("border-brand-primary/20 bg-brand-surface/90 shadow-sm h-full", cardCls)} style={cardStyle}>
+      <CardContent className="p-6 sm:p-8">
+        {card.metadata?.amountLabel ? (
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand-primary/90">
+            {String(card.metadata.amountLabel)}
+          </p>
+        ) : null}
+        <SiteBuilderFormattedContent
+          text={card.text}
+          className="mt-2 font-serif text-xl text-brand-ink tracking-wide"
+        />
+        <SiteBuilderFormattedContent
+          text={String(card.metadata?.body ?? "")}
+          className="mt-3 text-sm text-brand-ink/85"
+        />
+        {card.metadata?.giftNote ? (
+          <SiteBuilderFormattedContent
+            text={String(card.metadata.giftNote)}
+            className="mt-4 text-xs text-brand-ink/65 italic border-t border-brand-primary/15 pt-4"
+          />
+        ) : null}
+        {showPerCardButton && card.metadata?.href && card.metadata?.cta ? (
+          <Link
+            href={String(card.metadata.href)}
+            className="mt-4 inline-block text-sm font-medium text-brand-primary hover:underline"
+          >
+            {String(card.metadata.cta)}
+          </Link>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function CardGridSection({ section }: { section: PageSection }) {
   const ctx = useBuilderPreview();
@@ -23,8 +62,10 @@ export function CardGridSection({ section }: { section: PageSection }) {
   if (!ctx?.editMode && !headline.trim() && cards.length === 0) return null;
 
   const isPartnerTiers = section.sectionKey === "tiers";
+  const isGiveLevels = section.pageKey === "give" && section.sectionKey === "levels";
   const isWaysToGetInvolved = section.sectionKey === "ways-to-get-involved";
   const isAdvocacyResources = section.sectionKey === "advocacy-team-resources";
+  const isTierStyleGrid = isPartnerTiers || isGiveLevels;
 
   const headlineEl = headline.trim() ? (
     <EditableElement
@@ -37,7 +78,8 @@ export function CardGridSection({ section }: { section: PageSection }) {
         text={headline}
         className={cn(
           "font-serif text-2xl text-brand-primary tracking-wide",
-          isPartnerTiers && "text-center",
+          isTierStyleGrid && "text-center",
+          isGiveLevels && "text-xl",
         )}
       />
     </EditableElement>
@@ -57,8 +99,9 @@ export function CardGridSection({ section }: { section: PageSection }) {
         text={intro}
         className={cn(
           "text-brand-ink/80",
-          isPartnerTiers && "mx-auto mt-3 max-w-2xl text-center",
-          !isPartnerTiers && "mt-2",
+          isTierStyleGrid && "mx-auto mt-3 max-w-2xl text-center",
+          isGiveLevels && "text-sm text-brand-ink/75",
+          !isTierStyleGrid && "mt-2",
         )}
       />
     </EditableElement>
@@ -74,30 +117,8 @@ export function CardGridSection({ section }: { section: PageSection }) {
 
     const { className: cardCls, style: cardStyle } = elementStyleProps(card.style);
 
-    const inner = isPartnerTiers ? (
-      <Card className={cn("border-brand-primary/20 bg-brand-surface/90 shadow-sm h-full", cardCls)} style={cardStyle}>
-        <CardContent className="p-6 sm:p-8">
-          {card.metadata?.amountLabel ? (
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-primary/90">
-              {String(card.metadata.amountLabel)}
-            </p>
-          ) : null}
-          <SiteBuilderFormattedContent
-            text={card.text}
-            className="mt-2 font-serif text-xl text-brand-ink tracking-wide"
-          />
-          <SiteBuilderFormattedContent
-            text={String(card.metadata?.body ?? "")}
-            className="mt-3 text-sm text-brand-ink/85"
-          />
-          {card.metadata?.giftNote ? (
-            <SiteBuilderFormattedContent
-              text={String(card.metadata.giftNote)}
-              className="mt-4 text-xs text-brand-ink/65 italic border-t border-brand-primary/15 pt-4"
-            />
-          ) : null}
-        </CardContent>
-      </Card>
+    const inner = isTierStyleGrid ? (
+      renderTierCard(card, cardCls, cardStyle, isGiveLevels)
     ) : (
       <div
         className={cn("rounded-xl bg-white/80 p-5 border border-black/[0.05] h-full", cardCls)}
@@ -134,6 +155,22 @@ export function CardGridSection({ section }: { section: PageSection }) {
       </EditableElement>
     );
   });
+
+  const footerCta = contentStr(c, "primaryCtaLabel") ? (
+    <TextSectionCtaButtons section={section} primaryVariant="primary" />
+  ) : null;
+
+  if (isGiveLevels) {
+    return (
+      <section className="rounded-2xl border border-brand-primary/25 bg-white/70 p-6 sm:p-8 mb-14 shadow-sm not-prose">
+        {headlineEl}
+        {introEl}
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">{cardNodes}</div>
+        {footerCta}
+        <ContentElementsBlock section={section} />
+      </section>
+    );
+  }
 
   if (isPartnerTiers || isWaysToGetInvolved) {
     return (

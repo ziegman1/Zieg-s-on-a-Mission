@@ -189,9 +189,16 @@ export function listEditableElements(section: PageSection): string[] {
       if (key in c || contentStr(c, key)) ids.push(key);
     }
   }
-  if (t === "hero" || t === "cta" || t === "image_text_split") {
+  if (t === "hero" || t === "text_section" || t === "cta" || t === "image_text_split") {
     if (contentStr(c, "primaryCtaLabel") || t !== "image_text_split") ids.push("cta:primary");
-    if (contentStr(c, "secondaryCtaLabel") || t === "hero" || t === "cta") ids.push("cta:secondary");
+    if (
+      contentStr(c, "secondaryCtaLabel") ||
+      t === "hero" ||
+      t === "cta" ||
+      t === "text_section"
+    ) {
+      ids.push("cta:secondary");
+    }
   }
   if (t === "hero") ids.push("cta:tertiary");
   if (t === "hero" || t === "image_text_split") ids.push("image");
@@ -202,6 +209,7 @@ export function listEditableElements(section: PageSection): string[] {
     for (const card of cardsFrom(c)) ids.push(`card:${card.id}`);
     if (contentStr(c, "headline")) ids.push("headline");
     if (contentStr(c, "intro")) ids.push("intro");
+    if (contentStr(c, "primaryCtaLabel")) ids.push("cta:primary");
   }
   if (t === "text_section" && Array.isArray(c.bullets)) {
     for (const b of sortedListItems(c.bullets, { includeHidden: true })) {
@@ -426,7 +434,7 @@ export function deleteSectionElement(section: PageSection, elementId: string): P
 export function addCardToSection(section: PageSection): PageSection {
   const cards = cardsFrom(section.content);
   const item = newListItem(cards.length);
-  item.metadata = { body: "", amountLabel: "", giftNote: "" };
+  item.metadata = { body: "", amountLabel: "", giftNote: "", cta: "", href: "" };
   return setCards(section, [...cards, item]);
 }
 

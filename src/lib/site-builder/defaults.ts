@@ -1,4 +1,6 @@
 import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
+import { DEFAULT_GIVE_TIERS } from "@/data/give-page-tiers";
+import { giveTierCardItems } from "@/lib/site-builder/give-page-sections";
 import {
   ADVOCACY_TEAM_BENEFITS,
   ADVOCACY_TEAM_FINAL_CTA,
@@ -449,6 +451,8 @@ function defaultAdvocacyTeamSections(): PageSection[] {
 
 function defaultGiveSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
   const p = c.givePage;
+  const monthlyHref = "/contact";
+  const oneTimeHref = "/contact";
   return [
     sec("give", "header", "text_section", "Header", {
       eyebrow: p.kicker,
@@ -459,16 +463,23 @@ function defaultGiveSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       headline: p.monthlySectionHeading,
       body: p.monthlySectionBody,
       primaryCtaLabel: p.startMonthlyCta,
+      primaryCtaUrl: monthlyHref,
       secondaryCtaLabel: p.learnPartnerCta,
+      secondaryCtaUrl: "/partner",
     }),
-    sec("give", "levels", "text_section", "Suggested levels", {
+    sec("give", "levels", "card_grid", "Suggested levels", {
       headline: p.suggestedLevelsHeading,
-      body: p.suggestedLevelsIntro,
+      intro: p.suggestedLevelsIntro,
+      cards: giveTierCardItems(DEFAULT_GIVE_TIERS, monthlyHref),
+      primaryCtaLabel: p.becomeMonthlyCta,
+      primaryCtaUrl: monthlyHref,
     }),
     sec("give", "onetime", "text_section", "One-time gift", {
       headline: p.oneTimeHeading,
       body: p.oneTimeBody,
       bullets: listItems(p.oneTimeSuggestions),
+      primaryCtaLabel: p.oneTimeCta,
+      primaryCtaUrl: oneTimeHref,
     }),
     sec("give", "thank-you", "text_section", "Thank you", {
       headline: p.thankYouHeading,

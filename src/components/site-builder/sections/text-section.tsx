@@ -11,6 +11,7 @@ import { ContentElementsBlock } from "../content-elements-block";
 import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { isElementVisible } from "@/lib/site-builder/element-style-utils";
+import { TextSectionCtaButtons } from "./text-section-cta-buttons";
 
 export function TextSectionBlock({
   section,
@@ -57,6 +58,8 @@ export function TextSectionBlock({
   const show = (key: string, text: string) =>
     ctx?.editMode || (text.trim().length > 0 && fieldVisible(c, key));
 
+  const isGiveOnetime = section.pageKey === "give" && section.sectionKey === "onetime";
+
   const inner = (
     <>
       {show("eyebrow", eyebrow) ? (
@@ -96,6 +99,32 @@ export function TextSectionBlock({
         </EditableElement>
       ) : null}
       {bullets.length > 0 ? (
+        isGiveOnetime ? (
+          <div className="mt-6 flex flex-wrap gap-2 not-prose">
+            {bullets.map((b) => {
+              if (!ctx?.editMode && (!b.visible || !isElementVisible(b.style, true))) return null;
+              return (
+                <span
+                  key={b.id}
+                  className={cn(
+                    "inline-flex items-center rounded-full border border-brand-primary/25 bg-white/60 px-4 py-2 text-sm text-brand-ink/85",
+                    !b.visible && ctx?.editMode && "opacity-50",
+                  )}
+                >
+                  <EditableElement
+                    sectionId={section.id}
+                    elementId={`bullet:${b.id}`}
+                    style={b.style}
+                    visible={b.visible}
+                    layout="inline"
+                  >
+                    <SiteBuilderFormattedContent text={b.text} className="inline" />
+                  </EditableElement>
+                </span>
+              );
+            })}
+          </div>
+        ) : (
         <ul className="mt-4 list-disc pl-5 space-y-1">
           {bullets.map((b) => {
             if (!ctx?.editMode && (!b.visible || !isElementVisible(b.style, true))) return null;
@@ -117,7 +146,13 @@ export function TextSectionBlock({
             );
           })}
         </ul>
+        )
       ) : null}
+      <TextSectionCtaButtons
+        section={section}
+        primaryVariant={isGiveOnetime ? "outline" : "primary"}
+        secondaryVariant="secondary"
+      />
       <ContentElementsBlock section={section} />
     </>
   );
@@ -127,6 +162,7 @@ export function TextSectionBlock({
       className={cn(
         "mx-auto max-w-3xl px-4 py-12 sm:py-16",
         section.pageKey === "partner" && "py-16 sm:py-20",
+        section.pageKey === "give" && section.sectionKey !== "header" && "py-0 px-0",
       )}
     >
       {inner}

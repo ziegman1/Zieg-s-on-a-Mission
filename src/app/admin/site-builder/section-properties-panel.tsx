@@ -130,7 +130,7 @@ function newListItemForField(fieldKey: string, sortOrder: number): ListItem {
     return { ...item, metadata: { when: "", description: "" } };
   }
   if (fieldKey === "cards") {
-    return { ...item, metadata: { body: "" } };
+    return { ...item, metadata: { body: "", amountLabel: "", giftNote: "", cta: "", href: "" } };
   }
   return item;
 }
@@ -299,6 +299,24 @@ function LineItemRow({
           onChange={(next) =>
             onChange({ ...item, metadata: { ...item.metadata, amountLabel: next } })
           }
+          compact
+        />
+      ) : null}
+      {item.metadata?.cta !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="cta"
+          label="Button label"
+          value={String(item.metadata.cta ?? "")}
+          onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, cta: next } })}
+          compact
+        />
+      ) : null}
+      {item.metadata?.href !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="href"
+          label="Button URL"
+          value={String(item.metadata.href ?? "")}
+          onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, href: next } })}
           compact
         />
       ) : null}
