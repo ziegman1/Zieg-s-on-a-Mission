@@ -3,12 +3,16 @@ import { BLOG_SOURCE_KIND } from "@/lib/blog/mission-hub-announcement";
 import { NEWSLETTER_SOURCE_KIND } from "@/lib/newsletter/mission-hub-announcement";
 import {
   buildFacebookShareCaption,
+  buildPostShareAssets,
+  buildSharePageSocialMetadata,
   buildSharePreview,
+  collectShareImageUrls,
   communitySharePagePath,
   evaluatePostShareEligibility,
   mergePublicShareMetadata,
   parsePublicShareMetadata,
   resolvePreferredSharePath,
+  truncateShareExcerpt,
 } from "./post-public-share";
 
 const VOICE_BODY = JSON.stringify({
@@ -142,16 +146,118 @@ describe("resolvePreferredSharePath", () => {
 });
 
 describe("buildFacebookShareCaption", () => {
-  it("includes Mission Hub invitation and join link", () => {
+  it("uses content-focused template without Mission Hub explanatory text", () => {
     const caption = buildFacebookShareCaption({
       shareUrl: "https://www.ziegsonamission.com/community/share/abc",
-      postSummary: "Ministry Updates\n\nGod is at work in the field.",
-      joinUrl: "https://www.ziegsonamission.com/community/join",
+      excerpt: "God is at work in the field.",
     });
-    expect(caption).toContain("Mission Hub is our online gathering place");
-    expect(caption).toContain("https://www.ziegsonamission.com/community/join");
-    expect(caption).toContain("Read the update here");
-    expect(caption).toContain("God is at work in the field.");
+    expect(caption).toBe(`New Update in Mission Hub
+
+God is at work in the field.
+
+Read the full update in Mission Hub:
+
+https://www.ziegsonamission.com/community/share/abc`);
+    expect(caption).not.toContain("Join Mission Hub");
+    expect(caption).not.toContain("online gathering place");
+  });
+});
+
+describe("truncateShareExcerpt", () => {
+  it("prefers sentence boundaries between 220 and 350 characters", () => {
+    const text =
+      "A".repeat(230) +
+      ". " +
+      "B".repeat(50) +
+      ". " +
+      "C".repeat(100);
+    const result = truncateShareExcerpt(text);
+    expect(result.endsWith("...")).toBe(true);
+    expect(result.length).toBeLessThanOrEqual(353);
+    expect(result).toContain(".");
+  });
+});
+
+describe("buildPostShareAssets", () => {
+  it("returns future-ready payload with caption, url, featured image, and images array", () => {
+    const preview = buildSharePreview({
+      postId: "post-1",
+      title: "Field update",
+      body: "Body",
+      excerpt: "Safe excerpt for sharing.",
+      coverImageUrl: "https://cdn.example.com/cover.jpg",
+      publishedAt: new Date("2026-05-24T12:00:00.000Z"),
+      createdAt: new Date("2026-05-24T12:00:00.000Z"),
+      spaceTitle: "Ministry Updates",
+      spaceSlug: "ministry-updates",
+      sourceKind: null,
+      metadata: {
+        galleryImages: ["https://cdn.example.com/gallery-1.jpg"],
+      },
+      postType: "update",
+    });
+
+    const assets = buildPostShareAssets({
+      preview,
+      shareUrl: "https://www.ziegsonamission.com/community/share/post-1",
+      metadata: {
+        galleryImages: ["https://cdn.example.com/gallery-1.jpg"],
+      },
+      coverImageUrl: "https://cdn.example.com/cover.jpg",
+    });
+
+    expect(assets.caption).toContain("New Update in Mission Hub");
+    expect(assets.shareUrl).toBe("https://www.ziegsonamission.com/community/share/post-1");
+    expect(assets.featuredImage).toBe("https://cdn.example.com/cover.jpg");
+    expect(assets.images).toHaveLength(2);
+    expect(assets.images[0]?.url).toBe("https://cdn.example.com/cover.jpg");
+  });
+});
+
+describe("collectShareImageUrls", () => {
+  it("dedupes cover and gallery images", () => {
+    const urls = collectShareImageUrls({
+      coverImageUrl: "https://cdn.example.com/cover.jpg",
+      metadata: {
+        galleryImages: [
+          "https://cdn.example.com/cover.jpg",
+          "https://cdn.example.com/extra.jpg",
+        ],
+      },
+    });
+    expect(urls).toEqual([
+      "https://cdn.example.com/cover.jpg",
+      "https://cdn.example.com/extra.jpg",
+    ]);
+  });
+});
+
+describe("buildSharePageSocialMetadata", () => {
+  it("builds absolute og and twitter image urls from post fields", () => {
+    const preview = buildSharePreview({
+      postId: "post-1",
+      title: "Field update",
+      body: "Body",
+      excerpt: "Excerpt for social cards.",
+      coverImageUrl: "https://cdn.example.com/cover.jpg",
+      publishedAt: new Date("2026-05-24T12:00:00.000Z"),
+      createdAt: new Date("2026-05-24T12:00:00.000Z"),
+      spaceTitle: "Ministry Updates",
+      spaceSlug: "ministry-updates",
+      sourceKind: null,
+      metadata: {},
+      postType: "update",
+    });
+
+    const social = buildSharePageSocialMetadata(
+      preview,
+      "https://www.ziegsonamission.com",
+    );
+
+    expect(social.title).toBe("Field update");
+    expect(social.description).toBe("Excerpt for social cards.");
+    expect(social.canonical).toBe("https://www.ziegsonamission.com/community/share/post-1");
+    expect(social.ogImage).toBe("https://cdn.example.com/cover.jpg");
   });
 });
 
@@ -202,7 +308,9 @@ describe("public share page contract", () => {
     expect(page).toContain("Join Mission Hub");
     expect(page).toContain("MISSION_HUB_JOIN_PATH");
     expect(page).toContain("Read in Mission Hub");
-    expect(page).toContain("MISSION_HUB_SHARE_INVITATION");
+    expect(page).toContain("buildSharePageSocialMetadata");
+    expect(page).toContain("openGraph");
+    expect(page).toContain("twitter");
     expect(page).not.toContain("CommunityComments");
     expect(page).not.toContain("CommunityEngagementBar");
     expect(page).not.toContain("authorName");

@@ -3,14 +3,16 @@
 import type { Prisma } from "@prisma/client";
 import { requireCommunityOwner } from "@/lib/community/owner";
 import {
-  buildFacebookShareCaption,
   buildFacebookSharerUrl,
+  buildPostShareAssets,
   mergePublicShareMetadata,
   parsePublicShareMetadata,
+  type PostShareAssets,
   type PublicSharePreview,
 } from "@/lib/community/post-public-share";
 import {
   buildPreviewFromShareRecord,
+  buildShareAssetsFromRecord,
   evaluateShareRecordEligibility,
   loadPostShareRecord,
 } from "@/lib/community/post-public-share-server";
@@ -22,38 +24,37 @@ export type EnableCommunityPostFacebookShareResult =
       ok: true;
       shareUrl: string;
       facebookShareUrl: string;
+      /** @deprecated Use assets.caption */
       suggestedCaption: string;
+      assets: PostShareAssets;
       preview: PublicSharePreview;
-      missionHubJoinUrl: string;
     }
   | { ok: false; error: string };
 
-function buildShareResponse(
-  preview: PublicSharePreview,
-  joinUrl: string,
-): {
+function buildShareResponse(preview: PublicSharePreview, record: {
+  metadata: unknown;
+  coverImageUrl: string | null;
+}): {
   shareUrl: string;
   facebookShareUrl: string;
   suggestedCaption: string;
+  assets: PostShareAssets;
   preview: PublicSharePreview;
-  missionHubJoinUrl: string;
 } {
   const shareUrl = absoluteMissionHubUrl(preview.preferredSharePath);
-  const postSummary =
-    preview.title && preview.excerpt
-      ? `${preview.title}\n\n${preview.excerpt}`
-      : preview.excerpt || preview.title;
+  const assets = buildPostShareAssets({
+    preview,
+    shareUrl,
+    metadata: record.metadata,
+    coverImageUrl: record.coverImageUrl,
+  });
 
   return {
     shareUrl,
     facebookShareUrl: buildFacebookSharerUrl(shareUrl),
-    suggestedCaption: buildFacebookShareCaption({
-      shareUrl,
-      postSummary,
-      joinUrl,
-    }),
+    suggestedCaption: assets.caption,
+    assets,
     preview,
-    missionHubJoinUrl: joinUrl,
   };
 }
 
@@ -76,7 +77,6 @@ export async function enableCommunityPostFacebookShareAction(
   }
 
   const existing = parsePublicShareMetadata(record.metadata);
-  const joinUrl = absoluteMissionHubUrl("/community/join");
 
   const shareMeta = {
     enabled: true as const,
@@ -105,8 +105,33 @@ export async function enableCommunityPostFacebookShareAction(
   });
 
   const preview = buildPreviewFromShareRecord(record, shareMeta);
-  const response = buildShareResponse(preview, joinUrl);
+  const response = buildShareResponse(preview, record);
   return { ok: true, ...response };
+}
+
+export async function getCommunityPostShareAssetsAction(
+  postId: string,
+): Promise<{ ok: true; assets: PostShareAssets; preview: PublicSharePreview } | { ok: false; error: string }> {
+  const owner = await requireCommunityOwner();
+  if (!owner) return { ok: false, error: "Unauthorized" };
+
+  const trimmedId = postId?.trim();
+  if (!trimmedId) return { ok: false, error: "Invalid post" };
+
+  const record = await loadPostShareRecord(trimmedId);
+  if (!record) return { ok: false, error: "Post not found" };
+
+  const eligibility = evaluateShareRecordEligibility(record);
+  if (!eligibility.eligible) {
+    return { ok: false, error: eligibility.reason };
+  }
+
+  const shareMeta = parsePublicShareMetadata(record.metadata);
+  const preview = buildPreviewFromShareRecord(record, shareMeta ?? undefined);
+  const shareUrl = absoluteMissionHubUrl(preview.preferredSharePath);
+  const assets = buildShareAssetsFromRecord(record, shareUrl, shareMeta ?? undefined);
+
+  return { ok: true, assets, preview };
 }
 
 export async function disableCommunityPostFacebookShareAction(

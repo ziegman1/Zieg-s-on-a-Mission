@@ -5,7 +5,9 @@ import { isVoicePrayerBody } from "@/lib/community/prayer-response-body";
 import { communityPostAnchorPath } from "@/lib/community/post-url";
 import { parseNewsletterAnnouncementMetadata } from "@/lib/newsletter/mission-hub-announcement";
 
-export const PUBLIC_SHARE_EXCERPT_MAX = 280;
+export const PUBLIC_SHARE_EXCERPT_MIN = 220;
+export const PUBLIC_SHARE_EXCERPT_MAX = 350;
+export const PUBLIC_SHARE_EXCERPT_TARGET = 350;
 export const MISSION_HUB_JOIN_PATH = "/community/join";
 export const MISSION_HUB_LOGIN_PATH = "/community/login";
 export const FACEBOOK_SHARER_BASE = "https://www.facebook.com/sharer/sharer.php";
@@ -41,6 +43,26 @@ export type PublicSharePreview = {
   sharePagePath: string;
   preferredSharePath: string;
   usesHubSharePage: boolean;
+};
+
+export type PostShareImageAsset = {
+  url: string;
+  filename: string;
+};
+
+/** Unified payload for Facebook, X, LinkedIn, email, and future social integrations. */
+export type PostShareAssets = {
+  caption: string;
+  shareUrl: string;
+  featuredImage: string | null;
+  images: PostShareImageAsset[];
+};
+
+export type SharePageSocialMetadata = {
+  title: string;
+  description: string;
+  canonical: string;
+  ogImage: string;
 };
 
 export function communitySharePagePath(postId: string): string {
@@ -90,14 +112,30 @@ export function stripHtml(text: string): string {
     .trim();
 }
 
-export function truncateShareExcerpt(text: string, max = PUBLIC_SHARE_EXCERPT_MAX): string {
+export function truncateShareExcerpt(
+  text: string,
+  max = PUBLIC_SHARE_EXCERPT_MAX,
+  min = PUBLIC_SHARE_EXCERPT_MIN,
+): string {
   const cleaned = stripHtml(text);
   if (cleaned.length <= max) return cleaned;
+
   const slice = cleaned.slice(0, max);
+  const sentenceEndRegex = /[.!?](?:\s|$)/g;
+  let bestSentenceEnd = -1;
+  let match: RegExpExecArray | null;
+  while ((match = sentenceEndRegex.exec(slice)) !== null) {
+    const end = match.index + 1;
+    if (end >= min && end <= max) bestSentenceEnd = end;
+  }
+  if (bestSentenceEnd > 0) {
+    return `${slice.slice(0, bestSentenceEnd).trim()}...`;
+  }
+
   const lastSpace = slice.lastIndexOf(" ");
   const cut =
     lastSpace > Math.floor(max * 0.55) ? slice.slice(0, lastSpace) : slice.trimEnd();
-  return `${cut.trim()}…`;
+  return `${cut.trim()}...`;
 }
 
 export function isValidShareImageUrl(url: string | null | undefined): url is string {
@@ -240,29 +278,123 @@ export function buildSharePreview(input: {
 }
 
 export function buildFacebookShareCaption(input: {
+  excerpt: string;
   shareUrl: string;
-  postSummary: string;
-  joinUrl: string;
 }): string {
-  const summary = input.postSummary.trim() || "A new ministry update is available in Mission Hub.";
+  const excerpt = input.excerpt.trim() || "A new ministry update is available in Mission Hub.";
 
-  return `We recently shared a new update in Mission Hub.
+  return `New Update in Mission Hub
 
-${summary}
+${excerpt}
 
-Mission Hub is our online gathering place where friends, family, prayer partners, and supporters can stay connected through ministry updates, prayer requests, stories, newsletters, and opportunities to engage in God's mission.
+Read the full update in Mission Hub:
 
-Read the update here:
-
-${input.shareUrl}
-
-Join Mission Hub:
-
-${input.joinUrl}`;
+${input.shareUrl}`;
 }
 
 export function buildFacebookSharerUrl(shareUrl: string): string {
   return `${FACEBOOK_SHARER_BASE}?u=${encodeURIComponent(shareUrl)}`;
+}
+
+function extensionFromImageUrl(url: string): string {
+  try {
+    const pathname = new URL(url).pathname;
+    const ext = pathname.split(".").pop()?.toLowerCase();
+    if (ext && /^[a-z0-9]{2,5}$/.test(ext)) return ext;
+  } catch {
+    /* ignore */
+  }
+  return "jpg";
+}
+
+export function shareImageFilename(postId: string, index: number, url: string): string {
+  const ext = extensionFromImageUrl(url);
+  const suffix = index === 0 ? "featured" : `gallery-${index}`;
+  return `mission-hub-${postId.slice(0, 8)}-${suffix}.${ext}`;
+}
+
+/** Cover image plus optional gallery URLs stored on post metadata. */
+export function collectShareImageUrls(input: {
+  coverImageUrl: string | null | undefined;
+  metadata: unknown;
+}): string[] {
+  const urls: string[] = [];
+
+  const pushUnique = (value: string | null | undefined) => {
+    if (!isValidShareImageUrl(value)) return;
+    const trimmed = value.trim();
+    if (!urls.includes(trimmed)) urls.push(trimmed);
+  };
+
+  pushUnique(input.coverImageUrl);
+
+  if (input.metadata && typeof input.metadata === "object" && !Array.isArray(input.metadata)) {
+    const meta = input.metadata as Record<string, unknown>;
+    const gallery = meta.galleryImages ?? meta.shareGalleryImages ?? meta.images;
+    if (Array.isArray(gallery)) {
+      for (const item of gallery) {
+        if (typeof item === "string") pushUnique(item);
+      }
+    }
+  }
+
+  return urls;
+}
+
+export function buildPostShareAssets(input: {
+  preview: PublicSharePreview;
+  shareUrl: string;
+  metadata: unknown;
+  coverImageUrl?: string | null;
+}): PostShareAssets {
+  const imageUrls = collectShareImageUrls({
+    coverImageUrl: input.coverImageUrl ?? input.preview.coverImageUrl,
+    metadata: input.metadata,
+  });
+
+  const caption = buildFacebookShareCaption({
+    excerpt: input.preview.excerpt,
+    shareUrl: input.shareUrl,
+  });
+
+  return {
+    caption,
+    shareUrl: input.shareUrl,
+    featuredImage: imageUrls[0] ?? null,
+    images: imageUrls.map((url, index) => ({
+      url,
+      filename: shareImageFilename(input.preview.postId, index, url),
+    })),
+  };
+}
+
+export function resolveAbsoluteShareImageUrl(
+  imageUrl: string | null | undefined,
+  siteOrigin: string,
+): string | null {
+  if (!isValidShareImageUrl(imageUrl)) return null;
+  const trimmed = imageUrl.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return `${siteOrigin.replace(/\/$/, "")}${path}`;
+}
+
+export function buildSharePageSocialMetadata(
+  preview: PublicSharePreview,
+  siteOrigin: string,
+): SharePageSocialMetadata {
+  const canonical = `${siteOrigin.replace(/\/$/, "")}${preview.sharePagePath}`;
+  const description = preview.excerpt.slice(0, 300);
+  const ogImage =
+    resolveAbsoluteShareImageUrl(preview.coverImageUrl, siteOrigin) ??
+    `${siteOrigin.replace(/\/$/, "")}/og-image.jpg`;
+
+  return {
+    title: preview.title,
+    description,
+    canonical,
+    ogImage,
+  };
 }
 
 /** Mission Hub invitation block copy for public share landing pages. */

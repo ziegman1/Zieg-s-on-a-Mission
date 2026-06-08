@@ -5,6 +5,8 @@ import {
   buildSharePreview,
   evaluatePostShareEligibility,
   parsePublicShareMetadata,
+  buildPostShareAssets,
+  type PostShareAssets,
   type PublicSharePreview,
 } from "@/lib/community/post-public-share";
 import { prisma } from "@/lib/db";
@@ -119,4 +121,18 @@ export async function loadPublicSharePagePreview(
   if (!eligibility.eligible) return null;
 
   return buildPreviewFromShareRecord(record, shareMeta);
+}
+
+export function buildShareAssetsFromRecord(
+  record: PostShareRecord,
+  shareUrl: string,
+  shareMeta?: ReturnType<typeof parsePublicShareMetadata>,
+): PostShareAssets {
+  const preview = buildPreviewFromShareRecord(record, shareMeta);
+  return buildPostShareAssets({
+    preview,
+    shareUrl,
+    metadata: record.metadata,
+    coverImageUrl: record.coverImageUrl,
+  });
 }

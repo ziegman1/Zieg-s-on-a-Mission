@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { Check, Copy, ExternalLink, Loader2, Share2 } from "lucide-react";
+import { Check, Copy, Download, ExternalLink, Loader2, Share2 } from "lucide-react";
 import { enableCommunityPostFacebookShareAction } from "@/app/admin/community/post-share-actions";
-import type { PublicSharePreview } from "@/lib/community/post-public-share";
+import type { PostShareAssets, PublicSharePreview } from "@/lib/community/post-public-share";
+import { downloadShareImages } from "@/lib/community/download-share-images";
 import { CommunityPostCoverImage } from "@/components/community/community-post-cover-image";
 import { formatCommunityPostDate } from "@/lib/community/format-post-date";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,8 @@ import { cn } from "@/lib/utils";
 type SharePayload = {
   shareUrl: string;
   facebookShareUrl: string;
-  suggestedCaption: string;
+  assets: PostShareAssets;
   preview: PublicSharePreview;
-  missionHubJoinUrl: string;
 };
 
 async function copyText(text: string): Promise<boolean> {
@@ -38,7 +38,8 @@ export function CommunityPostShareDialog({
 }) {
   const [payload, setPayload] = useState<SharePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<"caption" | "link" | null>(null);
+  const [copied, setCopied] = useState<"post" | "link" | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const loadShare = useCallback(() => {
@@ -53,9 +54,8 @@ export function CommunityPostShareDialog({
       setPayload({
         shareUrl: result.shareUrl,
         facebookShareUrl: result.facebookShareUrl,
-        suggestedCaption: result.suggestedCaption,
+        assets: result.assets,
         preview: result.preview,
-        missionHubJoinUrl: result.missionHubJoinUrl,
       });
     });
   }, [postId]);
@@ -68,10 +68,11 @@ export function CommunityPostShareDialog({
       setPayload(null);
       setError(null);
       setCopied(null);
+      setDownloading(false);
     }
   }, [open, loadShare]);
 
-  function handleCopy(kind: "caption" | "link", text: string) {
+  function handleCopy(kind: "post" | "link", text: string) {
     void copyText(text).then((ok) => {
       if (ok) {
         setCopied(kind);
@@ -85,7 +86,18 @@ export function CommunityPostShareDialog({
     window.open(payload.facebookShareUrl, "_blank", "noopener,noreferrer");
   }
 
+  async function handleDownloadImages() {
+    if (!payload?.assets.images.length) return;
+    setDownloading(true);
+    try {
+      await downloadShareImages(payload.assets.images);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   const preview = payload?.preview;
+  const assets = payload?.assets;
   const dateLabel = preview ? formatCommunityPostDate(preview.publishedAt) : "";
 
   return (
@@ -97,8 +109,8 @@ export function CommunityPostShareDialog({
             Share to Facebook
           </DialogTitle>
           <p className="mt-1 text-xs text-brand-ink/55 leading-relaxed">
-            Share this update and invite friends to join Mission Hub — our home beyond social
-            media algorithms.
+            Copy the post text, download images, and open Facebook&apos;s share dialog. Mission Hub
+            promotion lives on the public share page — not in the caption.
           </p>
         </div>
 
@@ -116,33 +128,24 @@ export function CommunityPostShareDialog({
             </div>
           ) : null}
 
-          {preview && payload ? (
+          {preview && payload && assets ? (
             <>
               <div className="rounded-xl border border-black/[0.06] overflow-hidden bg-brand-surface/30">
                 {preview.coverImageUrl ? (
-                  <div className="aspect-[1.91/1] w-full bg-brand-surface/50">
-                    <CommunityPostCoverImage
-                      src={preview.coverImageUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+                  <CommunityPostCoverImage src={preview.coverImageUrl} alt="" />
                 ) : null}
                 <div className="px-4 py-3 space-y-1.5">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-ink/40">
                     {preview.spaceTitle}
                     {dateLabel ? ` · ${dateLabel}` : ""}
                   </p>
-                  <p className="text-sm font-semibold text-brand-ink leading-snug">
-                    {preview.title}
-                  </p>
+                  <p className="text-sm font-semibold text-brand-ink leading-snug">{preview.title}</p>
                   <p className="text-xs text-brand-ink/60 line-clamp-4 leading-relaxed">
                     {preview.excerpt}
                   </p>
                   {!preview.usesHubSharePage ? (
                     <p className="text-[10px] text-brand-primary/80 pt-1">
-                      Facebook will link to the public blog/newsletter page. Mission Hub invitation
-                      is included in the caption below.
+                      Facebook will link to the public blog/newsletter page.
                     </p>
                   ) : null}
                 </div>
@@ -150,12 +153,12 @@ export function CommunityPostShareDialog({
 
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-ink/40 mb-1.5">
-                  Suggested caption
+                  Facebook post
                 </p>
                 <textarea
                   readOnly
-                  value={payload.suggestedCaption}
-                  rows={10}
+                  value={assets.caption}
+                  rows={8}
                   className={cn(
                     "w-full rounded-xl border border-black/[0.08] bg-white/80 px-3 py-2.5",
                     "text-xs text-brand-ink/75 leading-relaxed resize-none",
@@ -172,14 +175,20 @@ export function CommunityPostShareDialog({
                 </p>
               </div>
 
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-ink/40 mb-1.5">
-                  Mission Hub join URL
-                </p>
-                <p className="text-xs text-brand-ink/65 break-all rounded-xl border border-black/[0.08] bg-white/80 px-3 py-2">
-                  {payload.missionHubJoinUrl}
-                </p>
-              </div>
+              {assets.images.length > 0 ? (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-ink/40 mb-1.5">
+                    Share images ({assets.images.length})
+                  </p>
+                  <ul className="space-y-1 text-[11px] text-brand-ink/55">
+                    {assets.images.map((image) => (
+                      <li key={image.url} className="truncate">
+                        {image.filename}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button
@@ -187,14 +196,14 @@ export function CommunityPostShareDialog({
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  onClick={() => handleCopy("caption", payload.suggestedCaption)}
+                  onClick={() => handleCopy("post", assets.caption)}
                 >
-                  {copied === "caption" ? (
+                  {copied === "post" ? (
                     <Check className="h-3.5 w-3.5" aria-hidden />
                   ) : (
                     <Copy className="h-3.5 w-3.5" aria-hidden />
                   )}
-                  Copy caption
+                  Copy Facebook Post
                 </Button>
                 <Button
                   type="button"
@@ -209,6 +218,21 @@ export function CommunityPostShareDialog({
                     <Copy className="h-3.5 w-3.5" aria-hidden />
                   )}
                   Copy link
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={assets.images.length === 0 || downloading}
+                  onClick={() => void handleDownloadImages()}
+                >
+                  {downloading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  Download Share Images
                 </Button>
                 <Button
                   type="button"

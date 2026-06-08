@@ -7,9 +7,10 @@ import {
   MISSION_HUB_LOGIN_PATH,
   MISSION_HUB_JOIN_PATH,
   MISSION_HUB_SHARE_INVITATION,
+  buildSharePageSocialMetadata,
 } from "@/lib/community/post-public-share";
 import { loadPublicSharePagePreview } from "@/lib/community/post-public-share-server";
-import { absoluteMissionHubUrl } from "@/lib/mission-hub/site-url";
+import { getMissionHubSiteOrigin } from "@/lib/mission-hub/site-url";
 import { getSiteCopy } from "@/lib/site-copy";
 import { cn } from "@/lib/utils";
 
@@ -26,26 +27,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Not found", robots: { index: false, follow: false } };
   }
 
-  const canonical = absoluteMissionHubUrl(preview.sharePagePath);
-  const description = preview.excerpt.slice(0, 300);
-  const ogImage = preview.coverImageUrl ?? absoluteMissionHubUrl("/og-image.jpg");
+  const siteOrigin = getMissionHubSiteOrigin();
+  const social = buildSharePageSocialMetadata(preview, siteOrigin);
 
   return {
-    title: preview.title,
-    description,
-    alternates: { canonical },
+    title: social.title,
+    description: social.description,
+    alternates: { canonical: social.canonical },
     openGraph: {
-      title: preview.title,
-      description,
-      url: canonical,
+      title: social.title,
+      description: social.description,
+      url: social.canonical,
       type: "article",
-      images: [{ url: ogImage, alt: preview.title }],
+      images: [{ url: social.ogImage, alt: social.title }],
     },
     twitter: {
       card: preview.coverImageUrl ? "summary_large_image" : "summary",
-      title: preview.title,
-      description,
-      images: [ogImage],
+      title: social.title,
+      description: social.description,
+      images: [social.ogImage],
     },
   };
 }

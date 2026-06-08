@@ -78,14 +78,25 @@ describe("enableCommunityPostFacebookShareAction", () => {
     vi.mocked(prisma.communityPostRecord.update).mockResolvedValue({} as never);
   });
 
-  it("returns share URLs and Mission Hub caption for eligible posts", async () => {
+  it("returns share URLs and content-focused assets for eligible posts", async () => {
+    vi.mocked(loadPostShareRecord).mockResolvedValue({
+      ...sampleRecord,
+      coverImageUrl: "https://cdn.example.com/cover.jpg",
+    });
+    vi.mocked(buildPreviewFromShareRecord).mockReturnValue({
+      ...samplePreview,
+      coverImageUrl: "https://cdn.example.com/cover.jpg",
+    });
+
     const result = await enableCommunityPostFacebookShareAction("post-1");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.shareUrl).toBe("https://www.ziegsonamission.com/community/share/post-1");
     expect(result.facebookShareUrl).toContain("facebook.com/sharer/sharer.php");
-    expect(result.suggestedCaption).toContain("Mission Hub");
-    expect(result.missionHubJoinUrl).toBe("https://www.ziegsonamission.com/community/join");
+    expect(result.assets.caption).toContain("New Update in Mission Hub");
+    expect(result.assets.caption).not.toContain("online gathering place");
+    expect(result.suggestedCaption).toBe(result.assets.caption);
+    expect(result.assets.featuredImage).toBe("https://cdn.example.com/cover.jpg");
     expect(prisma.communityPostRecord.update).toHaveBeenCalled();
   });
 
