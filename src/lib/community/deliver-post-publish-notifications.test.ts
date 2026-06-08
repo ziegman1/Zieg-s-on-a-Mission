@@ -1,5 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/lib/community/settings-types";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  mergeNotificationPreferences,
+} from "@/lib/community/settings-types";
 
 vi.mock("@/lib/db", () => ({
   prisma: {
@@ -107,10 +110,11 @@ describe("deliverPostPublishNotifications", () => {
         settings: { notificationCategory: "custom" },
       },
     } as never);
-    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
-      ...DEFAULT_NOTIFICATION_PREFERENCES,
-      newPosts: false,
-    });
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue(
+      mergeNotificationPreferences({
+        categoryFrequencies: { communityActivity: "never" },
+      }),
+    );
 
     await deliverPostPublishNotifications("post-1");
     expect(upsertNewPostPublishedNotification).not.toHaveBeenCalled();
@@ -125,11 +129,9 @@ describe("deliverPostPublishNotifications", () => {
         settings: { notificationCategory: "ministry_updates" },
       },
     } as never);
-    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
-      ...DEFAULT_NOTIFICATION_PREFERENCES,
-      newPosts: true,
-      ministryUpdates: false,
-    });
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue(
+      mergeNotificationPreferences({ newPosts: true, ministryUpdates: false }),
+    );
 
     await deliverPostPublishNotifications("post-1");
     expect(upsertNewPostPublishedNotification).not.toHaveBeenCalled();
@@ -143,22 +145,18 @@ describe("deliverPostPublishNotifications", () => {
         settings: { notificationCategory: "ministry_updates" },
       },
     } as never);
-    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
-      ...DEFAULT_NOTIFICATION_PREFERENCES,
-      newPosts: false,
-      ministryUpdates: true,
-    });
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue(
+      mergeNotificationPreferences({ newPosts: false, ministryUpdates: true }),
+    );
 
     await deliverPostPublishNotifications("post-1");
     expect(upsertNewPostPublishedNotification).toHaveBeenCalledTimes(1);
   });
 
   it("excludes user when prayerResponses disabled for prayer_requests space", async () => {
-    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
-      ...DEFAULT_NOTIFICATION_PREFERENCES,
-      newPosts: true,
-      prayerResponses: false,
-    });
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue(
+      mergeNotificationPreferences({ newPosts: true, prayerResponses: false }),
+    );
 
     await deliverPostPublishNotifications("post-1");
     expect(upsertNewPostPublishedNotification).not.toHaveBeenCalled();

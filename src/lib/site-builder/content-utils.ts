@@ -3,13 +3,22 @@ import { ELEMENT_STYLES_KEY } from "./element-types";
 import type { ListItem } from "./types";
 import { isElementVisible } from "./element-style-utils";
 
-export function getElementStyles(content: Record<string, unknown>): Record<string, ElementStyle> {
-  const raw = content[ELEMENT_STYLES_KEY];
+export function asContentRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+export function getElementStyles(content: Record<string, unknown> | undefined): Record<string, ElementStyle> {
+  const raw = asContentRecord(content)[ELEMENT_STYLES_KEY];
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   return raw as Record<string, ElementStyle>;
 }
 
-export function getFieldStyle(content: Record<string, unknown>, elementId: string): ElementStyle | undefined {
+export function getFieldStyle(
+  content: Record<string, unknown> | undefined,
+  elementId: string,
+): ElementStyle | undefined {
   return getElementStyles(content)[elementId];
 }
 
@@ -66,12 +75,12 @@ function hasCardBody(item: ListItem): boolean {
   return typeof body === "string" && body.trim().length > 0;
 }
 
-export function contentStr(content: Record<string, unknown>, key: string): string {
-  const v = content[key];
+export function contentStr(content: Record<string, unknown> | undefined, key: string): string {
+  const v = asContentRecord(content)[key];
   return typeof v === "string" ? v : "";
 }
 
-export function fieldVisible(content: Record<string, unknown>, elementId: string): boolean {
+export function fieldVisible(content: Record<string, unknown> | undefined, elementId: string): boolean {
   const style = getFieldStyle(content, elementId);
   return isElementVisible(style, true);
 }

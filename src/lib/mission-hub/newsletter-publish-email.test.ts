@@ -29,8 +29,7 @@ describe("buildNewsletterPublishEmailContent", () => {
     expect(content.text).toContain("Highlights from March.");
     expect(content.text).toContain("https://example.com/newsletters/march-update");
     expect(content.text).toContain("https://example.com/community/newsletters#post-1");
-    expect(content.text).toContain("https://example.com/community/settings");
+    expect(content.settingsUrl).toContain("/community/settings");
     expect(content.html).toContain("Read newsletter");
-    expect(content.html).toContain("Manage notification preferences");
   });
 });

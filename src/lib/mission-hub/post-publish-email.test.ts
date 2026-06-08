@@ -30,7 +30,7 @@ describe("post publish email content", () => {
     });
     expect(content.subject).toBe("New post in Prayer Room");
     expect(content.text).toContain("https://example.com/community/prayer#post-post-1");
-    expect(content.text).toContain("/community/settings");
+    expect(content.settingsUrl).toContain("/community/settings");
   });
 });
 

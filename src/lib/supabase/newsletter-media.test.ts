@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/supabase/config", () => ({
+vi.mock("@/lib/supabase/config-env", () => ({
   getSupabaseProjectUrl: vi.fn(() => "https://testref.supabase.co"),
   NEWSLETTER_ASSETS_BUCKET: "newsletter-assets",
 }));

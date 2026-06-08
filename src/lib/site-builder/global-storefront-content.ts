@@ -10,7 +10,7 @@ import {
 } from "@/data/storefront-navigation";
 import { getSiteCopy, getSiteCopyBlocksForAdmin } from "@/lib/site-copy";
 import { resolveNavigationExtras } from "@/lib/site-copy-blocks/navigation-extras";
-import { contentStr, visibleListItems } from "@/lib/site-builder/content-utils";
+import { asContentRecord, contentStr, visibleListItems } from "@/lib/site-builder/content-utils";
 import { buildFormattedContentHtml } from "@/lib/site-builder/formatted-content";
 import { loadPageSections, pageHasCustomSections } from "@/lib/site-builder/sections-db";
 import type { PageSection } from "@/lib/site-builder/types";
@@ -69,14 +69,8 @@ function logGlobalFieldDebug(
   });
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
 function sectionContent(section: PageSection | undefined): Record<string, unknown> {
-  return asRecord(section?.content);
+  return asContentRecord(section?.content);
 }
 
 function storedTextToPlain(value: string): string {
@@ -223,7 +217,7 @@ function resolveGetInvolvedFromSection(section: PageSection | undefined): {
   const items: GetInvolvedNavItem[] = [];
 
   for (const card of cards) {
-    const metadata = asRecord(card.metadata);
+    const metadata = asContentRecord(card.metadata);
     const href = String(metadata.href ?? "").trim();
     const itemLabel = storedTextToPlain(card.text);
     const description = storedTextToPlain(String(metadata.body ?? ""));

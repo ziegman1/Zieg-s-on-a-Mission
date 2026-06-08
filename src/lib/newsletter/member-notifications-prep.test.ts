@@ -1,5 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/lib/community/settings-types";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  mergeNotificationPreferences,
+} from "@/lib/community/settings-types";
 
 vi.mock("@/lib/db", () => ({
   prisma: {
@@ -84,10 +87,7 @@ describe("deliverNewsletterPublishNotifications", () => {
     ] as never);
     vi.mocked(getUserNotificationPreferences)
       .mockResolvedValueOnce(DEFAULT_NOTIFICATION_PREFERENCES)
-      .mockResolvedValueOnce({
-        ...DEFAULT_NOTIFICATION_PREFERENCES,
-        newsletters: false,
-      });
+      .mockResolvedValueOnce(mergeNotificationPreferences({ newsletters: false }));
 
     const result = await deliverNewsletterPublishNotifications(sampleNewsletter, deliveryOptions);
 
@@ -108,10 +108,9 @@ describe("deliverNewsletterPublishNotifications", () => {
     vi.mocked(prisma.communityMemberRecord.findMany).mockResolvedValue([
       { userId: "u1", user: { email: "a@example.com" } },
     ] as never);
-    vi.mocked(getUserNotificationPreferences).mockResolvedValue({
-      ...DEFAULT_NOTIFICATION_PREFERENCES,
-      newsletters: false,
-    });
+    vi.mocked(getUserNotificationPreferences).mockResolvedValue(
+      mergeNotificationPreferences({ newsletters: false }),
+    );
 
     const result = await deliverNewsletterPublishNotifications(sampleNewsletter, deliveryOptions);
 

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/lib/community/settings-types";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  mergeNotificationPreferences,
+} from "@/lib/community/settings-types";
 import {
   memberWantsCategoryNotification,
   notificationPreferenceKeyForCategory,
@@ -19,13 +22,13 @@ describe("space notification category mapping", () => {
   it("memberWantsCategoryNotification respects the mapped preference", () => {
     expect(
       memberWantsCategoryNotification(
-        { ...DEFAULT_NOTIFICATION_PREFERENCES, ministryUpdates: false },
+        mergeNotificationPreferences({ ministryUpdates: false }),
         "ministry_updates",
       ),
     ).toBe(false);
     expect(
       memberWantsCategoryNotification(
-        { ...DEFAULT_NOTIFICATION_PREFERENCES, newPosts: false, ministryUpdates: true },
+        mergeNotificationPreferences({ newPosts: false, ministryUpdates: true }),
         "ministry_updates",
       ),
     ).toBe(true);

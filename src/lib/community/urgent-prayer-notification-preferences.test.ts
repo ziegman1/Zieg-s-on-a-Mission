@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/lib/community/settings-types";
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  mergeNotificationPreferences,
+} from "@/lib/community/settings-types";
 import { evaluateUrgentPrayerNotificationEligibility } from "./urgent-prayer-notification-preferences";
 
 describe("evaluateUrgentPrayerNotificationEligibility", () => {
@@ -7,7 +10,7 @@ describe("evaluateUrgentPrayerNotificationEligibility", () => {
 
   it("allows email when prayerResponses is on", () => {
     const result = evaluateUrgentPrayerNotificationEligibility(
-      { ...DEFAULT_NOTIFICATION_PREFERENCES, newPosts: false, prayerResponses: true },
+      mergeNotificationPreferences({ newPosts: false, prayerResponses: true }),
       { spaceId },
     );
     expect(result.emailChannel).toBe(true);
@@ -16,7 +19,7 @@ describe("evaluateUrgentPrayerNotificationEligibility", () => {
 
   it("allows email when newPosts is on even if prayerResponses is off", () => {
     const result = evaluateUrgentPrayerNotificationEligibility(
-      { ...DEFAULT_NOTIFICATION_PREFERENCES, prayerResponses: false, newPosts: true },
+      mergeNotificationPreferences({ prayerResponses: false, newPosts: true }),
       { spaceId },
     );
     expect(result.emailChannel).toBe(true);
@@ -24,7 +27,7 @@ describe("evaluateUrgentPrayerNotificationEligibility", () => {
 
   it("blocks muted Prayer Room users", () => {
     const result = evaluateUrgentPrayerNotificationEligibility(
-      { ...DEFAULT_NOTIFICATION_PREFERENCES, mutedSpaceIds: [spaceId] },
+      mergeNotificationPreferences({ mutedSpaceIds: [spaceId] }),
       { spaceId },
     );
     expect(result.emailChannel).toBe(false);
@@ -33,7 +36,12 @@ describe("evaluateUrgentPrayerNotificationEligibility", () => {
 
   it("blocks when both prayerResponses and newPosts are off", () => {
     const result = evaluateUrgentPrayerNotificationEligibility(
-      { ...DEFAULT_NOTIFICATION_PREFERENCES, prayerResponses: false, newPosts: false },
+      mergeNotificationPreferences({
+        prayerResponses: false,
+        newPosts: false,
+        commentsOnPosts: false,
+        repliesToComments: false,
+      }),
       { spaceId },
     );
     expect(result.emailChannel).toBe(false);
@@ -42,7 +50,7 @@ describe("evaluateUrgentPrayerNotificationEligibility", () => {
 
   it("blocks email channel when global email pref is off but in-app may still deliver", () => {
     const result = evaluateUrgentPrayerNotificationEligibility(
-      { ...DEFAULT_NOTIFICATION_PREFERENCES, email: false },
+      mergeNotificationPreferences({ email: false }),
       { spaceId },
     );
     expect(result.emailChannel).toBe(false);

@@ -1,6 +1,5 @@
 import type { NotificationPreferences } from "@/lib/community/settings-types";
 import {
-  categoryFrequency,
   wantsImmediateEmailForCategory,
 } from "@/lib/mission-hub/notification-category-preferences";
 
@@ -34,7 +33,9 @@ export function evaluateUrgentPrayerNotificationEligibility(
     };
   }
 
-  const wantsContent = categoryFrequency(prefs, "prayerRequests") !== "never";
+  const wantsPrayer = prefs.prayerResponses !== false;
+  const wantsNewPosts = prefs.newPosts !== false;
+  const wantsContent = wantsPrayer || wantsNewPosts;
   if (!wantsContent) {
     return {
       emailChannel: false,
@@ -44,7 +45,9 @@ export function evaluateUrgentPrayerNotificationEligibility(
     };
   }
 
-  const emailChannel = wantsImmediateEmailForCategory(prefs, "prayerRequests");
+  const emailChannel =
+    (wantsPrayer && wantsImmediateEmailForCategory(prefs, "prayerRequests")) ||
+    (wantsNewPosts && wantsImmediateEmailForCategory(prefs, "communityActivity"));
   const inAppChannel = wantsContent && prefs.inApp === true;
 
   if (!emailChannel && !inAppChannel) {

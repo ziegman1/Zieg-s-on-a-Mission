@@ -7,6 +7,9 @@ vi.mock("@/lib/db", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    emailSuppressionRecord: {
+      findFirst: vi.fn(),
+    },
   },
 }));
 
@@ -37,6 +40,7 @@ describe("queueMissionHubEmailDelivery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.TEST_MISSION_HUB_EMAIL_RECIPIENTS;
+    vi.mocked(prisma.emailSuppressionRecord.findFirst).mockResolvedValue(null);
   });
 
   it("skips email in smoke test when no test recipients configured", async () => {

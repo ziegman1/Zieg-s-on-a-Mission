@@ -8,6 +8,9 @@ vi.mock("@/lib/db", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    emailSuppressionRecord: {
+      findFirst: vi.fn(),
+    },
   },
 }));
 
@@ -34,6 +37,7 @@ const newsletter = {
 describe("queueAndSendNewsletterPublishEmail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(prisma.emailSuppressionRecord.findFirst).mockResolvedValue(null);
   });
 
   it("dedupes when delivery already sent", async () => {
