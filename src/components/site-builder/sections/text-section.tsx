@@ -61,16 +61,20 @@ export function TextSectionBlock({
     <>
       {show("eyebrow", eyebrow) ? (
         <EditableElement sectionId={section.id} elementId="eyebrow" style={getFieldStyle(c, "eyebrow")}>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">
-            {eyebrow.trim() || (ctx?.editMode ? "Eyebrow (empty)" : "")}
-          </p>
+          <SiteBuilderFormattedContent
+            text={eyebrow}
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary"
+            emptyPlaceholder={ctx?.editMode ? "Eyebrow (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {show("headline", headline) ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-          <h2 className="font-serif text-2xl text-brand-primary tracking-wide mb-0">
-            {headline.trim() || (ctx?.editMode ? "Heading (empty)" : "")}
-          </h2>
+          <SiteBuilderFormattedContent
+            text={headline}
+            className="font-serif text-2xl text-brand-primary tracking-wide mb-0"
+            emptyPlaceholder={ctx?.editMode ? "Heading (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {show("subheadline", sub) ? (

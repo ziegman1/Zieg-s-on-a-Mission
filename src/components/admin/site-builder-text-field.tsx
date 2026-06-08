@@ -12,6 +12,7 @@ export function SiteBuilderTextField({
   onChange,
   multiline,
   placeholder,
+  compact,
 }: {
   fieldKey: string;
   label: string;
@@ -19,6 +20,7 @@ export function SiteBuilderTextField({
   onChange: (value: string) => void;
   multiline?: boolean;
   placeholder?: string;
+  compact?: boolean;
 }) {
   const mode = richTextModeForField(fieldKey, { multiline });
 
@@ -31,9 +33,8 @@ export function SiteBuilderTextField({
         <SiteBuilderRichTextEditor
           value={value}
           onChange={onChange}
-          mode={mode}
           placeholder={placeholder}
-          minHeightClass={mode === "inline" ? "min-h-[2.5rem]" : "min-h-[120px]"}
+          minHeightClass={compact ? "min-h-[80px]" : "min-h-[120px]"}
         />
       )}
     </div>

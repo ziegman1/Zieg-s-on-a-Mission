@@ -10,7 +10,6 @@ import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SiteBuilderRichTextEditor } from "@/components/admin/site-builder-rich-text-editor";
 import { ChevronDown, ChevronUp, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 
@@ -125,6 +124,17 @@ function FieldEditor({
   );
 }
 
+function newListItemForField(fieldKey: string, sortOrder: number): ListItem {
+  const item = newListItem(sortOrder);
+  if (fieldKey === "items") {
+    return { ...item, metadata: { when: "", description: "" } };
+  }
+  if (fieldKey === "cards") {
+    return { ...item, metadata: { body: "" } };
+  }
+  return item;
+}
+
 function ListFieldEditor({
   label,
   items,
@@ -159,7 +169,7 @@ function ListFieldEditor({
           variant="outline"
           size="sm"
           className="h-7 text-xs"
-          onClick={() => updateItems([...sorted, newListItem(sorted.length)])}
+          onClick={() => updateItems([...sorted, newListItemForField(fieldKey, sorted.length)])}
         >
           Add line
         </Button>
@@ -222,11 +232,12 @@ function LineItemRow({
           <ChevronDown className="h-3 w-3" />
         </button>
         <div className="flex-1 min-w-0">
-          <SiteBuilderRichTextEditor
+          <SiteBuilderTextField
+            fieldKey="text"
+            label="Line text"
             value={item.text}
             onChange={(next) => onChange({ ...item, text: next })}
-            mode="inline"
-            minHeightClass="min-h-[2rem]"
+            compact
           />
         </div>
         <button type="button" onClick={() => onChange({ ...item, visible: !item.visible })} className="p-1">
@@ -243,11 +254,52 @@ function LineItemRow({
         )}
       </div>
       {item.metadata?.body !== undefined ? (
-        <SiteBuilderRichTextEditor
+        <SiteBuilderTextField
+          fieldKey="body"
+          label="Body"
           value={String(item.metadata.body ?? "")}
           onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, body: next } })}
-          mode="full"
-          minHeightClass="min-h-[80px]"
+          compact
+        />
+      ) : null}
+      {item.metadata?.description !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="description"
+          label="Description"
+          value={String(item.metadata.description ?? "")}
+          onChange={(next) =>
+            onChange({ ...item, metadata: { ...item.metadata, description: next } })
+          }
+          compact
+        />
+      ) : null}
+      {item.metadata?.when !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="when"
+          label="When"
+          value={String(item.metadata.when ?? "")}
+          onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, when: next } })}
+          compact
+        />
+      ) : null}
+      {item.metadata?.giftNote !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="giftNote"
+          label="Gift note"
+          value={String(item.metadata.giftNote ?? "")}
+          onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, giftNote: next } })}
+          compact
+        />
+      ) : null}
+      {item.metadata?.amountLabel !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="amountLabel"
+          label="Amount label"
+          value={String(item.metadata.amountLabel ?? "")}
+          onChange={(next) =>
+            onChange({ ...item, metadata: { ...item.metadata, amountLabel: next } })
+          }
+          compact
         />
       ) : null}
     </div>

@@ -38,9 +38,11 @@ export function ImageTextSplitSection({
     <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4 space-y-3">
       {(title.trim() || ctx?.editMode) && fieldVisible(c, "headline") ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-          <h2 className="font-serif text-2xl text-brand-primary tracking-wide">
-            {title.trim() || (ctx?.editMode ? "Headline…" : "")}
-          </h2>
+          <SiteBuilderFormattedContent
+            text={title}
+            className="font-serif text-2xl text-brand-primary tracking-wide"
+            emptyPlaceholder={ctx?.editMode ? "Headline…" : undefined}
+          />
         </EditableElement>
       ) : null}
       {(body.trim() || ctx?.editMode) && fieldVisible(c, "body") ? (

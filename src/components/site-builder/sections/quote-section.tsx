@@ -43,9 +43,11 @@ export function QuoteSection({ section }: { section: PageSection }) {
           elementId="quote:attribution"
           style={getFieldStyle(c, "quote:attribution")}
         >
-          <p className="mt-3 text-sm font-medium text-brand-primary">
-            {attr.trim() || (ctx?.editMode ? "Attribution (empty)" : "")}
-          </p>
+          <SiteBuilderFormattedContent
+            text={attr}
+            className="mt-3 text-sm font-medium text-brand-primary"
+            emptyPlaceholder={ctx?.editMode ? "Attribution (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       <ContentElementsBlock section={section} />

@@ -10,20 +10,14 @@ import {
   Link2,
   List,
   ListOrdered,
+  Quote,
   Redo2,
   Underline,
   Undo2,
 } from "lucide-react";
-import {
-  normalizeInlineRichTextForStorage,
-  normalizeRichTextForStorage,
-  prepareInlineRichTextForEditor,
-  prepareRichTextForEditor,
-} from "@/lib/site-builder/rich-text";
+import { normalizeRichTextForStorage, prepareRichTextForEditor } from "@/lib/site-builder/rich-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-export type SiteBuilderRichTextMode = "full" | "inline";
 
 const FONT_OPTIONS = [
   { label: "Default", value: "" },
@@ -74,14 +68,12 @@ function ToolbarButton({
 export function SiteBuilderRichTextEditor({
   value,
   onChange,
-  mode = "full",
   placeholder,
   className,
   minHeightClass = "min-h-[120px]",
 }: {
   value: string;
   onChange: (value: string) => void;
-  mode?: SiteBuilderRichTextMode;
   placeholder?: string;
   className?: string;
   minHeightClass?: string;
@@ -89,24 +81,20 @@ export function SiteBuilderRichTextEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState(false);
 
-  const prepare = mode === "inline" ? prepareInlineRichTextForEditor : prepareRichTextForEditor;
-  const normalize =
-    mode === "inline" ? normalizeInlineRichTextForStorage : normalizeRichTextForStorage;
-
   useEffect(() => {
     const node = editorRef.current;
     if (!node || focused) return;
-    const html = prepare(value);
+    const html = prepareRichTextForEditor(value);
     if (node.innerHTML !== html) {
       node.innerHTML = html;
     }
-  }, [value, focused, prepare]);
+  }, [value, focused]);
 
   const emitChange = useCallback(() => {
     const node = editorRef.current;
     if (!node) return;
-    onChange(normalize(node.innerHTML));
-  }, [normalize, onChange]);
+    onChange(normalizeRichTextForStorage(node.innerHTML));
+  }, [onChange]);
 
   const exec = useCallback(
     (command: string, commandValue?: string) => {
@@ -135,9 +123,7 @@ export function SiteBuilderRichTextEditor({
     if (!selection || selection.rangeCount === 0) return;
     const node = selection.anchorNode;
     const element =
-      node?.nodeType === Node.ELEMENT_NODE
-        ? (node as HTMLElement)
-        : node?.parentElement;
+      node?.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node?.parentElement;
     if (element) element.style.fontSize = fontSize;
     emitChange();
   };
@@ -198,35 +184,41 @@ export function SiteBuilderRichTextEditor({
           <Underline className="h-3.5 w-3.5" />
         </ToolbarButton>
 
-        {mode === "full" ? (
-          <>
-            <span className="mx-1 h-4 w-px bg-zinc-700" aria-hidden />
-            <ToolbarButton label="Paragraph" onClick={() => exec("formatBlock", "p")}>
-              <span className="text-[10px] font-semibold">P</span>
-            </ToolbarButton>
-            <ToolbarButton label="Heading 2" onClick={() => exec("formatBlock", "h2")}>
-              <span className="text-[10px] font-semibold">H2</span>
-            </ToolbarButton>
-            <ToolbarButton label="Heading 3" onClick={() => exec("formatBlock", "h3")}>
-              <span className="text-[10px] font-semibold">H3</span>
-            </ToolbarButton>
-            <ToolbarButton label="Bulleted list" onClick={() => exec("insertUnorderedList")}>
-              <List className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton label="Numbered list" onClick={() => exec("insertOrderedList")}>
-              <ListOrdered className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton label="Align left" onClick={() => exec("justifyLeft")}>
-              <AlignLeft className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton label="Align center" onClick={() => exec("justifyCenter")}>
-              <AlignCenter className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton label="Align right" onClick={() => exec("justifyRight")}>
-              <AlignRight className="h-3.5 w-3.5" />
-            </ToolbarButton>
-          </>
-        ) : null}
+        <span className="mx-1 h-4 w-px bg-zinc-700" aria-hidden />
+
+        <ToolbarButton label="Paragraph" onClick={() => exec("formatBlock", "p")}>
+          <span className="text-[10px] font-semibold">P</span>
+        </ToolbarButton>
+        <ToolbarButton label="Heading 1" onClick={() => exec("formatBlock", "h1")}>
+          <span className="text-[10px] font-semibold">H1</span>
+        </ToolbarButton>
+        <ToolbarButton label="Heading 2" onClick={() => exec("formatBlock", "h2")}>
+          <span className="text-[10px] font-semibold">H2</span>
+        </ToolbarButton>
+        <ToolbarButton label="Heading 3" onClick={() => exec("formatBlock", "h3")}>
+          <span className="text-[10px] font-semibold">H3</span>
+        </ToolbarButton>
+        <ToolbarButton label="Heading 4" onClick={() => exec("formatBlock", "h4")}>
+          <span className="text-[10px] font-semibold">H4</span>
+        </ToolbarButton>
+        <ToolbarButton label="Bulleted list" onClick={() => exec("insertUnorderedList")}>
+          <List className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton label="Numbered list" onClick={() => exec("insertOrderedList")}>
+          <ListOrdered className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton label="Block quote" onClick={() => exec("formatBlock", "blockquote")}>
+          <Quote className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton label="Align left" onClick={() => exec("justifyLeft")}>
+          <AlignLeft className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton label="Align center" onClick={() => exec("justifyCenter")}>
+          <AlignCenter className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton label="Align right" onClick={() => exec("justifyRight")}>
+          <AlignRight className="h-3.5 w-3.5" />
+        </ToolbarButton>
 
         <ToolbarButton label="Insert link" onClick={insertLink}>
           <Link2 className="h-3.5 w-3.5" />
@@ -238,16 +230,17 @@ export function SiteBuilderRichTextEditor({
         contentEditable
         suppressContentEditableWarning
         role="textbox"
-        aria-multiline={mode === "full"}
+        aria-multiline
         data-placeholder={placeholder}
         className={cn(
           "site-builder-rich-text-editor px-3 py-2 text-sm text-zinc-100 outline-none",
           "prose prose-invert max-w-none",
-          "[&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold",
+          "[&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_h4]:text-sm [&_h4]:font-semibold",
+          "[&_blockquote]:border-l-2 [&_blockquote]:border-zinc-600 [&_blockquote]:pl-3 [&_blockquote]:italic",
           "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5",
           "[&_a]:text-sky-400 [&_a]:underline",
           "empty:before:content-[attr(data-placeholder)] empty:before:text-zinc-500",
-          mode === "inline" ? "min-h-[2.5rem]" : minHeightClass,
+          minHeightClass,
         )}
         onFocus={() => setFocused(true)}
         onBlur={() => {
@@ -255,12 +248,10 @@ export function SiteBuilderRichTextEditor({
           emitChange();
         }}
         onInput={emitChange}
-        onKeyDown={(event) => {
-          if (mode === "inline" && event.key === "Enter") {
-            event.preventDefault();
-          }
-        }}
       />
     </div>
   );
 }
+
+/** Alias for the shared Site Builder rich text editor. */
+export const RichTextEditor = SiteBuilderRichTextEditor;

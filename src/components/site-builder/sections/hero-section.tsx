@@ -132,28 +132,28 @@ export function HeroSection({
         <div className={cn(isHome && HOME_HERO_CONTENT)}>
           {show("eyebrow", eyebrow) ? (
             <EditableElement sectionId={section.id} elementId="eyebrow" style={getFieldStyle(c, "eyebrow")}>
-              <p
+              <SiteBuilderFormattedContent
+                text={eyebrow}
                 className={cn(
                   "text-xs font-semibold uppercase tracking-[0.2em]",
                   isHome ? HOME_HERO_EYEBROW : "text-brand-primary",
                 )}
-              >
-                {eyebrow.trim() || (ctx?.editMode ? "Eyebrow (empty)" : "")}
-              </p>
+                emptyPlaceholder={ctx?.editMode ? "Eyebrow (empty)" : undefined}
+              />
             </EditableElement>
           ) : null}
           {show("headline", headline) ? (
             <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-              <h1
+              <SiteBuilderFormattedContent
+                text={headline}
                 className={cn(
                   useScriptTitle || isHome
                     ? `${heroTitle.className} text-[2.25rem] sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold leading-[1.15]`
                     : "mt-4 font-serif text-3xl sm:text-4xl text-brand-ink tracking-wide",
                   isHome ? HOME_HERO_HEADLINE : "text-brand-ink",
                 )}
-              >
-                {headline.trim() || (ctx?.editMode ? "Headline (empty)" : "")}
-              </h1>
+                emptyPlaceholder={ctx?.editMode ? "Headline (empty)" : undefined}
+              />
             </EditableElement>
           ) : null}
           {show("body", body) ? (

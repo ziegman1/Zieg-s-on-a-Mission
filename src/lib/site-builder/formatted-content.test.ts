@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFormattedContentHtml,
+  markdownToHtml,
   plainTextToHtml,
   sanitizeSiteBuilderHtml,
 } from "./formatted-content";
@@ -40,6 +41,21 @@ describe("buildFormattedContentHtml", () => {
       JSON.stringify({ html: "<p>From JSON</p><p>Second</p>" }),
     );
     expect(html).toBe("<p>From JSON</p><p>Second</p>");
+  });
+
+  it("converts markdown to HTML on load", () => {
+    const html = buildFormattedContentHtml("## Heading\n\n**Bold** intro");
+    expect(html).toContain("<h2>Heading</h2>");
+    expect(html).toContain("<strong>Bold</strong>");
+  });
+});
+
+describe("markdownToHtml", () => {
+  it("renders blockquotes and lists", () => {
+    const html = markdownToHtml("> Quote line\n\n- One\n- Two");
+    expect(html).toContain("<blockquote>");
+    expect(html).toContain("<ul>");
+    expect(html).toContain("<li>One</li>");
   });
 });
 

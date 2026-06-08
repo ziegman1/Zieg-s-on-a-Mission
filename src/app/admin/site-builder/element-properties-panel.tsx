@@ -21,8 +21,7 @@ import {
 } from "@/lib/site-builder/section-elements";
 import { contentStr, getFieldStyle, sortedListItems } from "@/lib/site-builder/content-utils";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
-import { SiteBuilderRichTextEditor } from "@/components/admin/site-builder-rich-text-editor";
-import { richTextModeForElementField } from "@/lib/site-builder/rich-text-field-policy";
+import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -682,7 +681,6 @@ function Field({
   value,
   onChange,
   multiline,
-  contentElementType,
 }: {
   label: string;
   fieldKey: string;
@@ -691,29 +689,15 @@ function Field({
   multiline?: boolean;
   contentElementType?: string;
 }) {
-  const mode = richTextModeForElementField(fieldKey, { multiline, contentElementType });
-
-  if (mode === "plain") {
-    return (
-      <div>
-        <Label className="text-xs text-zinc-400">{label}</Label>
-        <Input value={value} onChange={(event) => onChange(event.target.value)} className="mt-1" />
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <Label className="text-xs text-zinc-400">{label}</Label>
-      <div className="mt-1">
-        <SiteBuilderRichTextEditor
-          value={value}
-          onChange={onChange}
-          mode={mode}
-          minHeightClass={mode === "inline" ? "min-h-[2.5rem]" : "min-h-[100px]"}
-        />
-      </div>
-    </div>
+    <SiteBuilderTextField
+      fieldKey={fieldKey}
+      label={label}
+      value={value}
+      onChange={onChange}
+      multiline={multiline}
+      compact
+    />
   );
 }
 

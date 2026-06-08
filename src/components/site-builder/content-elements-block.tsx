@@ -2,7 +2,6 @@
 
 import { EditableElement } from "./editable-element";
 import { getContentElements } from "@/lib/site-builder/section-elements";
-import { buildInlineFormattedHtml } from "@/lib/site-builder/rich-text";
 import { elementStyleProps, isElementVisible } from "@/lib/site-builder/element-style-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { useBuilderPreview } from "./builder-preview-context";
@@ -23,9 +22,12 @@ export function ContentElementsBlock({ section }: { section: PageSection }) {
         const { className, style } = elementStyleProps(el.style);
         const inner =
           el.type === "heading" ? (
-            <h3 className={cn("font-serif text-xl text-brand-primary", className)} style={style}>
-              <span dangerouslySetInnerHTML={{ __html: buildInlineFormattedHtml(el.text) }} />
-            </h3>
+            <div style={style}>
+              <SiteBuilderFormattedContent
+                text={el.text}
+                className={cn("font-serif text-xl text-brand-primary", className)}
+              />
+            </div>
           ) : el.type === "quote" ? (
             <blockquote
               className={cn("italic border-l-4 border-brand-primary/30 pl-4", className)}

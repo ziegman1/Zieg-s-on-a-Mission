@@ -24,16 +24,20 @@ export function MinistryPageHeader({ section }: { section: PageSection }) {
     <header className="mb-10">
       {show("eyebrow", eyebrow) ? (
         <EditableElement sectionId={section.id} elementId="eyebrow" style={getFieldStyle(c, "eyebrow")}>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary">
-            {eyebrow.trim() || (ctx?.editMode ? "Eyebrow (empty)" : "")}
-          </p>
+          <SiteBuilderFormattedContent
+            text={eyebrow}
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-primary"
+            emptyPlaceholder={ctx?.editMode ? "Eyebrow (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {show("headline", headline) ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-          <h1 className="font-serif text-3xl sm:text-4xl text-brand-primary tracking-wide">
-            {headline.trim() || (ctx?.editMode ? "Page title (empty)" : "")}
-          </h1>
+          <SiteBuilderFormattedContent
+            text={headline}
+            className="font-serif text-3xl sm:text-4xl text-brand-primary tracking-wide"
+            emptyPlaceholder={ctx?.editMode ? "Page title (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {show("body", body) ? (
@@ -51,15 +55,15 @@ export function MinistryPageHeader({ section }: { section: PageSection }) {
           elementId="subheadline"
           style={getFieldStyle(c, "subheadline")}
         >
-          <p
+          <SiteBuilderFormattedContent
+            text={sub}
             className={
               body.trim()
                 ? "mt-2 text-base text-brand-ink/75 max-w-2xl"
                 : "mt-4 text-lg text-brand-ink/85 leading-relaxed max-w-2xl"
             }
-          >
-            {sub.trim() || (ctx?.editMode ? "Subheadline (empty)" : "")}
-          </p>
+            emptyPlaceholder={ctx?.editMode ? "Subheadline (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       <ContentElementsBlock section={section} />

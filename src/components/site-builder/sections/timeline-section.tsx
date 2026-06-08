@@ -5,6 +5,7 @@ import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { isElementVisible } from "@/lib/site-builder/element-style-utils";
 import { cn } from "@/lib/utils";
@@ -30,16 +31,20 @@ export function TimelineSection({ section }: { section: PageSection }) {
       <div className="mx-auto max-w-3xl">
         {show("headline", headline) ? (
           <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-            <h2 className="font-serif text-2xl text-brand-primary tracking-wide text-center">
-              {headline.trim() || (ctx?.editMode ? "Headline (empty)" : "")}
-            </h2>
+            <SiteBuilderFormattedContent
+              text={headline}
+              className="font-serif text-2xl text-brand-primary tracking-wide text-center"
+              emptyPlaceholder={ctx?.editMode ? "Headline (empty)" : undefined}
+            />
           </EditableElement>
         ) : null}
         {show("intro", intro) ? (
           <EditableElement sectionId={section.id} elementId="intro" style={getFieldStyle(c, "intro")}>
-            <p className="mt-3 text-center text-brand-ink/80 leading-relaxed">
-              {intro.trim() || (ctx?.editMode ? "Intro (empty)" : "")}
-            </p>
+            <SiteBuilderFormattedContent
+              text={intro}
+              className="mt-3 text-center text-brand-ink/80 leading-relaxed"
+              emptyPlaceholder={ctx?.editMode ? "Intro (empty)" : undefined}
+            />
           </EditableElement>
         ) : null}
         <ul className="mt-10 space-y-8">
@@ -60,13 +65,18 @@ export function TimelineSection({ section }: { section: PageSection }) {
                   visible={item.visible}
                   layout="block"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary/80">
-                    {String(item.metadata?.when ?? "")}
-                  </p>
-                  <h3 className="mt-1 font-serif text-lg text-brand-ink">{item.text}</h3>
-                  <p className="mt-2 text-sm text-brand-ink/80 leading-relaxed">
-                    {String(item.metadata?.description ?? "")}
-                  </p>
+                  <SiteBuilderFormattedContent
+                    text={String(item.metadata?.when ?? "")}
+                    className="text-xs font-semibold uppercase tracking-wide text-brand-primary/80"
+                  />
+                  <SiteBuilderFormattedContent
+                    text={item.text}
+                    className="mt-1 font-serif text-lg text-brand-ink"
+                  />
+                  <SiteBuilderFormattedContent
+                    text={String(item.metadata?.description ?? "")}
+                    className="mt-2 text-sm text-brand-ink/80 leading-relaxed"
+                  />
                 </EditableElement>
               </li>
             );

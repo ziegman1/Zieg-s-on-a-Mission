@@ -5,6 +5,7 @@ import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { isElementVisible } from "@/lib/site-builder/element-style-utils";
 import { cn } from "@/lib/utils";
@@ -31,12 +32,20 @@ export function FeaturedPostsSection({ section }: { section: PageSection }) {
     <section>
       {show("headline", headline) ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-          <h2>{headline.trim() || (ctx?.editMode ? "Heading (empty)" : "")}</h2>
+          <SiteBuilderFormattedContent
+            text={headline}
+            className="font-serif text-2xl text-brand-primary tracking-wide"
+            emptyPlaceholder={ctx?.editMode ? "Heading (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {show("body", body) ? (
         <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-          <p>{body.trim() || (ctx?.editMode ? "Body (empty)" : "")}</p>
+          <SiteBuilderFormattedContent
+            text={body}
+            className="mt-4 text-brand-ink/88"
+            emptyPlaceholder={ctx?.editMode ? "Body (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {topics.length > 0 ? (
@@ -52,7 +61,7 @@ export function FeaturedPostsSection({ section }: { section: PageSection }) {
                   visible={t.visible}
                   layout="inline"
                 >
-                  {t.text}
+                  <SiteBuilderFormattedContent text={t.text} className="inline text-brand-ink/88" />
                 </EditableElement>
               </li>
             );

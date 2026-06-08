@@ -13,6 +13,10 @@ describe("prepareRichTextForEditor", () => {
       "<p>Line one</p><p>Line two</p>",
     );
   });
+
+  it("converts legacy markdown on load", () => {
+    expect(prepareRichTextForEditor("**Bold** line")).toContain("<strong>Bold</strong>");
+  });
 });
 
 describe("normalizeRichTextForStorage", () => {
@@ -40,6 +44,10 @@ describe("richTextModeForField", () => {
 
   it("uses full rich text for body fields", () => {
     expect(richTextModeForField("body", { multiline: true })).toBe("full");
+  });
+
+  it("uses full rich text for headlines", () => {
+    expect(richTextModeForField("headline")).toBe("full");
   });
 
   it("uses full rich text for subheadline", () => {

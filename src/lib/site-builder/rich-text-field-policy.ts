@@ -1,67 +1,29 @@
-/** Fields that must stay plain text (labels, URLs, short titles). */
-const PLAIN_TEXT_KEYS = new Set([
-  "eyebrow",
-  "headline",
-  "attribution",
-  "imageAlt",
-  "primaryCtaLabel",
-  "secondaryCtaLabel",
-  "tertiaryCtaLabel",
-  "ctaLabel",
-  "amountLabel",
-  "cta",
-  "href",
-]);
+/** URL, button label, and identifier fields stay plain text. */
+const PLAIN_ONLY_KEYS = new Set(["imageAlt", "slug", "id", "href", "cta"]);
 
-const PLAIN_SUFFIXES = ["Label", "Url", "Alt", "Href", "Email"];
+const PLAIN_ONLY_SUFFIXES = ["Label", "Url", "Alt", "Href", "Email"];
 
-export function shouldUsePlainTextField(fieldKey: string): boolean {
-  if (PLAIN_TEXT_KEYS.has(fieldKey)) return true;
-  return PLAIN_SUFFIXES.some((suffix) => fieldKey.endsWith(suffix));
+export function isPlainTextField(fieldKey: string): boolean {
+  if (PLAIN_ONLY_KEYS.has(fieldKey)) return true;
+  return PLAIN_ONLY_SUFFIXES.some((suffix) => fieldKey.endsWith(suffix));
 }
 
-/** Block-level rich text (paragraphs, lists, headings). */
-export function shouldUseRichTextField(fieldKey: string, opts?: { multiline?: boolean }): boolean {
-  if (shouldUsePlainTextField(fieldKey)) return false;
-  if (opts?.multiline) return true;
-  return ["body", "intro", "subheadline", "quote"].includes(fieldKey);
-}
-
-/** Inline rich text for short fields that may include emphasis/links. */
-export function shouldUseInlineRichTextField(fieldKey: string): boolean {
-  if (shouldUsePlainTextField(fieldKey)) return false;
-  if (shouldUseRichTextField(fieldKey)) return false;
-  return ["subheadline", "headline"].includes(fieldKey);
-}
-
+/** All editable copy fields use the full rich text editor unless explicitly plain-only. */
 export function richTextModeForField(
   fieldKey: string,
-  opts?: { multiline?: boolean },
-): "plain" | "full" | "inline" {
-  if (shouldUsePlainTextField(fieldKey)) return "plain";
-  if (shouldUseRichTextField(fieldKey, opts)) return "full";
-  if (shouldUseInlineRichTextField(fieldKey)) return "inline";
-  if (opts?.multiline) return "full";
-  return "plain";
+  _opts?: { multiline?: boolean },
+): "plain" | "full" {
+  return isPlainTextField(fieldKey) ? "plain" : "full";
 }
 
-export function richTextModeForContentElement(
-  elementType: string,
-): "plain" | "full" | "inline" {
-  if (elementType === "heading") return "inline";
-  if (elementType === "paragraph" || elementType === "quote" || elementType === "note") {
-    return "full";
-  }
-  return "plain";
+export function richTextModeForContentElement(elementType: string): "plain" | "full" {
+  return "full";
 }
 
 export function richTextModeForElementField(
   fieldKey: string,
   opts?: { multiline?: boolean; contentElementType?: string },
-): "plain" | "full" | "inline" {
-  if (opts?.contentElementType) {
-    return richTextModeForContentElement(opts.contentElementType);
-  }
-  if (fieldKey === "bullet") return "inline";
-  return richTextModeForField(fieldKey, opts);
+): "plain" | "full" {
+  void opts;
+  return richTextModeForField(fieldKey);
 }

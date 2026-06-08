@@ -99,7 +99,10 @@ export function CtaSection({
     <section className="mx-auto max-w-3xl px-4 py-12 text-center">
       {headline.trim() && fieldVisible(c, "headline") ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-          <h2 className="font-serif text-2xl text-brand-primary">{headline}</h2>
+          <SiteBuilderFormattedContent
+            text={headline}
+            className="font-serif text-2xl text-brand-primary"
+          />
         </EditableElement>
       ) : null}
       {body.trim() && fieldVisible(c, "body") ? (

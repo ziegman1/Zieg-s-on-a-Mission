@@ -155,7 +155,11 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryEntry> = {
     type: "timeline",
     label: "Timeline",
     description: "Milestone timeline",
-    fields: [{ key: "items", label: "Milestones", kind: "list", itemLabel: "Title" }],
+    fields: [
+      { key: "headline", label: "Headline", kind: "text" },
+      { key: "intro", label: "Intro", kind: "textarea" },
+      { key: "items", label: "Milestones", kind: "list", itemLabel: "Title" },
+    ],
     defaultContent: { headline: "", intro: "", items: list() },
   },
   newsletter_signup: {

@@ -33,14 +33,13 @@ export function CardGridSection({ section }: { section: PageSection }) {
       style={getFieldStyle(c, "headline")}
       visible={isElementVisible(getFieldStyle(c, "headline"), true)}
     >
-      <h2
+      <SiteBuilderFormattedContent
+        text={headline}
         className={cn(
           "font-serif text-2xl text-brand-primary tracking-wide",
           isPartnerTiers && "text-center",
         )}
-      >
-        {headline}
-      </h2>
+      />
     </EditableElement>
   ) : ctx?.editMode ? (
     <EditableElement sectionId={section.id} elementId="headline" visible>
@@ -83,15 +82,19 @@ export function CardGridSection({ section }: { section: PageSection }) {
               {String(card.metadata.amountLabel)}
             </p>
           ) : null}
-          <h3 className="mt-2 font-serif text-xl text-brand-ink tracking-wide">{card.text}</h3>
+          <SiteBuilderFormattedContent
+            text={card.text}
+            className="mt-2 font-serif text-xl text-brand-ink tracking-wide"
+          />
           <SiteBuilderFormattedContent
             text={String(card.metadata?.body ?? "")}
             className="mt-3 text-sm text-brand-ink/85"
           />
           {card.metadata?.giftNote ? (
-            <p className="mt-4 text-xs text-brand-ink/65 italic border-t border-brand-primary/15 pt-4">
-              {String(card.metadata.giftNote)}
-            </p>
+            <SiteBuilderFormattedContent
+              text={String(card.metadata.giftNote)}
+              className="mt-4 text-xs text-brand-ink/65 italic border-t border-brand-primary/15 pt-4"
+            />
           ) : null}
         </CardContent>
       </Card>
@@ -100,7 +103,7 @@ export function CardGridSection({ section }: { section: PageSection }) {
         className={cn("rounded-xl bg-white/80 p-5 border border-black/[0.05] h-full", cardCls)}
         style={cardStyle}
       >
-        <h3 className="font-medium text-brand-ink">{card.text}</h3>
+        <SiteBuilderFormattedContent text={card.text} className="font-medium text-brand-ink" />
         <SiteBuilderFormattedContent
           text={String(card.metadata?.body ?? "")}
           className="mt-2 text-sm text-brand-ink/75"
