@@ -69,6 +69,16 @@ function logGlobalFieldDebug(
   });
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function sectionContent(section: PageSection | undefined): Record<string, unknown> {
+  return asRecord(section?.content);
+}
+
 function storedTextToPlain(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return "";
@@ -86,8 +96,12 @@ export function parseNavBulletLine(line: string): { label: string; href: string 
   const match = plain.match(/^(.+?)\s→\s(\S+)/);
   if (!match) return null;
 
-  const label = match[1]!.replace(/\s*\(dropdown\)\s*$/i, "").trim();
-  const href = match[2]!.split(",")[0]!.trim();
+  const labelPart = match[1];
+  const hrefPart = match[2];
+  if (!labelPart || !hrefPart) return null;
+
+  const label = labelPart.replace(/\s*\(dropdown\)\s*$/i, "").trim();
+  const href = hrefPart.split(",")[0]?.trim() ?? "";
   if (!label || !href.startsWith("/")) return null;
 
   return { label, href };
@@ -203,17 +217,24 @@ function resolveGetInvolvedFromSection(section: PageSection | undefined): {
 } | null {
   if (!section) return null;
 
-  const label = storedTextToPlain(contentStr(section.content, "headline"));
-  const cards = visibleListItems(section.content.cards);
-  const items = cards
-    .map((card) => {
-      const href = String(card.metadata?.href ?? "").trim();
-      const itemLabel = storedTextToPlain(card.text);
-      const description = storedTextToPlain(String(card.metadata?.body ?? ""));
-      if (!href.startsWith("/") || !itemLabel) return null;
-      return { href, label: itemLabel, description: description || undefined };
-    })
-    .filter((item): item is GetInvolvedNavItem => Boolean(item));
+  const content = sectionContent(section);
+  const label = storedTextToPlain(contentStr(content, "headline"));
+  const cards = visibleListItems(content.cards);
+  const items: GetInvolvedNavItem[] = [];
+
+  for (const card of cards) {
+    const metadata = asRecord(card.metadata);
+    const href = String(metadata.href ?? "").trim();
+    const itemLabel = storedTextToPlain(card.text);
+    const description = storedTextToPlain(String(metadata.body ?? ""));
+    if (!href.startsWith("/") || !itemLabel) continue;
+
+    items.push(
+      description
+        ? { href, label: itemLabel, description }
+        : { href, label: itemLabel },
+    );
+  }
 
   if (!label && items.length === 0) return null;
   return { label: label || GET_INVOLVED_NAV.label, items };
@@ -241,7 +262,7 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
       hasCustomGlobalSections,
       "site-meta",
       "headline",
-      contentStr(siteMeta?.content, "headline"),
+      contentStr(sectionContent(siteMeta), "headline"),
     ),
     legacyValue: copy.site.name.trim(),
     hardcodedValue: DEFAULT_SITE_COPY.site.name,
@@ -255,7 +276,7 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
       hasCustomGlobalSections,
       "footer",
       "body",
-      contentStr(footerSection?.content, "body"),
+      contentStr(sectionContent(footerSection), "body"),
     ),
     legacyValue: copy.footer.blurb.trim(),
     hardcodedValue: DEFAULT_SITE_COPY.footer.blurb,
@@ -266,7 +287,7 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
   const footerNavLinks = resolveFromSources({
     hasCustomGlobalSections,
     siteBuilderValue: footerNavSection
-      ? resolveFooterNavFromBullets(visibleListItems(footerNavSection.content.bullets))
+      ? resolveFooterNavFromBullets(visibleListItems(sectionContent(footerNavSection).bullets))
       : null,
     legacyValue: null,
     hardcodedValue: STOREFRONT_FOOTER_NAV,
@@ -275,7 +296,7 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
   });
 
   const headerOverridesFromBuilder = headerNav
-    ? resolveHeaderNavOverridesFromBullets(visibleListItems(headerNav.content.bullets))
+    ? resolveHeaderNavOverridesFromBullets(visibleListItems(sectionContent(headerNav).bullets))
     : {};
   const getInvolvedFromBuilder = resolveGetInvolvedFromSection(getInvolvedSection);
   if (getInvolvedFromBuilder?.label) {
@@ -298,21 +319,21 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
     legacyKey: "nav.link.*",
   });
 
+  const giveNowContent = sectionContent(giveNowSection);
   const giveNowLabel =
     siteBuilderField(
       hasCustomGlobalSections,
       "give-now-button",
       "primaryCtaLabel",
-      contentStr(giveNowSection?.content, "primaryCtaLabel"),
+      contentStr(giveNowContent, "primaryCtaLabel"),
     ) ||
     siteBuilderField(
       hasCustomGlobalSections,
       "give-now-button",
       "headline",
-      contentStr(giveNowSection?.content, "headline"),
+      contentStr(giveNowContent, "headline"),
     );
-  const giveNowHref =
-    contentStr(giveNowSection?.content, "primaryCtaUrl").trim() || GIVE_NOW_NAV.href;
+  const giveNowHref = contentStr(giveNowContent, "primaryCtaUrl").trim() || GIVE_NOW_NAV.href;
 
   const giveNow = resolveFromSources({
     hasCustomGlobalSections,
@@ -349,17 +370,18 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
     legacyKey: "nav.getInvolved.*",
   });
 
+  const legalContent = sectionContent(legalSection);
   const legalEmail = siteBuilderField(
     hasCustomGlobalSections,
     "legal",
     "headline",
-    contentStr(legalSection?.content, "headline"),
+    contentStr(legalContent, "headline"),
   );
   const legalResponseTime = siteBuilderField(
     hasCustomGlobalSections,
     "legal",
     "body",
-    contentStr(legalSection?.content, "body"),
+    contentStr(legalContent, "body"),
   );
 
   const legalSupport = resolveFromSources({
