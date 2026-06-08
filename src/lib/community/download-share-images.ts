@@ -35,32 +35,3 @@ export async function downloadShareImages(images: PostShareImageAsset[]): Promis
     await downloadShareImage(image);
   }
 }
-
-export function canCopyShareImagesToClipboard(): boolean {
-  return typeof ClipboardItem !== "undefined" && !!navigator.clipboard?.write;
-}
-
-/** Copy a share image to the clipboard when the browser supports it. */
-export async function copyShareImageToClipboard(image: PostShareImageAsset): Promise<boolean> {
-  if (!canCopyShareImagesToClipboard()) return false;
-
-  const blob = await fetchShareImageBlob(image);
-  if (!blob) return false;
-
-  try {
-    await navigator.clipboard.write([new ClipboardItem({ [blob.type || "image/png"]: blob })]);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** Copy featured image to clipboard, or download it when clipboard copy is unavailable. */
-export async function copyOrDownloadShareImage(
-  image: PostShareImageAsset,
-): Promise<"copied" | "downloaded"> {
-  const copied = await copyShareImageToClipboard(image);
-  if (copied) return "copied";
-  await downloadShareImage(image);
-  return "downloaded";
-}

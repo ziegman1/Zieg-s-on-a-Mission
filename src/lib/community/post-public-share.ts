@@ -397,13 +397,9 @@ export function buildSharePageSocialMetadata(
   };
 }
 
-/** Message shown after Prepare Facebook Group Post completes. */
-export const FACEBOOK_GROUP_PREPARED_MESSAGE =
-  "Facebook post prepared. The caption has been copied. The image was copied if supported, otherwise downloaded. In the Facebook group, paste the caption and add/upload the image.";
-
 /** Instructions for manual Facebook group posting (images + caption). */
 export const FACEBOOK_GROUP_SHARE_INSTRUCTIONS =
-  "Facebook does not reliably attach images when sharing directly into groups. For best results, open the group, create a new post, upload the downloaded images, then paste the Facebook post text.";
+  "Facebook groups do not reliably accept copied images or link previews. For best results: copy the caption, save the image, open the group, tap Gallery, choose the saved image, then paste the caption.";
 
 /** Mission Hub invitation block copy for public share landing pages. */
 export const MISSION_HUB_SHARE_INVITATION = {
