@@ -5,6 +5,7 @@ import {
   blocksFromStoredPayload,
   resolveSiteCopyFromPayload,
 } from "@/lib/site-copy-blocks/payload";
+import { resolveStorefrontShellContent } from "@/lib/site-builder/global-storefront-content";
 import { prisma } from "@/lib/db";
 
 export { mergeSiteCopyPayload } from "@/lib/site-copy-merge";
@@ -42,12 +43,12 @@ export const getSiteCopyBlocksForAdmin = cache(async () => {
 
 /** Legal templates + emails: support fields can be overridden from SiteCopy admin. */
 export async function getMergedLegalConfig() {
-  const copy = await getSiteCopy();
+  const shell = await resolveStorefrontShellContent();
   return {
     ...LEGAL_CONFIG,
-    supportEmail: copy.legalSupport.supportEmail || LEGAL_CONFIG.supportEmail,
+    supportEmail: shell.legalSupport.value.supportEmail || LEGAL_CONFIG.supportEmail,
     supportResponseTime:
-      copy.legalSupport.supportResponseTime || LEGAL_CONFIG.supportResponseTime,
+      shell.legalSupport.value.supportResponseTime || LEGAL_CONFIG.supportResponseTime,
   };
 }
 
