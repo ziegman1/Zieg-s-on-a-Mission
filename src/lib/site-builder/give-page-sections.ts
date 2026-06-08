@@ -15,17 +15,21 @@ export function giveTierCardItems(
 ): ListItem[] {
   return tiers.map((tier, index) => ({
     id: `give-tier-${index}`,
-    text: tier.name,
+    text: tier.amountLabel,
     visible: true,
     sortOrder: index,
     metadata: {
-      amountLabel: tier.amountLabel,
-      body: tier.description,
-      giftNote: tier.giftNote ?? "",
-      cta: tier.ctaLabel ?? "Give monthly",
-      href: tier.href ?? monthlyHref,
+      href: monthlyHref,
     },
   }));
+}
+
+function giveLevelsCardsNeedSimplification(cards: ListItem[]): boolean {
+  if (cards.length === 0) return false;
+  return cards.some((card) => {
+    const meta = card.metadata ?? {};
+    return Boolean(meta.body || meta.cta || meta.giftNote || meta.amountLabel);
+  });
 }
 
 function cardGridDefaults() {
@@ -121,6 +125,19 @@ export function migrateGivePageSections(sections: PageSection[]): {
       next.splice(insertAt, 0, migratedLevels);
       next = next.map((s, i) => ({ ...s, sortOrder: i }));
     }
+    changed = true;
+  } else if (
+    levels?.sectionType === "card_grid" &&
+    cards.length > 0 &&
+    giveLevelsCardsNeedSimplification(cards)
+  ) {
+    next[levelsIndex] = {
+      ...levels,
+      content: {
+        ...levels.content,
+        cards: giveTierCardItems(DEFAULT_GIVE_TIERS, monthlyHref),
+      },
+    };
     changed = true;
   }
 

@@ -88,13 +88,60 @@ describe("migrateGivePageSections", () => {
       DEFAULT_GIVE_TIERS.length,
     );
   });
+  it("simplifies legacy rich Give level cards to amount-only cards", () => {
+    const richLevels: PageSection = {
+      id: "levels-id",
+      pageKey: "give",
+      sectionKey: "levels",
+      sectionType: "card_grid",
+      label: "Suggested levels",
+      visible: true,
+      sortOrder: 2,
+      content: {
+        headline: "Suggested monthly levels",
+        intro: "Choose what fits.",
+        cards: [
+          {
+            id: "give-tier-0",
+            text: "Prayer & Sending Partner",
+            visible: true,
+            sortOrder: 0,
+            metadata: {
+              amountLabel: "$50/month",
+              body: "Long description",
+              cta: "Give monthly",
+              href: "/contact",
+            },
+          },
+        ],
+        primaryCtaLabel: "Become a Monthly Partner",
+        primaryCtaUrl: "/contact",
+      },
+      settings: {},
+    };
+
+    const { sections, changed } = migrateGivePageSections([richLevels]);
+    expect(changed).toBe(true);
+    const cards = sections.find((s) => s.sectionKey === "levels")?.content.cards as Array<{
+      text: string;
+      metadata?: Record<string, unknown>;
+    }>;
+    expect(cards.length).toBe(DEFAULT_GIVE_TIERS.length);
+    expect(cards[0]?.text).toBe("$50/mo");
+    expect(cards[0]?.metadata?.body).toBeUndefined();
+    expect(cards[0]?.metadata?.cta).toBeUndefined();
+  });
 });
 
 describe("defaultGiveSections", () => {
-  it("includes card_grid levels with five monthly tiers", () => {
+  it("includes card_grid levels with five amount-only tiers", () => {
     const sections = defaultSectionsForPage("give");
     const levels = sections.find((s) => s.sectionKey === "levels");
     expect(levels?.sectionType).toBe("card_grid");
-    expect((levels?.content.cards as unknown[]).length).toBe(5);
+    const cards = levels?.content.cards as Array<{ text: string; metadata?: Record<string, unknown> }>;
+    expect(cards.length).toBe(5);
+    expect(cards[0]?.text).toBe("$50/mo");
+    expect(cards[4]?.text).toBe("Custom Amount");
+    expect(cards[0]?.metadata?.body).toBeUndefined();
   });
 });

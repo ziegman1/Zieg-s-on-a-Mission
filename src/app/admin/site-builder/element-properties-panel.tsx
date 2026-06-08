@@ -543,6 +543,27 @@ export function ElementPropertiesPanel({
     if (elementType === "card") {
       const card = sortedListItems(c.cards, { includeHidden: true }).find((x) => `card:${x.id}` === elementId);
       if (!card) return <p className="text-xs text-zinc-500">Card not found</p>;
+      const isGiveAmountCard = section.pageKey === "give" && section.sectionKey === "levels";
+      if (isGiveAmountCard) {
+        return (
+          <>
+            <Field
+              label="Amount"
+              fieldKey="headline"
+              value={card.text}
+              onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
+            />
+            <Field
+              label="Card link URL"
+              fieldKey="href"
+              value={String(card.metadata?.href ?? "")}
+              onChange={(v) =>
+                applySection((s) => updateSectionElement(s, elementId, { metadata: { href: v } }))
+              }
+            />
+          </>
+        );
+      }
       return (
         <>
           <Field

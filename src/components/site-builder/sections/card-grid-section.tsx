@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import type { ListItem } from "@/lib/site-builder/types";
 import { TextSectionCtaButtons } from "./text-section-cta-buttons";
 
-function renderTierCard(card: ListItem, cardCls: string, cardStyle: CSSProperties, showPerCardButton: boolean) {
+function renderTierCard(card: ListItem, cardCls: string, cardStyle: CSSProperties) {
   return (
     <Card className={cn("border-brand-primary/20 bg-brand-surface/90 shadow-sm h-full", cardCls)} style={cardStyle}>
       <CardContent className="p-6 sm:p-8">
@@ -38,17 +38,53 @@ function renderTierCard(card: ListItem, cardCls: string, cardStyle: CSSPropertie
             className="mt-4 text-xs text-brand-ink/65 italic border-t border-brand-primary/15 pt-4"
           />
         ) : null}
-        {showPerCardButton && card.metadata?.href && card.metadata?.cta ? (
-          <Link
-            href={String(card.metadata.href)}
-            className="mt-4 inline-block text-sm font-medium text-brand-primary hover:underline"
-          >
-            {String(card.metadata.cta)}
-          </Link>
-        ) : null}
       </CardContent>
     </Card>
   );
+}
+
+function giveAmountLabel(card: ListItem): string {
+  return card.text.trim() || String(card.metadata?.amountLabel ?? "").trim();
+}
+
+function renderGiveAmountCard(
+  card: ListItem,
+  cardCls: string,
+  cardStyle: CSSProperties,
+  href: string,
+  editMode: boolean,
+) {
+  const amount = giveAmountLabel(card);
+  const cardInner = (
+    <Card
+      className={cn(
+        "h-full min-h-[5.5rem] border border-brand-primary/15 bg-brand-surface/80 shadow-sm",
+        "transition-colors hover:border-brand-primary/35 hover:bg-white/90",
+        cardCls,
+      )}
+      style={cardStyle}
+    >
+      <CardContent className="flex h-full min-h-[5.5rem] items-center justify-center p-6">
+        <SiteBuilderFormattedContent
+          text={amount}
+          className="text-center font-serif text-2xl tracking-wide text-brand-ink sm:text-[1.75rem]"
+        />
+      </CardContent>
+    </Card>
+  );
+
+  if (!editMode && href) {
+    return (
+      <Link
+        href={href}
+        className="block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
+      >
+        {cardInner}
+      </Link>
+    );
+  }
+
+  return cardInner;
 }
 
 export function CardGridSection({ section }: { section: PageSection }) {
@@ -65,7 +101,8 @@ export function CardGridSection({ section }: { section: PageSection }) {
   const isGiveLevels = section.pageKey === "give" && section.sectionKey === "levels";
   const isWaysToGetInvolved = section.sectionKey === "ways-to-get-involved";
   const isAdvocacyResources = section.sectionKey === "advocacy-team-resources";
-  const isTierStyleGrid = isPartnerTiers || isGiveLevels;
+  const isTierStyleGrid = isPartnerTiers;
+  const monthlyHref = contentStr(c, "primaryCtaUrl") || "/contact";
 
   const headlineEl = headline.trim() ? (
     <EditableElement
@@ -117,8 +154,10 @@ export function CardGridSection({ section }: { section: PageSection }) {
 
     const { className: cardCls, style: cardStyle } = elementStyleProps(card.style);
 
-    const inner = isTierStyleGrid ? (
-      renderTierCard(card, cardCls, cardStyle, isGiveLevels)
+    const inner = isGiveLevels ? (
+      renderGiveAmountCard(card, cardCls, cardStyle, monthlyHref, Boolean(ctx?.editMode))
+    ) : isPartnerTiers ? (
+      renderTierCard(card, cardCls, cardStyle)
     ) : (
       <div
         className={cn("rounded-xl bg-white/80 p-5 border border-black/[0.05] h-full", cardCls)}
@@ -162,11 +201,13 @@ export function CardGridSection({ section }: { section: PageSection }) {
 
   if (isGiveLevels) {
     return (
-      <section className="rounded-2xl border border-brand-primary/25 bg-white/70 p-6 sm:p-8 mb-14 shadow-sm not-prose">
+      <section className="mb-14 rounded-2xl border border-brand-primary/25 bg-white/70 p-6 shadow-sm not-prose sm:p-8">
         {headlineEl}
         {introEl}
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">{cardNodes}</div>
-        {footerCta}
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">{cardNodes}</div>
+        {footerCta ? (
+          <div className="mt-8 flex justify-center sm:justify-start">{footerCta}</div>
+        ) : null}
         <ContentElementsBlock section={section} />
       </section>
     );
