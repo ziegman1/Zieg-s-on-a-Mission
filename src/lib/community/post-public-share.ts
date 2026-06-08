@@ -397,6 +397,10 @@ export function buildSharePageSocialMetadata(
   };
 }
 
+/** Instructions for manual Facebook group posting (images + caption). */
+export const FACEBOOK_GROUP_SHARE_INSTRUCTIONS =
+  "For Facebook groups, create a new post in the group, upload the images, paste this caption, and include the Mission Hub link.";
+
 /** Mission Hub invitation block copy for public share landing pages. */
 export const MISSION_HUB_SHARE_INVITATION = {
   heading: "Stay Connected Through Mission Hub",

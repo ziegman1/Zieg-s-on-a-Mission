@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Loader2, MoreHorizontal, Pencil, Share2, Undo2 } from "lucide-react";
+import { Archive, Loader2, MoreHorizontal, Pencil, Share2, Undo2, Users } from "lucide-react";
 import {
   archiveCommunityPostAction,
   unpublishCommunityPostAction,
@@ -11,6 +11,7 @@ import type { CommunityComposerSpace } from "@/lib/community/composer-types";
 import type { CommunityOwner } from "@/lib/community/owner-types";
 import type { CommunityPostFeedItem } from "@/lib/community/types";
 import { CommunityEditPostDialog } from "./community-edit-post-dialog";
+import { CommunityPostFacebookGroupShareDialog } from "./community-post-facebook-group-share-dialog";
 import { CommunityPostShareDialog } from "./community-post-share-dialog";
 import {
   DropdownMenu,
@@ -39,6 +40,7 @@ export function CommunityPostOwnerMenu({
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [groupShareOpen, setGroupShareOpen] = useState(false);
   const [menuError, setMenuError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -91,6 +93,10 @@ export function CommunityPostOwnerMenu({
               <Share2 className="h-4 w-4" aria-hidden />
               Share to Facebook
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setGroupShareOpen(true)}>
+              <Users className="h-4 w-4" aria-hidden />
+              Share to Facebook Group
+            </DropdownMenuItem>
             {canUnpublish ? (
               <DropdownMenuItem
                 onSelect={() => runQuickAction(() => unpublishCommunityPostAction(post.id))}
@@ -120,6 +126,12 @@ export function CommunityPostOwnerMenu({
         postId={post.id}
         open={shareOpen}
         onOpenChange={setShareOpen}
+      />
+
+      <CommunityPostFacebookGroupShareDialog
+        postId={post.id}
+        open={groupShareOpen}
+        onOpenChange={setGroupShareOpen}
       />
 
       <CommunityEditPostDialog

@@ -18,14 +18,31 @@ describe("share assets API route", () => {
 });
 
 describe("share dialog admin actions", () => {
-  it("includes Copy Facebook Post and Download Share Images", () => {
-    const dialog = readFileSync(
+  it("includes personal timeline and Facebook group share dialogs", () => {
+    const menu = readFileSync(
+      resolve(process.cwd(), "src/components/community/community-post-owner-menu.tsx"),
+      "utf8",
+    );
+    expect(menu).toContain("Share to Facebook");
+    expect(menu).toContain("Share to Facebook Group");
+    expect(menu).toContain("CommunityPostFacebookGroupShareDialog");
+
+    const timeline = readFileSync(
       resolve(process.cwd(), "src/components/community/community-post-share-dialog.tsx"),
       "utf8",
     );
-    expect(dialog).toContain("Copy Facebook Post");
-    expect(dialog).toContain("Download Share Images");
-    expect(dialog).toContain("downloadShareImages");
-    expect(dialog).toContain("assets.caption");
+    expect(timeline).toContain("Open Facebook");
+    expect(timeline).toContain("facebookShareUrl");
+
+    const group = readFileSync(
+      resolve(process.cwd(), "src/components/community/community-post-facebook-group-share-dialog.tsx"),
+      "utf8",
+    );
+    expect(group).toContain("FACEBOOK_GROUP_SHARE_INSTRUCTIONS");
+    expect(group).toContain("Copy Caption");
+    expect(group).toContain("Download Images");
+    expect(group).toContain("No images are attached to this update.");
+    expect(group).not.toContain("facebookShareUrl");
+    expect(group).not.toContain("Open Facebook");
   });
 });
