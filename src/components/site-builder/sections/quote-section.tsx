@@ -5,6 +5,7 @@ import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { elementStyleProps } from "@/lib/site-builder/element-style-utils";
 import { useBuilderPreview } from "../builder-preview-context";
 
@@ -29,7 +30,10 @@ export function QuoteSection({ section }: { section: PageSection }) {
             className={`rounded-xl border border-brand-primary/20 bg-white/60 p-6 text-brand-ink/90 italic leading-relaxed ${qCls}`}
             style={qInline}
           >
-            {quote.trim() || (ctx?.editMode ? "Quote (empty)" : "")}
+            <SiteBuilderFormattedContent
+              text={quote}
+              emptyPlaceholder={ctx?.editMode ? "Quote (empty)" : undefined}
+            />
           </blockquote>
         </EditableElement>
       ) : null}

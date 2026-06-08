@@ -8,6 +8,7 @@ import { MinistryPageShell } from "@/components/ministry-page-shell";
 import { cn } from "@/lib/utils";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { isElementVisible } from "@/lib/site-builder/element-style-utils";
 
@@ -43,9 +44,9 @@ export function TextSectionBlock({
   if (section.pageKey === "home" && section.sectionKey === "scroll-break") {
     return (
       <section className="py-16 sm:py-20 bg-blue-50">
-        <div className="max-w-3xl mx-auto px-6 text-center text-lg text-gray-700 leading-relaxed whitespace-pre-wrap">
+        <div className="max-w-3xl mx-auto px-6 text-center text-lg text-gray-700 leading-relaxed">
           <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-            {body}
+            <SiteBuilderFormattedContent text={body} emptyPlaceholder={ctx?.editMode ? "Body (empty)" : undefined} />
           </EditableElement>
         </div>
         <ContentElementsBlock section={section} />
@@ -67,23 +68,27 @@ export function TextSectionBlock({
       ) : null}
       {show("headline", headline) ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
-          <h2 className="font-serif text-2xl text-brand-primary tracking-wide">
+          <h2 className="font-serif text-2xl text-brand-primary tracking-wide mb-0">
             {headline.trim() || (ctx?.editMode ? "Heading (empty)" : "")}
           </h2>
         </EditableElement>
       ) : null}
       {show("subheadline", sub) ? (
         <EditableElement sectionId={section.id} elementId="subheadline" style={getFieldStyle(c, "subheadline")}>
-          <p className="mt-2 text-lg text-brand-ink/80">
-            {sub.trim() || (ctx?.editMode ? "Subheadline (empty)" : "")}
-          </p>
+          <SiteBuilderFormattedContent
+            text={sub}
+            className="mt-2 text-lg text-brand-ink/80"
+            emptyPlaceholder={ctx?.editMode ? "Subheadline (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {show("body", body) ? (
         <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-          <div className="mt-4 space-y-4 text-brand-ink/88 leading-relaxed whitespace-pre-wrap">
-            {body.trim() || (ctx?.editMode ? "Body (empty)" : "")}
-          </div>
+          <SiteBuilderFormattedContent
+            text={body}
+            className="mt-4 text-brand-ink/88"
+            emptyPlaceholder={ctx?.editMode ? "Body (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {bullets.length > 0 ? (
@@ -102,7 +107,7 @@ export function TextSectionBlock({
                   visible={b.visible}
                   layout="inline"
                 >
-                  {b.text}
+                  <SiteBuilderFormattedContent text={b.text} className="inline text-brand-ink/88" />
                 </EditableElement>
               </li>
             );

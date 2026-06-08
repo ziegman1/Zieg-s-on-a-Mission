@@ -7,6 +7,7 @@ import type { PageSection } from "@/lib/site-builder/types";
 import { Button } from "@/components/ui/button";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
 import { cn } from "@/lib/utils";
 
@@ -77,7 +78,7 @@ export function CtaSection({
           <div className="max-w-xl mx-auto text-center">
             {body.trim() && fieldVisible(c, "body") ? (
               <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-                <p className="text-brand-ink/88 leading-relaxed">{body}</p>
+                <SiteBuilderFormattedContent text={body} className="text-brand-ink/88" />
               </EditableElement>
             ) : null}
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
@@ -103,7 +104,7 @@ export function CtaSection({
       ) : null}
       {body.trim() && fieldVisible(c, "body") ? (
         <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-          <p className="mt-4 text-brand-ink/85 whitespace-pre-wrap">{body}</p>
+          <SiteBuilderFormattedContent text={body} className="mt-4 text-brand-ink/85" />
         </EditableElement>
       ) : null}
       <div className="mt-6 flex flex-wrap justify-center gap-3">

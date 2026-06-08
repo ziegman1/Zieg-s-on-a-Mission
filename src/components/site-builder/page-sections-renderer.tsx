@@ -1,7 +1,5 @@
 "use client";
 
-import { Fragment } from "react";
-import { MinistryPageShell } from "@/components/ministry-page-shell";
 import type { PageSection } from "@/lib/site-builder/types";
 import { CardGridSection } from "./sections/card-grid-section";
 import { CtaSection } from "./sections/cta-section";
@@ -11,7 +9,7 @@ import { QuoteSection } from "./sections/quote-section";
 import { TextSectionBlock } from "./sections/text-section";
 import { TimelineSection } from "./sections/timeline-section";
 import { FeaturedPostsSection } from "./sections/featured-posts-section";
-import { contentStr } from "@/lib/site-builder/content-utils";
+import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
 import { EditableSectionShell } from "./editable-element";
 import { MinistryPageHeader } from "./ministry-page-header";
 import { useBuilderPreview } from "./builder-preview-context";
@@ -84,7 +82,7 @@ export function PageSectionsRenderer({
   }
 
   if (["about", "mission", "blog", "contact", "give", "merch"].includes(pageKey)) {
-    return <MinistrySectionsPage pageKey={pageKey} sections={toRender} inEditor={inEditor} wrap={wrap} />;
+    return <MinistrySectionsPage sections={toRender} inEditor={inEditor} wrap={wrap} />;
   }
 
   return (
@@ -130,16 +128,11 @@ function renderGenericSection(section: PageSection, siteTagline: string) {
   }
 }
 
-const MINISTRY_PROSE_CLASS =
-  "prose prose-slate max-w-none text-brand-ink/90 space-y-6 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-brand-ink [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:tracking-tight [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_a]:text-brand-primary [&_a]:font-medium [&_a]:no-underline hover:[&_a]:underline";
-
 function MinistrySectionsPage({
-  pageKey,
   sections,
   inEditor,
   wrap,
 }: {
-  pageKey: string;
   sections: PageSection[];
   inEditor: boolean;
   wrap: (section: PageSection, node: React.ReactNode) => React.ReactNode;
@@ -150,34 +143,17 @@ function MinistrySectionsPage({
     (s) => s.sectionKey !== "header" && s.sectionKey !== "footer-nav",
   );
 
-  const title = header ? contentStr(header.content, "headline") : "";
-  const lede = header
-    ? contentStr(header.content, "body") || contentStr(header.content, "subheadline")
-    : "";
-
-  if (inEditor) {
-    return (
-      <article className="max-w-3xl mx-auto px-4 py-12 sm:py-16">
-        {header ? wrap(header, <MinistryPageHeader section={header} />) : null}
-        <div className={MINISTRY_PROSE_CLASS}>
-          {middle.map((section) => {
-            const inner = renderMinistrySection(section);
-            return inner ? wrap(section, inner) : null;
-          })}
-        </div>
-        {footer ? wrap(footer, <CtaSection section={footer} />) : null}
-      </article>
-    );
-  }
-
   return (
-    <MinistryPageShell title={title || pageKey} lede={lede}>
-      {middle.map((section) => {
-        const inner = renderMinistrySection(section);
-        return inner ? <Fragment key={section.id}>{inner}</Fragment> : null;
-      })}
-      {footer ? <CtaSection section={footer} /> : null}
-    </MinistryPageShell>
+    <article className="max-w-3xl mx-auto px-4 py-12 sm:py-16">
+      {header ? wrap(header, <MinistryPageHeader section={header} />) : null}
+      <div className={MINISTRY_PROSE_CLASS}>
+        {middle.map((section) => {
+          const inner = renderMinistrySection(section);
+          return inner ? wrap(section, inner) : null;
+        })}
+      </div>
+      {footer ? wrap(footer, <CtaSection section={footer} />) : null}
+    </article>
   );
 }
 

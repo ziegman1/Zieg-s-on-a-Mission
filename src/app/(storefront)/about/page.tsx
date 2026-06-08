@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MinistryPageShell } from "@/components/ministry-page-shell";
+import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
 import { getSiteCopy } from "@/lib/site-copy";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
@@ -25,7 +26,7 @@ async function LegacyAboutPage() {
         .map((s) => (
           <section key={s.heading}>
             {s.heading.trim() ? <h2>{s.heading}</h2> : null}
-            {s.body.trim() ? <p>{s.body}</p> : null}
+            {s.body.trim() ? <SiteBuilderFormattedContent text={s.body} /> : null}
           </section>
         ))}
       <nav className="!mt-12 pt-8 border-t border-brand-primary/25 flex flex-wrap gap-4 not-prose">

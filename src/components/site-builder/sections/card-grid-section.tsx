@@ -8,6 +8,7 @@ import { elementStyleProps, isElementVisible } from "@/lib/site-builder/element-
 import type { PageSection } from "@/lib/site-builder/types";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { cn } from "@/lib/utils";
 
@@ -53,15 +54,14 @@ export function CardGridSection({ section }: { section: PageSection }) {
       elementId="intro"
       style={getFieldStyle(c, "intro")}
     >
-      <p
+      <SiteBuilderFormattedContent
+        text={intro}
         className={cn(
-          "text-brand-ink/80 leading-relaxed",
+          "text-brand-ink/80",
           isPartnerTiers && "mx-auto mt-3 max-w-2xl text-center",
           !isPartnerTiers && "mt-2",
         )}
-      >
-        {intro}
-      </p>
+      />
     </EditableElement>
   ) : null;
 
@@ -84,9 +84,10 @@ export function CardGridSection({ section }: { section: PageSection }) {
             </p>
           ) : null}
           <h3 className="mt-2 font-serif text-xl text-brand-ink tracking-wide">{card.text}</h3>
-          <p className="mt-3 text-sm text-brand-ink/85 leading-relaxed whitespace-pre-wrap">
-            {String(card.metadata?.body ?? "")}
-          </p>
+          <SiteBuilderFormattedContent
+            text={String(card.metadata?.body ?? "")}
+            className="mt-3 text-sm text-brand-ink/85"
+          />
           {card.metadata?.giftNote ? (
             <p className="mt-4 text-xs text-brand-ink/65 italic border-t border-brand-primary/15 pt-4">
               {String(card.metadata.giftNote)}
@@ -100,7 +101,10 @@ export function CardGridSection({ section }: { section: PageSection }) {
         style={cardStyle}
       >
         <h3 className="font-medium text-brand-ink">{card.text}</h3>
-        <p className="mt-2 text-sm text-brand-ink/75">{String(card.metadata?.body ?? "")}</p>
+        <SiteBuilderFormattedContent
+          text={String(card.metadata?.body ?? "")}
+          className="mt-2 text-sm text-brand-ink/75"
+        />
         {card.metadata?.href && card.metadata?.cta ? (
           <Link
             href={String(card.metadata.href)}

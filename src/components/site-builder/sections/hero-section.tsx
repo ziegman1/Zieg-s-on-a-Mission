@@ -8,6 +8,7 @@ import type { PageSection } from "@/lib/site-builder/types";
 import { cn } from "@/lib/utils";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
 import {
@@ -157,13 +158,13 @@ export function HeroSection({
           ) : null}
           {show("body", body) ? (
             <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-              <p
+              <SiteBuilderFormattedContent
+                text={body}
                 className={cn(
-                  isHome ? HOME_HERO_BODY : "mt-5 text-lg text-brand-ink/85 leading-relaxed max-w-prose",
+                  isHome ? HOME_HERO_BODY : "mt-5 text-lg text-brand-ink/85 max-w-prose",
                 )}
-              >
-                {body.trim() || (ctx?.editMode ? "Body (empty)" : "")}
-              </p>
+                emptyPlaceholder={ctx?.editMode ? "Body (empty)" : undefined}
+              />
             </EditableElement>
           ) : null}
           <div

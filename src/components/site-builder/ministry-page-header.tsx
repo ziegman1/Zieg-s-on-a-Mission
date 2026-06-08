@@ -5,6 +5,7 @@ import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { EditableElement } from "./editable-element";
 import { ContentElementsBlock } from "./content-elements-block";
+import { SiteBuilderFormattedContent } from "./site-builder-formatted-content";
 import { useBuilderPreview } from "./builder-preview-context";
 
 /** Page header block (h1 + lede) with per-field selection in site builder. */
@@ -37,9 +38,11 @@ export function MinistryPageHeader({ section }: { section: PageSection }) {
       ) : null}
       {show("body", body) ? (
         <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-          <p className="mt-4 text-lg text-brand-ink/85 leading-relaxed max-w-2xl whitespace-pre-wrap">
-            {body.trim() || (ctx?.editMode ? "Intro / lede (empty)" : "")}
-          </p>
+          <SiteBuilderFormattedContent
+            text={body}
+            className="mt-4 text-lg text-brand-ink/85 max-w-2xl"
+            emptyPlaceholder={ctx?.editMode ? "Intro / lede (empty)" : undefined}
+          />
         </EditableElement>
       ) : null}
       {show("subheadline", sub) ? (

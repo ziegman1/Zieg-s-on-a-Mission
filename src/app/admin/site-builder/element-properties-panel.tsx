@@ -21,10 +21,11 @@ import {
 } from "@/lib/site-builder/section-elements";
 import { contentStr, getFieldStyle, sortedListItems } from "@/lib/site-builder/content-utils";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
+import { SiteBuilderRichTextEditor } from "@/components/admin/site-builder-rich-text-editor";
+import { richTextModeForElementField } from "@/lib/site-builder/rich-text-field-policy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ChevronDown, ChevronUp, Copy, Eye, EyeOff, RotateCcw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -545,9 +546,15 @@ export function ElementPropertiesPanel({
       if (!card) return <p className="text-xs text-zinc-500">Card not found</p>;
       return (
         <>
-          <Field label="Title" value={card.text} onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))} />
+          <Field
+            label="Title"
+            fieldKey="headline"
+            value={card.text}
+            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
+          />
           <Field
             label="Subtitle / amount"
+            fieldKey="amountLabel"
             value={String(card.metadata?.amountLabel ?? "")}
             onChange={(v) =>
               applySection((s) => updateSectionElement(s, elementId, { metadata: { amountLabel: v } }))
@@ -555,12 +562,14 @@ export function ElementPropertiesPanel({
           />
           <Field
             label="Body"
+            fieldKey="body"
             value={String(card.metadata?.body ?? "")}
             multiline
             onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { body: v } }))}
           />
           <Field
             label="Footnote"
+            fieldKey="giftNote"
             value={String(card.metadata?.giftNote ?? "")}
             multiline
             onChange={(v) =>
@@ -569,11 +578,13 @@ export function ElementPropertiesPanel({
           />
           <Field
             label="Button label"
+            fieldKey="cta"
             value={String(card.metadata?.cta ?? "")}
             onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { cta: v } }))}
           />
           <Field
             label="Button URL"
+            fieldKey="href"
             value={String(card.metadata?.href ?? "")}
             onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { href: v } }))}
           />
@@ -591,11 +602,13 @@ export function ElementPropertiesPanel({
         <>
           <Field
             label="Label"
+            fieldKey={labelKey}
             value={contentStr(c, labelKey)}
             onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
           />
           <Field
             label="URL"
+            fieldKey={urlKey}
             value={contentStr(c, urlKey)}
             onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { url: v } }))}
           />
@@ -613,6 +626,7 @@ export function ElementPropertiesPanel({
           />
           <Field
             label="Alt text"
+            fieldKey="imageAlt"
             value={contentStr(c, "imageAlt")}
             onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { alt: v } }))}
           />
@@ -626,8 +640,10 @@ export function ElementPropertiesPanel({
       return (
         <Field
           label="Text"
+          fieldKey="body"
+          contentElementType={el.type}
           value={el.text}
-          multiline
+          multiline={el.type !== "heading"}
           onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
         />
       );
@@ -639,6 +655,7 @@ export function ElementPropertiesPanel({
       return (
         <Field
           label="Line text"
+          fieldKey="bullet"
           value={item.text}
           onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
         />
@@ -650,6 +667,7 @@ export function ElementPropertiesPanel({
     return (
       <Field
         label="Text"
+        fieldKey={textKey}
         value={contentStr(c, textKey)}
         multiline={["body", "intro", "quote"].includes(textKey)}
         onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
@@ -660,23 +678,41 @@ export function ElementPropertiesPanel({
 
 function Field({
   label,
+  fieldKey,
   value,
   onChange,
   multiline,
+  contentElementType,
 }: {
   label: string;
+  fieldKey: string;
   value: string;
   onChange: (v: string) => void;
   multiline?: boolean;
+  contentElementType?: string;
 }) {
+  const mode = richTextModeForElementField(fieldKey, { multiline, contentElementType });
+
+  if (mode === "plain") {
+    return (
+      <div>
+        <Label className="text-xs text-zinc-400">{label}</Label>
+        <Input value={value} onChange={(event) => onChange(event.target.value)} className="mt-1" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <Label className="text-xs text-zinc-400">{label}</Label>
-      {multiline ? (
-        <Textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)} className="mt-1" />
-      ) : (
-        <Input value={value} onChange={(e) => onChange(e.target.value)} className="mt-1" />
-      )}
+      <div className="mt-1">
+        <SiteBuilderRichTextEditor
+          value={value}
+          onChange={onChange}
+          mode={mode}
+          minHeightClass={mode === "inline" ? "min-h-[2.5rem]" : "min-h-[100px]"}
+        />
+      </div>
     </div>
   );
 }

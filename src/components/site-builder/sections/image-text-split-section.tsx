@@ -6,6 +6,7 @@ import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
+import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
 import { cn } from "@/lib/utils";
@@ -44,9 +45,11 @@ export function ImageTextSplitSection({
       ) : null}
       {(body.trim() || ctx?.editMode) && fieldVisible(c, "body") ? (
         <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
-          <p className="text-brand-ink/85 leading-relaxed whitespace-pre-wrap">
-            {body.trim() || (ctx?.editMode ? "Body text…" : "")}
-          </p>
+          <SiteBuilderFormattedContent
+            text={body}
+            className="text-brand-ink/85"
+            emptyPlaceholder={ctx?.editMode ? "Body text…" : undefined}
+          />
         </EditableElement>
       ) : null}
       {ctaLabel.trim() ? (

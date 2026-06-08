@@ -6,10 +6,11 @@ import { contentStr, newListItem, visibleListItems } from "@/lib/site-builder/co
 import { patchSectionContent } from "@/lib/site-builder/patch-section";
 import type { ListItem, PageSection, SectionType } from "@/lib/site-builder/types";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
+import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { SiteBuilderRichTextEditor } from "@/components/admin/site-builder-rich-text-editor";
 import { ChevronDown, ChevronUp, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 
@@ -112,24 +113,15 @@ function FieldEditor({
   }
 
   const value = contentStr(section.content, field.key);
-  const isLong = field.kind === "textarea" || field.kind === "rich_text";
 
   return (
-    <div className="space-y-1">
-      <Label className="text-xs text-zinc-400">{field.label}</Label>
-      {isLong ? (
-        <Textarea
-          rows={4}
-          value={value}
-          onChange={(e) => setField(e.target.value)}
-        />
-      ) : (
-        <Input
-          value={value}
-          onChange={(e) => setField(e.target.value)}
-        />
-      )}
-    </div>
+    <SiteBuilderTextField
+      fieldKey={field.key}
+      label={field.label}
+      value={value}
+      onChange={(next) => setField(next)}
+      multiline={field.kind === "textarea" || field.kind === "rich_text"}
+    />
   );
 }
 
@@ -229,11 +221,14 @@ function LineItemRow({
         <button type="button" disabled={!canMoveDown} onClick={onMoveDown} className="p-0.5 text-zinc-500">
           <ChevronDown className="h-3 w-3" />
         </button>
-        <Input
-          className="flex-1 h-8 text-xs"
-          value={item.text}
-          onChange={(e) => onChange({ ...item, text: e.target.value })}
-        />
+        <div className="flex-1 min-w-0">
+          <SiteBuilderRichTextEditor
+            value={item.text}
+            onChange={(next) => onChange({ ...item, text: next })}
+            mode="inline"
+            minHeightClass="min-h-[2rem]"
+          />
+        </div>
         <button type="button" onClick={() => onChange({ ...item, visible: !item.visible })} className="p-1">
           {item.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
         </button>
@@ -248,14 +243,11 @@ function LineItemRow({
         )}
       </div>
       {item.metadata?.body !== undefined ? (
-        <Textarea
-          rows={2}
-          className="text-xs"
-          placeholder="Body"
+        <SiteBuilderRichTextEditor
           value={String(item.metadata.body ?? "")}
-          onChange={(e) =>
-            onChange({ ...item, metadata: { ...item.metadata, body: e.target.value } })
-          }
+          onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, body: next } })}
+          mode="full"
+          minHeightClass="min-h-[80px]"
         />
       ) : null}
     </div>

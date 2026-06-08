@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
+import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
 
 export function MinistryPageShell({
   title,
@@ -16,10 +18,13 @@ export function MinistryPageShell({
           {title}
         </h1>
         {lede ? (
-          <p className="mt-4 text-lg text-brand-ink/85 leading-relaxed max-w-2xl">{lede}</p>
+          <SiteBuilderFormattedContent
+            text={lede}
+            className="mt-4 text-lg text-brand-ink/85 max-w-2xl"
+          />
         ) : null}
       </header>
-      <div className="prose prose-slate max-w-none text-brand-ink/90 space-y-6 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-brand-ink [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:tracking-tight [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_a]:text-brand-primary [&_a]:font-medium [&_a]:no-underline hover:[&_a]:underline">
+      <div className={MINISTRY_PROSE_CLASS}>
         {children}
       </div>
     </article>
