@@ -7,17 +7,22 @@ import {
   useCommunityPostShare,
 } from "@/components/community/use-community-post-share";
 import {
-  canCopyShareImagesToClipboard,
-  copyShareImageToClipboard,
+  copyOrDownloadShareImage,
   downloadShareImage,
   downloadShareImages,
 } from "@/lib/community/download-share-images";
-import { FACEBOOK_GROUP_SHARE_INSTRUCTIONS } from "@/lib/community/post-public-share";
+import {
+  FACEBOOK_GROUP_PREPARED_MESSAGE,
+  FACEBOOK_GROUP_SHARE_INSTRUCTIONS,
+} from "@/lib/community/post-public-share";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const facebookGroupUrl = process.env.NEXT_PUBLIC_FACEBOOK_GROUP_URL?.trim() ?? "";
+
+const MOBILE_CLIPBOARD_NOTE =
+  "Some browsers (especially mobile Safari and the Facebook app) may not accept pasted images. If paste does not work, tap Gallery and select the downloaded image.";
 
 export function CommunityPostFacebookGroupShareDialog({
   postId,
@@ -29,28 +34,57 @@ export function CommunityPostFacebookGroupShareDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { payload, error, pending } = useCommunityPostShare(postId, open);
-  const [copiedPost, setCopiedPost] = useState(false);
-  const [copiedImageUrl, setCopiedImageUrl] = useState<string | null>(null);
+  const [copiedCaption, setCopiedCaption] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [preparedMessage, setPreparedMessage] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadingImageUrl, setDownloadingImageUrl] = useState<string | null>(null);
-  const canCopyImages = canCopyShareImagesToClipboard();
 
   useEffect(() => {
     if (!open) {
-      setCopiedPost(false);
-      setCopiedImageUrl(null);
+      setCopiedCaption(false);
+      setPreparing(false);
+      setPreparedMessage(null);
       setDownloadingAll(false);
       setDownloadingImageUrl(null);
     }
   }, [open]);
 
-  function handleCopyFacebookPost(text: string) {
+  function handleCopyCaption(text: string) {
     void copyShareText(text).then((ok) => {
       if (ok) {
-        setCopiedPost(true);
-        window.setTimeout(() => setCopiedPost(false), 2000);
+        setCopiedCaption(true);
+        window.setTimeout(() => setCopiedCaption(false), 2000);
       }
     });
+  }
+
+  async function handlePrepareFacebookGroupPost() {
+    if (!payload?.assets) return;
+
+    setPreparing(true);
+    setPreparedMessage(null);
+
+    try {
+      await copyShareText(payload.assets.caption);
+
+      const featuredImage = payload.assets.images[0];
+      if (featuredImage) {
+        await copyOrDownloadShareImage(featuredImage);
+      }
+
+      if (facebookGroupUrl) {
+        window.open(facebookGroupUrl, "_blank", "noopener,noreferrer");
+      }
+
+      setPreparedMessage(
+        featuredImage
+          ? FACEBOOK_GROUP_PREPARED_MESSAGE
+          : "Facebook post prepared. The caption has been copied. In the Facebook group, paste the caption to share this update.",
+      );
+    } finally {
+      setPreparing(false);
+    }
   }
 
   async function handleDownloadAllImages() {
@@ -72,17 +106,6 @@ export function CommunityPostFacebookGroupShareDialog({
     } finally {
       setDownloadingImageUrl(null);
     }
-  }
-
-  function handleCopyImage(imageUrl: string) {
-    const image = payload?.assets.images.find((item) => item.url === imageUrl);
-    if (!image) return;
-    void copyShareImageToClipboard(image).then((ok) => {
-      if (ok) {
-        setCopiedImageUrl(imageUrl);
-        window.setTimeout(() => setCopiedImageUrl(null), 2000);
-      }
-    });
   }
 
   function handleOpenFacebookGroup() {
@@ -120,11 +143,37 @@ export function CommunityPostFacebookGroupShareDialog({
 
           {payload && assets ? (
             <>
-              <div className="rounded-xl border border-brand-primary/15 bg-brand-primary/[0.04] px-4 py-3">
+              <div className="rounded-xl border border-brand-primary/15 bg-brand-primary/[0.04] px-4 py-3 space-y-2">
                 <p className="text-xs text-brand-ink/75 leading-relaxed">
                   {FACEBOOK_GROUP_SHARE_INSTRUCTIONS}
                 </p>
+                <p className="text-[11px] text-brand-ink/55 leading-relaxed">{MOBILE_CLIPBOARD_NOTE}</p>
               </div>
+
+              <Button
+                type="button"
+                size="sm"
+                className="w-full gap-1.5 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
+                disabled={preparing}
+                onClick={() => void handlePrepareFacebookGroupPost()}
+              >
+                {preparing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                )}
+                Prepare Facebook Group Post
+              </Button>
+
+              {preparedMessage ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-900 leading-relaxed"
+                >
+                  {preparedMessage}
+                </div>
+              ) : null}
 
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-ink/40 mb-1.5">
@@ -139,47 +188,12 @@ export function CommunityPostFacebookGroupShareDialog({
                     "text-xs text-brand-ink/75 leading-relaxed resize-none",
                   )}
                 />
-                <div className="mt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => handleCopyFacebookPost(assets.caption)}
-                  >
-                    {copiedPost ? (
-                      <Check className="h-3.5 w-3.5" aria-hidden />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" aria-hidden />
-                    )}
-                    Copy Facebook Post
-                  </Button>
-                </div>
               </div>
 
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-ink/40">
-                    Post images
-                  </p>
-                  {assets.images.length > 0 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 h-7 text-xs"
-                      disabled={downloadingAll}
-                      onClick={() => void handleDownloadAllImages()}
-                    >
-                      {downloadingAll ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                      ) : (
-                        <Download className="h-3.5 w-3.5" aria-hidden />
-                      )}
-                      Download Images
-                    </Button>
-                  ) : null}
-                </div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-ink/40 mb-1.5">
+                  Post images
+                </p>
 
                 {assets.images.length > 0 ? (
                   <div className="space-y-3">
@@ -199,39 +213,21 @@ export function CommunityPostFacebookGroupShareDialog({
                             <p className="truncate text-[10px] text-brand-ink/50">
                               {index === 0 ? "Featured" : `Gallery ${index}`} · {image.filename}
                             </p>
-                            <div className="flex flex-wrap gap-1">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-7 gap-1 px-2 text-[10px]"
-                                disabled={downloadingImageUrl === image.url}
-                                onClick={() => void handleDownloadImage(image.url)}
-                              >
-                                {downloadingImageUrl === image.url ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                                ) : (
-                                  <Download className="h-3 w-3" aria-hidden />
-                                )}
-                                Download
-                              </Button>
-                              {canCopyImages ? (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 gap-1 px-2 text-[10px]"
-                                  onClick={() => handleCopyImage(image.url)}
-                                >
-                                  {copiedImageUrl === image.url ? (
-                                    <Check className="h-3 w-3" aria-hidden />
-                                  ) : (
-                                    <Copy className="h-3 w-3" aria-hidden />
-                                  )}
-                                  Copy Image
-                                </Button>
-                              ) : null}
-                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1 px-2 text-[10px]"
+                              disabled={downloadingImageUrl === image.url}
+                              onClick={() => void handleDownloadImage(image.url)}
+                            >
+                              {downloadingImageUrl === image.url ? (
+                                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                              ) : (
+                                <Download className="h-3 w-3" aria-hidden />
+                              )}
+                              Download
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -244,23 +240,55 @@ export function CommunityPostFacebookGroupShareDialog({
                 )}
               </div>
 
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => handleCopyCaption(assets.caption)}
+                >
+                  {copiedCaption ? (
+                    <Check className="h-3.5 w-3.5" aria-hidden />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  Copy Caption
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={assets.images.length === 0 || downloadingAll}
+                  onClick={() => void handleDownloadAllImages()}
+                >
+                  {downloadingAll ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  Download Images
+                </Button>
+                {facebookGroupUrl ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={handleOpenFacebookGroup}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                    Open Facebook Group
+                  </Button>
+                ) : null}
+              </div>
+
               {showGroupSetupWarning ? (
                 <p className="text-xs text-amber-800 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
                   Set <code className="text-[11px]">NEXT_PUBLIC_FACEBOOK_GROUP_URL</code> to enable
                   Open Facebook Group.
                 </p>
-              ) : null}
-
-              {facebookGroupUrl ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="gap-1.5 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
-                  onClick={handleOpenFacebookGroup}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                  Open Facebook Group
-                </Button>
               ) : null}
             </>
           ) : null}

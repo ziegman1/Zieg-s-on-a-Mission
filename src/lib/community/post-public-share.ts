@@ -397,6 +397,10 @@ export function buildSharePageSocialMetadata(
   };
 }
 
+/** Message shown after Prepare Facebook Group Post completes. */
+export const FACEBOOK_GROUP_PREPARED_MESSAGE =
+  "Facebook post prepared. The caption has been copied. The image was copied if supported, otherwise downloaded. In the Facebook group, paste the caption and add/upload the image.";
+
 /** Instructions for manual Facebook group posting (images + caption). */
 export const FACEBOOK_GROUP_SHARE_INSTRUCTIONS =
   "Facebook does not reliably attach images when sharing directly into groups. For best results, open the group, create a new post, upload the downloaded images, then paste the Facebook post text.";

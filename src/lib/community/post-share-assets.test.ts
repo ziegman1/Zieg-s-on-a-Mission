@@ -40,13 +40,16 @@ describe("share dialog admin actions", () => {
       "utf8",
     );
     expect(group).toContain("FACEBOOK_GROUP_SHARE_INSTRUCTIONS");
+    expect(group).toContain("FACEBOOK_GROUP_PREPARED_MESSAGE");
     expect(group).toContain("Facebook Post");
-    expect(group).toContain("Copy Facebook Post");
+    expect(group).toContain("Prepare Facebook Group Post");
+    expect(group).toContain("Copy Caption");
     expect(group).toContain("Download Images");
-    expect(group).toContain("Copy Image");
     expect(group).toContain("Open Facebook Group");
     expect(group).toContain("NEXT_PUBLIC_FACEBOOK_GROUP_URL");
     expect(group).toContain("No images are attached to this update.");
+    expect(group).not.toContain("Copy Facebook Post");
+    expect(group).not.toContain("Copy Image");
     expect(group).not.toContain("Copy Link");
     expect(group).not.toContain("facebookShareUrl");
   });
