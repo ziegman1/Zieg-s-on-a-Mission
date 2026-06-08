@@ -49,11 +49,11 @@ export function CommunityPostShareDialog({
         <div className="border-b border-black/[0.06] px-5 py-4">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold text-brand-ink">
             <Share2 className="h-4 w-4 text-brand-primary" aria-hidden />
-            Share to Facebook
+            Share to Facebook Timeline
           </DialogTitle>
           <p className="mt-1 text-xs text-brand-ink/55 leading-relaxed">
             Share to your personal Facebook timeline using Facebook&apos;s link preview. For groups,
-            use &quot;Share to Facebook Group&quot; instead.
+            use Share to Facebook Group instead.
           </p>
         </div>
 
