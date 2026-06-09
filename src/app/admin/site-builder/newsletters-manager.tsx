@@ -33,6 +33,7 @@ import {
 } from "@/components/newsletter/newsletter-editor-workspace";
 import { NewsletterBrandingPanel } from "@/components/newsletter/newsletter-branding-panel";
 import { NewsletterMissionHubPanel } from "@/components/newsletter/newsletter-mission-hub-panel";
+import { NewsletterSharePanel } from "@/components/share/newsletter-share-panel";
 import { NewsletterSettingsPanel } from "@/components/newsletter/newsletter-settings-panel";
 import type { CtaAlign } from "@/lib/newsletter/align";
 import type { NewsletterBrandSettings } from "@/lib/newsletter/brand-types";
@@ -925,6 +926,16 @@ export function NewslettersManager({
               ) : null}
             </div>
           )}
+
+          {form.status === "PUBLISHED" && form.slug.trim() ? (
+            <div className="shrink-0 px-4 py-3 border-b border-zinc-800/80 bg-zinc-950">
+              <NewsletterSharePanel
+                title={form.title.trim() || "Ministry update"}
+                slug={form.slug.trim()}
+                variant="admin"
+              />
+            </div>
+          ) : null}
 
           <NewsletterEditorWorkspace
             blocks={form.bodyBlocks}

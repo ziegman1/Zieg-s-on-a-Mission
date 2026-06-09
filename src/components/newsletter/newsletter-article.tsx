@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NewsletterSharePanel } from "@/components/share/newsletter-share-panel";
 import { NewsletterBlocksRenderer } from "@/components/newsletter/newsletter-blocks-renderer";
 import { NewsletterBrandedFooter } from "@/components/newsletter/newsletter-branded-footer";
 import { NewsletterBrandedHeader } from "@/components/newsletter/newsletter-branded-header";
@@ -70,12 +71,14 @@ function NewsletterCtaRow({
 function LegacyNewsletterArticle({
   newsletter,
   adminPreviewBanner,
+  showAdminSharePanel,
   dateLabel,
   cta,
   footer,
 }: {
   newsletter: NewsletterRecord;
   adminPreviewBanner?: React.ReactNode;
+  showAdminSharePanel?: boolean;
   dateLabel: string;
   cta: { label: string; url: string } | null;
   footer: ReturnType<typeof resolveNewsletterFooter>;
@@ -139,6 +142,15 @@ function LegacyNewsletterArticle({
 
         <NewsletterBrandedFooter footer={footer} className="mt-10" />
 
+        {showAdminSharePanel ? (
+          <NewsletterSharePanel
+            title={newsletter.title}
+            slug={newsletter.slug}
+            variant="storefront"
+            className="mt-10"
+          />
+        ) : null}
+
         <nav className="mt-14 pt-8 border-t border-brand-primary/20">
           <Link href="/newsletters" className="text-brand-primary font-semibold hover:underline">
             ← All newsletters
@@ -154,6 +166,7 @@ function BrandedNewsletterArticle({
   brand,
   header,
   adminPreviewBanner,
+  showAdminSharePanel,
   dateLabel,
   cta,
   footer,
@@ -162,6 +175,7 @@ function BrandedNewsletterArticle({
   brand: NewsletterBrandSettings;
   header: ResolvedNewsletterHeader;
   adminPreviewBanner?: React.ReactNode;
+  showAdminSharePanel?: boolean;
   dateLabel: string;
   cta: { label: string; url: string } | null;
   footer: ReturnType<typeof resolveNewsletterFooter>;
@@ -240,6 +254,15 @@ function BrandedNewsletterArticle({
 
         <NewsletterBrandedFooter footer={footer} className="mt-8" />
 
+        {showAdminSharePanel ? (
+          <NewsletterSharePanel
+            title={newsletter.title}
+            slug={newsletter.slug}
+            variant="storefront"
+            className="mt-8"
+          />
+        ) : null}
+
         <nav
           className="mt-10 pt-6 border-t text-center sm:text-left"
           style={{ borderColor: "var(--newsletter-line, #B8D4E8)" }}
@@ -261,10 +284,12 @@ export function NewsletterArticle({
   newsletter,
   brand,
   adminPreviewBanner,
+  showAdminSharePanel = false,
 }: {
   newsletter: NewsletterRecord;
   brand?: NewsletterBrandSettings;
   adminPreviewBanner?: React.ReactNode;
+  showAdminSharePanel?: boolean;
 }) {
   const dateLabel = formatDate(newsletter.issueDate ?? newsletter.publishedAt);
   const resolvedBrand = brand ?? DEFAULT_NEWSLETTER_BRAND_SETTINGS;
@@ -278,6 +303,7 @@ export function NewsletterArticle({
       <LegacyNewsletterArticle
         newsletter={newsletter}
         adminPreviewBanner={adminPreviewBanner}
+        showAdminSharePanel={showAdminSharePanel}
         dateLabel={dateLabel}
         cta={cta}
         footer={footer}
@@ -291,6 +317,7 @@ export function NewsletterArticle({
       brand={resolvedBrand}
       header={header}
       adminPreviewBanner={adminPreviewBanner}
+      showAdminSharePanel={showAdminSharePanel}
       dateLabel={dateLabel}
       cta={cta}
       footer={footer}
