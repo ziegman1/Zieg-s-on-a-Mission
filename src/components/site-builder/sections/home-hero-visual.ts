@@ -1,5 +1,6 @@
 import type { ElementStyle } from "@/lib/site-builder/element-types";
 import { buttonClassesFromStyle } from "@/lib/site-builder/element-style-utils";
+import { STOREFRONT_BUTTON_PRIMARY } from "@/lib/storefront/storefront-button-styles";
 
 /** Left-to-right scrim — darkest behind copy, fades before faces on the right. */
 export const HOME_HERO_OVERLAY =
@@ -25,13 +26,13 @@ export function homeHeroButtonClasses(
   slot: "primary" | "secondary" | "tertiary",
   style?: ElementStyle,
 ): string {
-  if (style?.buttonVariant) {
+  if (style?.buttonVariant || style?.buttonSize) {
     return buttonClassesFromStyle(style);
   }
-  const base = "inline-flex items-center justify-center rounded-full font-medium transition-colors";
+  const base = "inline-flex items-center justify-center rounded-full font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
   switch (slot) {
     case "primary":
-      return `${base} h-12 px-7 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold shadow-md`;
+      return STOREFRONT_BUTTON_PRIMARY;
     case "secondary":
       return `${base} h-12 px-7 border border-[#F5F1EA]/45 text-[#F5F1EA] bg-white/10 hover:bg-white/18 backdrop-blur-[2px]`;
     case "tertiary":

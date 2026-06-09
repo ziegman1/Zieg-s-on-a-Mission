@@ -62,7 +62,7 @@ export function ImageTextSplitSection({
           layout="inline"
           styleOnWrapper={false}
         >
-          <Link href={ctaUrl} className={cn(buttonClassesFromStyle(btnStyle), "hover:underline")}>
+          <Link href={ctaUrl} data-slot="button" className={buttonClassesFromStyle(btnStyle)}>
             {ctaLabel}
           </Link>
         </EditableElement>

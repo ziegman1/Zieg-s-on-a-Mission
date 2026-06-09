@@ -4,40 +4,40 @@ import Link from "next/link";
 import { contentStr, fieldVisible } from "@/lib/site-builder/content-utils";
 import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
-import { Button } from "@/components/ui/button";
+import { buttonClassesFromStyle } from "@/lib/site-builder/element-style-utils";
+import {
+  storefrontButtonClasses,
+  type StorefrontButtonRole,
+} from "@/lib/storefront/storefront-button-styles";
+import { cn } from "@/lib/utils";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
 import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
-import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
-import { cn } from "@/lib/utils";
 
 function CtaButton({
   section,
   slot,
   label,
   url,
+  role,
   asLink = false,
 }: {
   section: PageSection;
   slot: "primary" | "secondary";
   label: string;
   url: string;
+  role: StorefrontButtonRole;
   asLink?: boolean;
 }) {
   const elementId = `cta:${slot}`;
   const style = getFieldStyle(section.content, elementId);
   if (!label.trim()) return null;
 
-  const inner = asLink ? (
-    <Link href={url} className={cn(buttonClassesFromStyle(style), "hover:underline font-medium")}>
-      {label}
-    </Link>
-  ) : (
-    <Button asChild className="rounded-full px-6">
-      <Link href={url} className={buttonClassesFromStyle(style)}>
-        {label}
-      </Link>
-    </Button>
+  const className = cn(
+    style?.buttonVariant || style?.buttonSize
+      ? buttonClassesFromStyle(style)
+      : storefrontButtonClasses(asLink ? "ghost" : role),
+    asLink && "h-auto px-0 py-0 bg-transparent border-0 shadow-none hover:bg-transparent hover:underline",
   );
 
   return (
@@ -48,7 +48,9 @@ function CtaButton({
       layout="inline"
       styleOnWrapper={false}
     >
-      {inner}
+      <Link href={url} data-slot="button" className={className}>
+        {label}
+      </Link>
     </EditableElement>
   );
 }
@@ -81,9 +83,16 @@ export function CtaSection({
                 <SiteBuilderFormattedContent text={body} className="text-brand-ink/88" />
               </EditableElement>
             ) : null}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-              <CtaButton section={section} slot="primary" label={primary} url={primaryUrl} />
-              <CtaButton section={section} slot="secondary" label={secondary} url={secondaryUrl} asLink />
+            <div className="not-prose mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+              <CtaButton section={section} slot="primary" label={primary} url={primaryUrl} role="primary" />
+              <CtaButton
+                section={section}
+                slot="secondary"
+                label={secondary}
+                url={secondaryUrl}
+                role="secondary"
+                asLink
+              />
             </div>
             {siteTagline?.trim() ? (
               <p className="mt-10 text-sm text-brand-ink/55">{siteTagline}</p>
@@ -110,9 +119,9 @@ export function CtaSection({
           <SiteBuilderFormattedContent text={body} className="mt-4 text-brand-ink/85" />
         </EditableElement>
       ) : null}
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <CtaButton section={section} slot="primary" label={primary} url={primaryUrl} />
-        <CtaButton section={section} slot="secondary" label={secondary} url={secondaryUrl} />
+      <div className="not-prose mt-6 flex flex-wrap justify-center gap-3">
+        <CtaButton section={section} slot="primary" label={primary} url={primaryUrl} role="primary" />
+        <CtaButton section={section} slot="secondary" label={secondary} url={secondaryUrl} role="secondary" />
       </div>
       <ContentElementsBlock section={section} />
     </section>

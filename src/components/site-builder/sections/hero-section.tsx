@@ -56,7 +56,7 @@ function HeroButton({
       styleOnWrapper={false}
     >
       <div className={cn("inline-block", wrapCls)} style={wrapStyle}>
-        <Link href={url} className={btnCls}>
+        <Link href={url} data-slot="button" className={btnCls}>
           {label}
         </Link>
       </div>

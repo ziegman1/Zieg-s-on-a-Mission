@@ -1,6 +1,15 @@
 import type { CSSProperties } from "react";
 import type { ElementStyle } from "./element-types";
 
+export {
+  buttonClassesFromStyle,
+  storefrontButtonClasses,
+  STOREFRONT_BUTTON_BASE,
+  STOREFRONT_BUTTON_GHOST,
+  STOREFRONT_BUTTON_PRIMARY,
+  STOREFRONT_BUTTON_SECONDARY,
+} from "@/lib/storefront/storefront-button-styles";
+
 const RADIUS: Record<NonNullable<ElementStyle["borderRadius"]>, string> = {
   none: "rounded-none",
   sm: "rounded-sm",
@@ -101,20 +110,4 @@ export function elementStyleProps(style?: ElementStyle): {
   if (style.borderColor) inline.borderColor = style.borderColor;
 
   return { className: classes.join(" "), style: inline };
-}
-
-export function buttonClassesFromStyle(style?: ElementStyle): string {
-  const variant = style?.buttonVariant ?? "default";
-  const size = style?.buttonSize ?? "md";
-  const sizeCls =
-    size === "sm" ? "h-9 px-4 text-sm" : size === "lg" ? "h-14 px-9 text-lg" : "h-12 px-7";
-  const variantCls =
-    variant === "outline"
-      ? "border border-brand-primary/50 bg-white/90"
-      : variant === "ghost"
-        ? "bg-transparent hover:bg-brand-primary/5"
-        : variant === "accent"
-          ? "bg-brand-accent text-brand-ink font-semibold"
-          : "bg-brand-primary text-white";
-  return `inline-flex items-center justify-center rounded-full ${sizeCls} ${variantCls}`;
 }
