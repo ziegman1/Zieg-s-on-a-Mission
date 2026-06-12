@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/mission-hub-weekly-digest",
-      "schedule": "0 12 * * 5"
+      "schedule": "0 12 * * 6"
     }
   ]
 }

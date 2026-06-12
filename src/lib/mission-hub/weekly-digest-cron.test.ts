@@ -6,6 +6,7 @@ vi.mock("@/lib/mission-hub/weekly-digest-delivery", () => ({
 
 import { deliverWeeklyMissionHubDigest } from "@/lib/mission-hub/weekly-digest-delivery";
 import {
+  WEEKLY_DIGEST_CRON_SCHEDULE_UTC,
   isMissionHubWeeklyDigestCronEnabled,
   runScheduledWeeklyDigestCron,
 } from "@/lib/mission-hub/weekly-digest-cron";
@@ -56,6 +57,12 @@ function deliveryResult(
     ...overrides,
   };
 }
+
+describe("WEEKLY_DIGEST_CRON_SCHEDULE_UTC", () => {
+  it("runs Saturday morning at 12:00 UTC (same time as former Friday schedule)", () => {
+    expect(WEEKLY_DIGEST_CRON_SCHEDULE_UTC).toBe("0 12 * * 6");
+  });
+});
 
 describe("runScheduledWeeklyDigestCron", () => {
   const originalFlag = process.env.MISSION_HUB_WEEKLY_DIGEST_CRON_ENABLED;

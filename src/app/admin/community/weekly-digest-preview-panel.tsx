@@ -154,8 +154,8 @@ export function WeeklyDigestPreviewPanel() {
       <CardHeader className="pb-2">
         <CardTitle className="text-cream text-base">Weekly digest</CardTitle>
         <CardDescription className="text-zinc-500 text-xs leading-relaxed">
-          Preview and send &quot;This Week in Mission Hub&quot; for the past 7 days. Friday
-          scheduled delivery is optional via Vercel Cron (see docs).
+          Preview and send &quot;This Week in Mission Hub&quot; for the past 7 days. Saturday
+          morning scheduled delivery is optional via Vercel Cron (see docs).
         </CardDescription>
       </CardHeader>
       <CardContent>

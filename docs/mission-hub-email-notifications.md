@@ -69,7 +69,7 @@ Behavior:
 - Shared queue: `src/lib/mission-hub/email-delivery-queue.ts`
 - Dedupe helpers: `src/lib/mission-hub/email-dedupe.ts`
 
-## Weekly digest (Friday cron)
+## Weekly digest (Saturday cron)
 
 Scheduled **“This Week in Mission Hub”** email for eligible members. Manual preview/test/send remains on **`/admin/community`**.
 
@@ -78,7 +78,7 @@ Scheduled **“This Week in Mission Hub”** email for eligible members. Manual 
 | Variable | Purpose |
 |----------|---------|
 | `ENABLE_MISSION_HUB_EMAIL_NOTIFICATIONS=true` | Master email feature flag |
-| `MISSION_HUB_WEEKLY_DIGEST_CRON_ENABLED=true` | Enable scheduled Friday send |
+| `MISSION_HUB_WEEKLY_DIGEST_CRON_ENABLED=true` | Enable scheduled Saturday send |
 | `CRON_SECRET` | Protects `/api/cron/mission-hub-weekly-digest` (Vercel sends `Authorization: Bearer …`) |
 | `RESEND_API_KEY` | Resend API |
 | `MISSION_HUB_FROM_EMAIL` | From address |
@@ -87,7 +87,7 @@ Scheduled **“This Week in Mission Hub”** email for eligible members. Manual 
 ### Cron endpoint
 
 - **Path:** `GET /api/cron/mission-hub-weekly-digest`
-- **Config:** `vercel.json` → `"schedule": "0 12 * * 5"` (**Friday 12:00 UTC**)
+- **Config:** `vercel.json` → `"schedule": "0 12 * * 6"` (**Saturday 12:00 UTC**)
 
 ### Schedule & DST
 
@@ -98,7 +98,7 @@ Vercel Cron uses a fixed UTC time (no automatic DST shift):
 | **EDT** (Mar–Nov) | **8:00 AM** at 12:00 UTC |
 | **EST** (Nov–Mar) | **7:00 AM** at 12:00 UTC |
 
-To target **8:00 AM EST** instead (9:00 AM during EDT), change the schedule to `0 13 * * 5` in `vercel.json`.
+To target **8:00 AM EST** instead (9:00 AM during EDT), change the schedule to `0 13 * * 6` in `vercel.json`.
 
 ### Enable / disable
 
@@ -110,7 +110,7 @@ To target **8:00 AM EST** instead (9:00 AM during EDT), change the schedule to `
 
 - Uses `deliverWeeklyMissionHubDigest({ broadcastToMembers: true })` (Phase 2).
 - Skips when cron flag off, email flag off, or `hasContent` is false.
-- Dedupe: `weekly-digest:{YYYY-WW}:email` per recipient — duplicate Friday runs do not resend.
+- Dedupe: `weekly-digest:{YYYY-WW}:email` per recipient — duplicate Saturday runs do not resend.
 - Logs summary: `startedAt`, `dateRange`, `eligibleRecipients`, `sent`, `deduped`, `skipped`, `failed`, `hasContent`.
 
 ### Manual fallback

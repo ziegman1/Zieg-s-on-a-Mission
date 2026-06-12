@@ -4,10 +4,10 @@ import type { DigestDateRange } from "@/lib/mission-hub/weekly-digest-core";
 import { deliverWeeklyMissionHubDigest } from "@/lib/mission-hub/weekly-digest-delivery";
 
 /**
- * Vercel Cron schedule (UTC). Friday 12:00 UTC ≈ 8:00 AM US Eastern during EDT.
+ * Vercel Cron schedule (UTC). Saturday 12:00 UTC ≈ 8:00 AM US Eastern during EDT.
  * During EST (standard time), delivery is 7:00 AM Eastern. See docs for DST notes.
  */
-export const WEEKLY_DIGEST_CRON_SCHEDULE_UTC = "0 12 * * 5";
+export const WEEKLY_DIGEST_CRON_SCHEDULE_UTC = "0 12 * * 6";
 
 export type WeeklyDigestCronSkipReason = "cron_disabled" | "email_disabled" | "no_content";
 
@@ -74,7 +74,7 @@ export function logWeeklyDigestCronSummary(
 }
 
 /**
- * Scheduled Friday delivery — uses Phase 2 member broadcast (dedupe, hasContent, email flag).
+ * Scheduled Saturday delivery — uses Phase 2 member broadcast (dedupe, hasContent, email flag).
  */
 export async function runScheduledWeeklyDigestCron(): Promise<WeeklyDigestCronResult> {
   const startedAt = new Date().toISOString();

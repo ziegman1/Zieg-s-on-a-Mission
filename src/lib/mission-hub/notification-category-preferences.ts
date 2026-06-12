@@ -45,7 +45,7 @@ export const NOTIFICATION_FREQUENCY_LABELS: Record<
   },
   weekly_digest: {
     label: "Weekly digest",
-    description: "Include in the Friday weekly Mission Hub summary.",
+    description: "Include in the Saturday weekly Mission Hub summary.",
   },
   never: {
     label: "Never",
