@@ -11,7 +11,11 @@ Circle-like notification emails for Mission Hub members. **Not Mail Suite** — 
    - `MISSION_HUB_FROM_NAME` (optional)
    - `MISSION_HUB_REPLY_TO_EMAIL` (optional)
    - `ENABLE_MISSION_HUB_EMAIL_NOTIFICATIONS=true`
-3. Apply migration `20260608120000_mission_hub_email_deliveries` (`npm run db:migrate:deploy`).
+3. Apply migrations:
+   - `20260608120000_mission_hub_email_deliveries`
+   - `20260610120000_email_suppressions`
+   - `20260614120000_notification_preference_events`
+   (`npm run db:migrate:deploy`)
 
 ## Newsletter publish
 

@@ -18,6 +18,7 @@ import {
   isMissionHubEmailDebugEnabled,
   resolveMissionHubEmailSendPolicy,
 } from "@/lib/mission-hub/test-email-recipients";
+import { verifyEmailSuppressionsTableReady } from "@/lib/mission-hub/notification-preference-events";
 
 export type WeeklyDigestDeliveryResult = {
   digest: WeeklyMissionHubDigest;
@@ -86,6 +87,18 @@ export async function deliverWeeklyMissionHubDigest(
     skipped: 0,
     errors: [] as string[],
   };
+
+  const suppressionsReady = await verifyEmailSuppressionsTableReady();
+  if (!suppressionsReady.ok) {
+    return {
+      digest,
+      emailEnabled,
+      emailDisabledReason: suppressionsReady.message,
+      eligibleRecipients: 0,
+      ...tallies,
+      errors: [suppressionsReady.message],
+    };
+  }
 
   const recipients = await listWeeklyDigestEmailRecipients();
 

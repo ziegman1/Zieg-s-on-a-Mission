@@ -16,6 +16,11 @@ import {
   removeEmailSuppression,
   upsertEmailSuppression,
 } from "@/lib/mission-hub/email-suppressions";
+import type { NotificationPreferenceActorType } from "@/lib/mission-hub/notification-preference-event-types";
+import {
+  recordPreferenceDiffEvents,
+  recordUnsubscribeLinkUsedEvent,
+} from "@/lib/mission-hub/notification-preference-events";
 
 const ALL_NEVER: Record<MissionHubEmailCategory, NotificationFrequency> = {
   ministryUpdates: "never",
@@ -29,7 +34,12 @@ export async function syncMissionHubEmailSuppression(input: {
   userId: string;
   email: string;
   prefs: NotificationPreferences;
+  actorType?: NotificationPreferenceActorType;
+  actorUserId?: string | null;
 }): Promise<void> {
+  const actorType = input.actorType ?? "system";
+  const actorUserId = input.actorUserId ?? input.userId;
+
   if (
     input.prefs.email === false ||
     allMissionHubEmailCategoriesNever(input.prefs)
@@ -40,11 +50,16 @@ export async function syncMissionHubEmailSuppression(input: {
       reason: "unsubscribe",
       userId: input.userId,
       metadata: { source: "mission_hub_preferences" },
+      audit: { actorType, actorUserId },
     });
     return;
   }
 
-  await removeEmailSuppression({ email: input.email, scope: "mission_hub" });
+  await removeEmailSuppression({
+    email: input.email,
+    scope: "mission_hub",
+    audit: { actorType, actorUserId, userId: input.userId },
+  });
 }
 
 /** Mission Hub-only unsubscribe — does not touch Mail Suite. */
@@ -67,6 +82,14 @@ export async function unsubscribeMissionHubEmail(input: {
     reason: "unsubscribe",
     userId: input.userId,
     metadata: { source: "mission_hub_unsubscribe" },
+    audit: { actorType: "user", actorUserId: input.userId },
+  });
+
+  await recordUnsubscribeLinkUsedEvent({
+    userId: input.userId,
+    email: input.email,
+    previous: current,
+    next,
   });
 
   return next;
@@ -76,7 +99,14 @@ export async function saveMissionHubNotificationPreferences(input: {
   userId: string;
   email: string;
   prefs: NotificationPreferences;
+  actorType?: NotificationPreferenceActorType;
+  actorUserId?: string | null;
+  metadata?: Record<string, unknown>;
 }): Promise<NotificationPreferences> {
+  const previous = mergeNotificationPreferences(await getRawPrefs(input.userId));
+  const actorType = input.actorType ?? "user";
+  const actorUserId = input.actorUserId ?? input.userId;
+
   const next = syncLegacyBooleansFromCategoryFrequencies({
     ...input.prefs,
     categoryFrequencies: {
@@ -90,6 +120,18 @@ export async function saveMissionHubNotificationPreferences(input: {
     userId: input.userId,
     email: input.email,
     prefs: next,
+    actorType,
+    actorUserId,
+  });
+
+  await recordPreferenceDiffEvents({
+    userId: input.userId,
+    email: input.email,
+    previous,
+    next,
+    actorType,
+    actorUserId,
+    metadata: input.metadata,
   });
 
   return next;
@@ -102,6 +144,7 @@ export async function saveMissionHubEmailPreferences(input: {
     NotificationPreferences,
     "email" | "inApp" | "categoryFrequencies" | "mutedSpaceIds"
   >;
+  metadata?: Record<string, unknown>;
 }): Promise<NotificationPreferences> {
   const current = mergeNotificationPreferences(await getRawPrefs(input.userId));
   return saveMissionHubNotificationPreferences({
@@ -117,6 +160,7 @@ export async function saveMissionHubEmailPreferences(input: {
         ...input.prefs.categoryFrequencies,
       },
     },
+    metadata: input.metadata,
   });
 }
 

@@ -5,6 +5,11 @@ import { getCurrentCommunityOwner } from "@/lib/community/owner";
 import { loadMissionHubNotificationAdminStats } from "@/lib/mission-hub/admin-notification-reporting";
 import { AdminMembersPortal } from "@/components/community/admin-members-portal";
 import { MissionHubNotificationStatsPanel } from "@/components/community/mission-hub-notification-stats-panel";
+import { MissionHubSubscriberActivityPanel } from "@/components/community/mission-hub-subscriber-activity-panel";
+import {
+  loadNotificationPreferenceEventSummary30Days,
+  loadNotificationPreferenceEventsForAdmin,
+} from "@/lib/mission-hub/notification-preference-events";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +38,20 @@ export default async function AdminCommunityMembersPage() {
   let notificationStats: Awaited<
     ReturnType<typeof loadMissionHubNotificationAdminStats>
   > | null = null;
+  let preferenceEvents: Awaited<
+    ReturnType<typeof loadNotificationPreferenceEventsForAdmin>
+  > = [];
+  let preferenceSummary: Awaited<
+    ReturnType<typeof loadNotificationPreferenceEventSummary30Days>
+  > | null = null;
   let dbError: string | null = null;
 
   try {
-    [members, notificationStats] = await Promise.all([
+    [members, notificationStats, preferenceEvents, preferenceSummary] = await Promise.all([
       listMembersForAdminPortal(),
       loadMissionHubNotificationAdminStats(),
+      loadNotificationPreferenceEventsForAdmin({ limit: 75 }),
+      loadNotificationPreferenceEventSummary30Days(),
     ]);
     console.info("[admin/members] query", { count: members.length });
   } catch (e) {
@@ -65,6 +78,12 @@ export default async function AdminCommunityMembersPage() {
         <>
           {notificationStats ? (
             <MissionHubNotificationStatsPanel stats={notificationStats} />
+          ) : null}
+          {preferenceSummary ? (
+            <MissionHubSubscriberActivityPanel
+              initialEvents={preferenceEvents}
+              initialSummary={preferenceSummary}
+            />
           ) : null}
           <AdminMembersPortal initialMembers={members} />
         </>

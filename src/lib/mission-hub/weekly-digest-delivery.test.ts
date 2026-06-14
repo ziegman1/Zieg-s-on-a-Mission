@@ -17,6 +17,10 @@ vi.mock("@/lib/mission-hub/email-config", () => ({
   isMissionHubEmailNotificationsEnabled: vi.fn(),
 }));
 
+vi.mock("@/lib/mission-hub/notification-preference-events", () => ({
+  verifyEmailSuppressionsTableReady: vi.fn(),
+}));
+
 import { isMissionHubEmailNotificationsEnabled } from "@/lib/mission-hub/email-config";
 import {
   getWeeklyDigestEmailDisabledReason,
@@ -25,6 +29,7 @@ import {
 import { deliverWeeklyMissionHubDigest } from "@/lib/mission-hub/weekly-digest-delivery";
 import { listWeeklyDigestEmailRecipients } from "@/lib/mission-hub/weekly-digest-recipients";
 import { prepareWeeklyMissionHubDigest } from "@/lib/mission-hub/weekly-digest";
+import { verifyEmailSuppressionsTableReady } from "@/lib/mission-hub/notification-preference-events";
 import type { WeeklyMissionHubDigest } from "@/lib/mission-hub/weekly-digest-core";
 
 const digestWithContent: WeeklyMissionHubDigest = {
@@ -66,6 +71,23 @@ describe("deliverWeeklyMissionHubDigest", () => {
     vi.mocked(isMissionHubEmailNotificationsEnabled).mockReturnValue(true);
     vi.mocked(getWeeklyDigestEmailDisabledReason).mockReturnValue(null);
     vi.mocked(queueAndSendWeeklyDigestEmail).mockResolvedValue({ action: "sent", deliveryId: "d1", resendMessageId: "m1" });
+    vi.mocked(verifyEmailSuppressionsTableReady).mockResolvedValue({
+      ok: true,
+      message: "email_suppressions table is available",
+    });
+  });
+
+  it("aborts when email_suppressions table is missing", async () => {
+    vi.mocked(verifyEmailSuppressionsTableReady).mockResolvedValue({
+      ok: false,
+      message: "email_suppressions table missing",
+    });
+
+    const result = await deliverWeeklyMissionHubDigest({ broadcastToMembers: true });
+
+    expect(result.sent).toBe(0);
+    expect(result.errors[0]).toContain("email_suppressions");
+    expect(queueAndSendWeeklyDigestEmail).not.toHaveBeenCalled();
   });
 
   it("does not send when email feature is disabled", async () => {

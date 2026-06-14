@@ -45,6 +45,7 @@ export async function saveEmailPreferencesByTokenAction(input: {
         categoryFrequencies: input.categoryFrequencies,
         mutedSpaceIds: [],
       },
+      metadata: { source: "email_preference_token" },
     });
     revalidatePath("/community/email-preferences");
     return { ok: true };

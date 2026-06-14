@@ -161,6 +161,7 @@ export async function saveNotificationPrefsAction(
         userId: authResult.userId,
         email: user.email,
         prefs: merged,
+        metadata: { source: "community_settings" },
       });
     } else {
       const { updateUserNotificationPreferences } = await import(
