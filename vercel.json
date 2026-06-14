@@ -4,5 +4,18 @@
       "path": "/api/cron/mission-hub-weekly-digest",
       "schedule": "0 12 * * 6"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path((?!api/cron(?:/|$)).*)*",
+      "has": [
+        {
+          "type": "host",
+          "value": "ziegsonamission.com"
+        }
+      ],
+      "destination": "https://www.ziegsonamission.com/:path*",
+      "statusCode": 307
+    }
   ]
 }

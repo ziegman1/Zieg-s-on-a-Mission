@@ -5,12 +5,22 @@ import {
   MISSION_HUB_VISITOR_COOKIE,
   visitorCookieOptions,
 } from "@/lib/community/visitor-cookie";
+import {
+  buildWwwRedirectUrl,
+  shouldRedirectApexToWww,
+} from "@/lib/storefront/apex-www-redirect";
 
 /**
- * Next.js proxy: admin x-pathname header + Mission Hub visitor cookie (no Prisma/auth).
+ * Next.js proxy: apex→www redirect (cron exempt), admin x-pathname header, and Mission Hub
+ * visitor cookie (no Prisma/auth).
  */
 export function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
+
+  if (shouldRedirectApexToWww(req.headers.get("host"), path)) {
+    return NextResponse.redirect(buildWwwRedirectUrl(req.nextUrl), 307);
+  }
+
   let response: NextResponse;
 
   const isMissionHub = path === "/community" || path.startsWith("/community/");
@@ -35,5 +45,11 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*", "/community", "/community/:path*"],
+  matcher: [
+    /*
+     * Public pages (/newsletters, /shop, …), /api/cron (exempt in logic), admin, and community.
+     * Skip Next.js static assets and files with extensions.
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
+  ],
 };
