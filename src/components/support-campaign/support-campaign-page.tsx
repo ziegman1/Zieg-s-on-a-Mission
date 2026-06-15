@@ -14,6 +14,8 @@ import {
   type StoredCampaignPledges,
   writeCampaignPledgesToStorage,
 } from "@/lib/support-campaign/pledge-storage";
+import { isCampaignActive } from "@/lib/support-campaign/campaign-countdown";
+import { SupportCampaignCountdown } from "./support-campaign-countdown";
 import { SupportCampaignMeter } from "./support-campaign-meter";
 import { SupportCampaignPledgeCards } from "./support-campaign-pledge-cards";
 
@@ -33,6 +35,7 @@ export function SupportCampaignPage() {
   const [stored, setStored] = useState<StoredCampaignPledges | null>(null);
   const [addAnotherMode, setAddAnotherMode] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [campaignActive, setCampaignActive] = useState(isCampaignActive);
 
   useEffect(() => {
     setStored(readCampaignPledgesFromStorage());
@@ -45,25 +48,27 @@ export function SupportCampaignPage() {
 
   const handleSelectLevel = useCallback(
     (amount: PartnershipLevel) => {
-      const current = stored ?? readCampaignPledgesFromStorage();
-      const alreadyHad = current.pledges.includes(amount);
-      const next = addPledgeAmount(current, amount, {
-        allowDuplicate: addAnotherMode,
-      });
-      const added = next.pledges.length > current.pledges.length;
+      if (campaignActive) {
+        const current = stored ?? readCampaignPledgesFromStorage();
+        const alreadyHad = current.pledges.includes(amount);
+        const next = addPledgeAmount(current, amount, {
+          allowDuplicate: addAnotherMode,
+        });
+        const added = next.pledges.length > current.pledges.length;
 
-      if (added) {
-        persist(next);
-        setAddAnotherMode(false);
-      } else if (alreadyHad && !addAnotherMode) {
-        setStatusMessage(
-          "This level is already in your local pledge tracker. Tap “Add another pledge” to count it again.",
-        );
+        if (added) {
+          persist(next);
+          setAddAnotherMode(false);
+        } else if (alreadyHad && !addAnotherMode) {
+          setStatusMessage(
+            "This level is already in your local pledge tracker. Tap “Add another pledge” to count it again.",
+          );
+        }
       }
 
       openGivingPage();
     },
-    [addAnotherMode, persist, stored],
+    [addAnotherMode, campaignActive, persist, stored],
   );
 
   const pledges = stored?.pledges ?? [];
@@ -83,9 +88,14 @@ export function SupportCampaignPage() {
             {CAMPAIGN_COPY.heroVision}
           </p>
           <p className="mx-auto mt-3 max-w-3xl text-base text-brand-ink/80 leading-relaxed">
-            {CAMPAIGN_COPY.heroCampaignNote}
+            {campaignActive
+              ? CAMPAIGN_COPY.heroCampaignNote
+              : CAMPAIGN_COPY.heroCampaignNoteExpired}
           </p>
-          <div className="mx-auto mt-5 max-w-3xl">
+          <div className="mx-auto mt-4 max-w-3xl">
+            <SupportCampaignCountdown onActiveChange={setCampaignActive} />
+          </div>
+          <div className="mx-auto mt-4 max-w-3xl">
             <SupportCampaignMeter pledges={pledges} variant="compact" />
           </div>
         </div>
@@ -96,32 +106,39 @@ export function SupportCampaignPage() {
         <div className="mx-auto max-w-5xl">
           <SectionHeading>{CAMPAIGN_COPY.partnershipHeading}</SectionHeading>
           <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-brand-ink/75 leading-relaxed">
-            {CAMPAIGN_COPY.partnershipIntro}
+            {campaignActive
+              ? CAMPAIGN_COPY.partnershipIntro
+              : CAMPAIGN_COPY.partnershipIntroExpired}
           </p>
           <div className="mt-6">
             <SupportCampaignPledgeCards
               pledges={pledges}
               addAnotherMode={addAnotherMode}
+              campaignActive={campaignActive}
               onSelectLevel={handleSelectLevel}
             />
           </div>
-          {statusMessage ? (
+          {statusMessage && campaignActive ? (
             <p className="mt-4 text-center text-xs text-brand-ink/65" role="status">
               {statusMessage}
             </p>
           ) : null}
           <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-brand-ink/55">
-            <button
-              type="button"
-              className="hover:text-brand-primary hover:underline"
-              onClick={() => {
-                setAddAnotherMode(true);
-                setStatusMessage(null);
-              }}
-            >
-              Add another pledge
-            </button>
-            <span aria-hidden>·</span>
+            {campaignActive ? (
+              <>
+                <button
+                  type="button"
+                  className="hover:text-brand-primary hover:underline"
+                  onClick={() => {
+                    setAddAnotherMode(true);
+                    setStatusMessage(null);
+                  }}
+                >
+                  Add another pledge
+                </button>
+                <span aria-hidden>·</span>
+              </>
+            ) : null}
             <button
               type="button"
               className="hover:text-brand-primary hover:underline"

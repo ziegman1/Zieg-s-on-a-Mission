@@ -19,17 +19,19 @@ function formatMonthly(amount: number): string {
 export function SupportCampaignPledgeCards({
   pledges,
   addAnotherMode,
+  campaignActive,
   onSelectLevel,
 }: {
   pledges: number[];
   addAnotherMode: boolean;
+  campaignActive: boolean;
   onSelectLevel: (amount: PartnershipLevel) => void;
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {PARTNERSHIP_LEVELS.map((amount) => {
-        const alreadyPledged = hasPledgedAmount(pledges, amount);
-        const willAdd = addAnotherMode || !alreadyPledged;
+        const alreadyPledged = campaignActive && hasPledgedAmount(pledges, amount);
+        const willAdd = campaignActive && (addAnotherMode || !alreadyPledged);
 
         return (
           <button
@@ -57,7 +59,11 @@ export function SupportCampaignPledgeCards({
               Partner at {formatMonthly(amount)}/month
             </span>
             <span className="mt-2 text-xs text-brand-ink/60 leading-relaxed">
-              {willAdd ? "Tap to pledge & give" : "Tap to give again"}
+              {!campaignActive
+                ? "Tap to give monthly"
+                : willAdd
+                  ? "Tap to pledge & give"
+                  : "Tap to give again"}
             </span>
           </button>
         );
