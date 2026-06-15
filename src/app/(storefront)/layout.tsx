@@ -22,6 +22,8 @@ export default async function StorefrontLayout({
   const pathname = headersList.get("x-pathname") ?? "";
   const isMissionHub =
     pathname === "/community" || pathname.startsWith("/community/");
+  const isCampaignLanding =
+    pathname === "/support-campaign" || pathname === "/campaign";
 
   if (isMissionHub) {
     return (
@@ -42,46 +44,48 @@ export default async function StorefrontLayout({
         getInvolvedItems={shell.getInvolved.value.items}
       />
       <main className="flex-1">{children}</main>
-      <footer className="border-t border-brand-primary/25 bg-white/40 py-12 px-4">
-        <div className="max-w-7xl mx-auto text-center text-sm text-brand-ink/80">
-          <p className="font-serif text-lg text-brand-primary tracking-wide">{shell.siteName.value}</p>
-          {shell.footerBlurb.value.trim() ? (
-            <SiteBuilderFormattedContent
-              text={shell.footerBlurb.value}
-              className="mt-2 max-w-lg mx-auto leading-relaxed text-sm text-brand-ink/80 [&_p]:text-sm [&_p]:text-brand-ink/80"
-            />
-          ) : null}
-          <nav className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-brand-ink/90">
-            {shell.footerNavLinks.value.map(({ href, label }) => (
-              <Link key={href} href={href} className="hover:text-brand-primary transition-colors">
-                {label}
-              </Link>
-            ))}
-            {FOOTER_LEGAL.map(({ href, label }) => (
-              <Link key={href} href={href} className="hover:text-brand-primary transition-colors">
-                {label}
-              </Link>
-            ))}
-          </nav>
-          {shell.legalSupport.value.supportEmail.trim() ? (
+      {!isCampaignLanding ? (
+        <footer className="border-t border-brand-primary/25 bg-white/40 py-12 px-4">
+          <div className="max-w-7xl mx-auto text-center text-sm text-brand-ink/80">
+            <p className="font-serif text-lg text-brand-primary tracking-wide">{shell.siteName.value}</p>
+            {shell.footerBlurb.value.trim() ? (
+              <SiteBuilderFormattedContent
+                text={shell.footerBlurb.value}
+                className="mt-2 max-w-lg mx-auto leading-relaxed text-sm text-brand-ink/80 [&_p]:text-sm [&_p]:text-brand-ink/80"
+              />
+            ) : null}
+            <nav className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-brand-ink/90">
+              {shell.footerNavLinks.value.map(({ href, label }) => (
+                <Link key={href} href={href} className="hover:text-brand-primary transition-colors">
+                  {label}
+                </Link>
+              ))}
+              {FOOTER_LEGAL.map(({ href, label }) => (
+                <Link key={href} href={href} className="hover:text-brand-primary transition-colors">
+                  {label}
+                </Link>
+              ))}
+            </nav>
+            {shell.legalSupport.value.supportEmail.trim() ? (
+              <p className="mt-6 text-brand-ink/60">
+                Questions?{" "}
+                <a
+                  href={`mailto:${shell.legalSupport.value.supportEmail}`}
+                  className="text-brand-primary hover:underline"
+                >
+                  {shell.legalSupport.value.supportEmail}
+                </a>
+                {shell.legalSupport.value.supportResponseTime.trim()
+                  ? ` — we aim to respond ${shell.legalSupport.value.supportResponseTime}.`
+                  : null}
+              </p>
+            ) : null}
             <p className="mt-6 text-brand-ink/60">
-              Questions?{" "}
-              <a
-                href={`mailto:${shell.legalSupport.value.supportEmail}`}
-                className="text-brand-primary hover:underline"
-              >
-                {shell.legalSupport.value.supportEmail}
-              </a>
-              {shell.legalSupport.value.supportResponseTime.trim()
-                ? ` — we aim to respond ${shell.legalSupport.value.supportResponseTime}.`
-                : null}
+              © {new Date().getFullYear()} {shell.siteName.value}. All rights reserved.
             </p>
-          ) : null}
-          <p className="mt-6 text-brand-ink/60">
-            © {new Date().getFullYear()} {shell.siteName.value}. All rights reserved.
-          </p>
-        </div>
-      </footer>
+          </div>
+        </footer>
+      ) : null}
     </div>
   );
 }

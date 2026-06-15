@@ -20,6 +20,7 @@ import {
   type NavLabelOverrides,
   type GetInvolvedNavItem,
 } from "@/data/storefront-navigation";
+import { MERCH_STORE_ENABLED } from "@/data/shop-config";
 import { cn } from "@/lib/utils";
 
 /** Phone-only below Tailwind `md` (768px). Tablet/desktop use full nav. */
@@ -224,11 +225,15 @@ export function StorefrontHeader({
 
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {giveNowButton}
-          <span className={cn(DESKTOP_NAV_CLASS, "w-px h-4 bg-white/30 shrink-0")} aria-hidden />
-          <CartLink
-            subtle
-            className={cn(DESKTOP_NAV_CLASS, "!text-white/75 hover:!text-white items-center")}
-          />
+          {MERCH_STORE_ENABLED ? (
+            <>
+              <span className={cn(DESKTOP_NAV_CLASS, "w-px h-4 bg-white/30 shrink-0")} aria-hidden />
+              <CartLink
+                subtle
+                className={cn(DESKTOP_NAV_CLASS, "!text-white/75 hover:!text-white items-center")}
+              />
+            </>
+          ) : null}
           <button
             type="button"
             className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md text-white hover:bg-white/10 transition-colors"
@@ -278,9 +283,11 @@ export function StorefrontHeader({
                 {navLabel(item.href, item.label, labelOverrides)}
               </Link>
             ))}
-            <div className="mt-3 pt-3 border-t border-white/20">
-              <CartLink subtle className="!text-white/85 hover:!text-white px-3" />
-            </div>
+            {MERCH_STORE_ENABLED ? (
+              <div className="mt-3 pt-3 border-t border-white/20">
+                <CartLink subtle className="!text-white/85 hover:!text-white px-3" />
+              </div>
+            ) : null}
           </nav>
         </div>
       ) : null}

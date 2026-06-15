@@ -20,6 +20,11 @@ import {
   URGENT_PRAYER_REQUEST_NOTIFICATION_TITLE,
   URGENT_PRAYER_REQUEST_NOTIFICATION_TYPE,
 } from "@/lib/community/notification-type-constants";
+import { refetchCommunityActorDisplayName } from "@/lib/community/community-actor";
+import {
+  buildReactionNotificationTitle,
+  type ReactionOnPostNotificationMetadata,
+} from "@/lib/community/reaction-notification-title";
 import { urgentPrayerPublishNotificationDedupeKey } from "@/lib/community/urgent-prayer-dedupe";
 import {
   newPostPublishNotificationDedupeKey,
@@ -525,6 +530,7 @@ type CreateNotificationInput = {
   actorMemberId?: string | null;
   postId?: string | null;
   commentId?: string | null;
+  metadata?: import("@prisma/client").Prisma.InputJsonValue;
 };
 
 async function createNotification(input: CreateNotificationInput): Promise<void> {
@@ -541,6 +547,7 @@ async function createNotification(input: CreateNotificationInput): Promise<void>
         type: input.type,
         title: input.title,
         body: input.body ?? null,
+        metadata: input.metadata ?? {},
       },
     });
   } catch (e) {
@@ -662,17 +669,6 @@ export async function notifyCommentActivity(input: {
   }
 }
 
-const REACTION_LABELS: Record<string, string> = {
-  like: "is standing with you",
-  love: "is praying with you",
-  prayed: "said amen",
-  celebrating: "is rejoicing",
-  encouraged: "was encouraged",
-  pray: "prayed",
-  amen: "said amen",
-  celebrate: "celebrated",
-};
-
 /** Owners notified when a reaction is added (not removed). */
 export async function notifyReactionAdded(input: {
   postId: string;
@@ -687,8 +683,22 @@ export async function notifyReactionAdded(input: {
   const ctx = await getPostContext(input.postId);
   if (!ctx) return;
 
-  const postLabel = ctx.postTitle?.trim() || "a post";
-  const reactionLabel = REACTION_LABELS[input.reactionType] ?? "reacted to";
+  const actorDisplayName = await refetchCommunityActorDisplayName({
+    actorDisplayName: input.actorDisplayName,
+    actorMemberId: input.actorMemberId,
+    actorUserId: input.actorUserId,
+  });
+
+  const title = buildReactionNotificationTitle({
+    actorDisplayName,
+    reactionType: input.reactionType,
+    postTitle: ctx.postTitle,
+  });
+
+  const metadata: ReactionOnPostNotificationMetadata = {
+    reactionType: input.reactionType,
+    actorDisplayName,
+  };
 
   const ownerIds = await listOwnerRecipientUserIds();
   const exclude = new Set(input.actorUserId ? [input.actorUserId] : []);
@@ -713,11 +723,12 @@ export async function notifyReactionAdded(input: {
     await createNotification({
       recipientUserId: ownerId,
       type: "reaction_on_post",
-      title: `${input.actorDisplayName} ${reactionLabel} ${postLabel}`,
+      title,
       body: ctx.spaceTitle,
       actorUserId: input.actorUserId,
       actorMemberId: input.actorMemberId,
       postId: input.postId,
+      metadata: metadata as unknown as import("@prisma/client").Prisma.InputJsonValue,
     });
   }
 }

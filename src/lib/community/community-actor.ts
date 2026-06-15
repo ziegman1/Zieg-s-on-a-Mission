@@ -113,6 +113,52 @@ export async function resolveReactionDisplayNamesByVisitorKeys(
   return result;
 }
 
+/** Re-resolve display name when initial resolution returned "Someone" but IDs exist. */
+export async function refetchCommunityActorDisplayName(input: {
+  actorDisplayName: string;
+  actorMemberId: string | null;
+  actorUserId: string | null;
+}): Promise<string> {
+  if (input.actorDisplayName !== "Someone") {
+    return input.actorDisplayName;
+  }
+
+  if (input.actorMemberId) {
+    const memberRow = await prisma.communityMemberRecord.findUnique({
+      where: { id: input.actorMemberId },
+      select: {
+        displayName: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        userId: true,
+      },
+    });
+    if (memberRow) {
+      let userRecord: { name: string | null; email: string | null } | null = null;
+      if (memberRow.userId) {
+        userRecord = await prisma.user.findUnique({
+          where: { id: memberRow.userId },
+          select: { name: true, email: true },
+        });
+      }
+      const name = formatCommunityActorDisplayName(memberRow, userRecord);
+      if (name !== "Someone") return name;
+    }
+  }
+
+  if (input.actorUserId) {
+    const userRecord = await prisma.user.findUnique({
+      where: { id: input.actorUserId },
+      select: { name: true, email: true },
+    });
+    const name = formatCommunityActorDisplayName(null, userRecord);
+    if (name !== "Someone") return name;
+  }
+
+  return "Someone";
+}
+
 /** @deprecated Use resolveCommunityActor — kept for existing imports. */
 export async function resolveReactionActor(
   visitorKey: string,
