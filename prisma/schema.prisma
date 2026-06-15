@@ -692,3 +692,31 @@ model Newsletter {
   @@index([status, issueDate(sort: Desc)])
   @@map("newsletters")
 }
+
+model SupportCampaignRecord {
+  id            String   @id
+  goalAmount    Int      @map("goal_amount")
+  pledgedAmount Int      @default(0) @map("pledged_amount")
+  startDate     DateTime @map("start_date") @db.Timestamptz(6)
+  endDate       DateTime @map("end_date") @db.Timestamptz(6)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  pledgeIntents SupportCampaignPledgeIntentRecord[]
+
+  @@map("support_campaigns")
+}
+
+model SupportCampaignPledgeIntentRecord {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId String   @map("campaign_id")
+  amount     Int
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  campaign SupportCampaignRecord @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, createdAt(sort: Desc)])
+  @@map("support_campaign_pledge_intents")
+}

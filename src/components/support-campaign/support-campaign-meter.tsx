@@ -1,7 +1,6 @@
 "use client";
 
 import { CAMPAIGN_GOAL } from "@/data/support-campaign-config";
-import { totalPledgedAmount } from "@/lib/support-campaign/pledge-storage";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(amount: number): string {
@@ -13,15 +12,18 @@ function formatCurrency(amount: number): string {
 }
 
 export function SupportCampaignMeter({
-  pledges,
+  pledgedAmount,
+  goalAmount = CAMPAIGN_GOAL,
   variant = "default",
 }: {
-  pledges: number[];
+  pledgedAmount: number;
+  goalAmount?: number;
   variant?: "default" | "compact";
 }) {
-  const pledged = totalPledgedAmount(pledges);
-  const remaining = Math.max(0, CAMPAIGN_GOAL - pledged);
-  const percent = Math.min(100, Math.round((pledged / CAMPAIGN_GOAL) * 100));
+  const pledged = Math.max(0, pledgedAmount);
+  const goal = Math.max(1, goalAmount);
+  const remaining = Math.max(0, goal - pledged);
+  const percent = Math.min(100, Math.round((pledged / goal) * 100));
   const compact = variant === "compact";
 
   return (
@@ -39,7 +41,7 @@ export function SupportCampaignMeter({
               compact ? "text-[10px] sm:text-xs" : "text-xs",
             )}
           >
-            Pledge commitments (visitor-side)
+            Campaign Progress
           </p>
           <p
             className={cn(
@@ -56,7 +58,7 @@ export function SupportCampaignMeter({
         <div className="text-right">
           <p className={cn("text-brand-ink/70", compact ? "text-xs" : "text-sm")}>Goal</p>
           <p className={cn("font-semibold text-brand-ink", compact ? "text-sm sm:text-base" : "")}>
-            {formatCurrency(CAMPAIGN_GOAL)}/month
+            {formatCurrency(goal)}/month
           </p>
         </div>
       </div>
@@ -68,9 +70,9 @@ export function SupportCampaignMeter({
         )}
         role="progressbar"
         aria-valuemin={0}
-        aria-valuemax={CAMPAIGN_GOAL}
+        aria-valuemax={goal}
         aria-valuenow={pledged}
-        aria-label={`Campaign pledge progress: ${formatCurrency(pledged)} of ${formatCurrency(CAMPAIGN_GOAL)} monthly goal`}
+        aria-label={`Campaign progress: ${formatCurrency(pledged)} of ${formatCurrency(goal)} monthly goal`}
       >
         <div
           className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-accent transition-all duration-500 ease-out"
@@ -102,7 +104,7 @@ export function SupportCampaignMeter({
           compact ? "mt-2.5 pt-2.5 text-[11px] leading-snug" : "mt-4 pt-4 text-xs",
         )}
       >
-        Pledge interest saved on this device—not confirmed gifts. Complete your partnership on Aplos.
+        Progress reflects shared campaign commitments and may be updated as new pledges are confirmed.
       </p>
     </div>
   );

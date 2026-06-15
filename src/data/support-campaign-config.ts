@@ -12,6 +12,9 @@ export const CAMPAIGN = {
   endDate: "2026-06-22T16:50:00-05:00",
 } as const;
 
+/** Persistent row id in support_campaigns. */
+export const CAMPAIGN_SLUG = "support-campaign-2026";
+
 /** @deprecated Prefer CAMPAIGN.goal */
 export const CAMPAIGN_GOAL = CAMPAIGN.goal;
 
@@ -23,9 +26,6 @@ export type PartnershipLevel = (typeof PARTNERSHIP_LEVELS)[number];
 /** Aplos monthly giving page for Jeremy & Lindsay Ziegenhorn. */
 export const CAMPAIGN_GIVING_URL =
   "https://app.aplos.com/aws/give/TeamExpansion/jeremylindsayZiegenhorn";
-
-/** localStorage key for visitor-side pledge interest (not verified gifts). */
-export const CAMPAIGN_PLEDGE_STORAGE_KEY = "zieg-support-campaign-pledges-v1";
 
 export const CAMPAIGN_ROUTES = {
   primary: "/support-campaign",
@@ -47,10 +47,8 @@ export const CAMPAIGN_COPY = {
   countdownActiveLabel: "Time remaining in this campaign",
   countdownEndedLabel: "Campaign Ended",
   partnershipHeading: "Choose your monthly partnership level",
-  partnershipIntro:
-    "Select a level to record your pledge interest and open our secure giving page.",
-  partnershipIntroExpired:
-    "Choose a level to open our secure monthly giving page. Pledge tracking for this campaign season has ended.",
+  partnershipIntro: "Select a level to open our secure giving page.",
+  partnershipIntroExpired: "Choose a level to open our secure monthly giving page.",
   heartbeatHeading: "Why this matters",
   heartbeatLead:
     "Every day, more than 70,000 people die and enter eternity separated from Christ—not because they have rejected the Gospel, but because they have never had the opportunity to hear it.",

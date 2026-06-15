@@ -1,20 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { recordCampaignPledgeIntentAction } from "@/app/(storefront)/support-campaign/actions";
 import { Button } from "@/components/ui/button";
 import {
   CAMPAIGN_COPY,
   CAMPAIGN_GIVING_URL,
   type PartnershipLevel,
 } from "@/data/support-campaign-config";
-import {
-  addPledgeAmount,
-  clearStoredPledges,
-  readCampaignPledgesFromStorage,
-  type StoredCampaignPledges,
-  writeCampaignPledgesToStorage,
-} from "@/lib/support-campaign/pledge-storage";
+import type { SupportCampaignState } from "@/lib/support-campaign/campaign-state";
 import { isCampaignActive } from "@/lib/support-campaign/campaign-countdown";
+import { SupportCampaignAdminPanel } from "./support-campaign-admin-panel";
 import { SupportCampaignCountdown } from "./support-campaign-countdown";
 import { SupportCampaignMeter } from "./support-campaign-meter";
 import { SupportCampaignPledgeCards } from "./support-campaign-pledge-cards";
@@ -31,47 +27,19 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function SupportCampaignPage() {
-  const [stored, setStored] = useState<StoredCampaignPledges | null>(null);
-  const [addAnotherMode, setAddAnotherMode] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+export function SupportCampaignPage({
+  isSiteAdmin = false,
+  campaignState,
+}: {
+  isSiteAdmin?: boolean;
+  campaignState: SupportCampaignState;
+}) {
   const [campaignActive, setCampaignActive] = useState(isCampaignActive);
 
-  useEffect(() => {
-    setStored(readCampaignPledgesFromStorage());
+  const handleSelectLevel = useCallback((amount: PartnershipLevel) => {
+    void recordCampaignPledgeIntentAction(amount);
+    openGivingPage();
   }, []);
-
-  const persist = useCallback((next: StoredCampaignPledges) => {
-    writeCampaignPledgesToStorage(next);
-    setStored(next);
-  }, []);
-
-  const handleSelectLevel = useCallback(
-    (amount: PartnershipLevel) => {
-      if (campaignActive) {
-        const current = stored ?? readCampaignPledgesFromStorage();
-        const alreadyHad = current.pledges.includes(amount);
-        const next = addPledgeAmount(current, amount, {
-          allowDuplicate: addAnotherMode,
-        });
-        const added = next.pledges.length > current.pledges.length;
-
-        if (added) {
-          persist(next);
-          setAddAnotherMode(false);
-        } else if (alreadyHad && !addAnotherMode) {
-          setStatusMessage(
-            "This level is already in your local pledge tracker. Tap “Add another pledge” to count it again.",
-          );
-        }
-      }
-
-      openGivingPage();
-    },
-    [addAnotherMode, campaignActive, persist, stored],
-  );
-
-  const pledges = stored?.pledges ?? [];
 
   return (
     <div className="bg-brand-surface text-brand-ink">
@@ -96,7 +64,11 @@ export function SupportCampaignPage() {
             <SupportCampaignCountdown onActiveChange={setCampaignActive} />
           </div>
           <div className="mx-auto mt-4 max-w-3xl">
-            <SupportCampaignMeter pledges={pledges} variant="compact" />
+            <SupportCampaignMeter
+              pledgedAmount={campaignState.pledgedAmount}
+              goalAmount={campaignState.goalAmount}
+              variant="compact"
+            />
           </div>
         </div>
       </section>
@@ -111,46 +83,14 @@ export function SupportCampaignPage() {
               : CAMPAIGN_COPY.partnershipIntroExpired}
           </p>
           <div className="mt-6">
-            <SupportCampaignPledgeCards
-              pledges={pledges}
-              addAnotherMode={addAnotherMode}
-              campaignActive={campaignActive}
-              onSelectLevel={handleSelectLevel}
+            <SupportCampaignPledgeCards onSelectLevel={handleSelectLevel} />
+          </div>
+          {isSiteAdmin ? (
+            <SupportCampaignAdminPanel
+              pledgedAmount={campaignState.pledgedAmount}
+              goalAmount={campaignState.goalAmount}
             />
-          </div>
-          {statusMessage && campaignActive ? (
-            <p className="mt-4 text-center text-xs text-brand-ink/65" role="status">
-              {statusMessage}
-            </p>
           ) : null}
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-brand-ink/55">
-            {campaignActive ? (
-              <>
-                <button
-                  type="button"
-                  className="hover:text-brand-primary hover:underline"
-                  onClick={() => {
-                    setAddAnotherMode(true);
-                    setStatusMessage(null);
-                  }}
-                >
-                  Add another pledge
-                </button>
-                <span aria-hidden>·</span>
-              </>
-            ) : null}
-            <button
-              type="button"
-              className="hover:text-brand-primary hover:underline"
-              onClick={() => {
-                persist(clearStoredPledges());
-                setAddAnotherMode(false);
-                setStatusMessage(null);
-              }}
-            >
-              Reset pledge tracker
-            </button>
-          </div>
         </div>
       </section>
 
