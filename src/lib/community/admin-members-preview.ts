@@ -1,11 +1,18 @@
 import "server-only";
 
-import { countActiveMembersThisWeek } from "@/lib/community/admin-members-active-week";
+import {
+  countActiveMembersThisWeek,
+  countEngagedMembersToday,
+} from "@/lib/community/admin-members-active-week";
 import { formatMemberDisplayName } from "@/lib/community/members";
 import type {
   AdminMemberAvatarPreview,
   AdminMembersHubPreview,
 } from "@/lib/community/admin-members-preview-types";
+import {
+  getHubVisitStatsToday,
+  listRecentHubVisitors,
+} from "@/lib/community/hub-activity-events";
 import { prisma } from "@/lib/db";
 
 const AVATAR_STRIP_SIZE = 3;
@@ -43,28 +50,21 @@ function pickAvatarStrip(
   }));
 }
 
-function startOfToday(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 /** Lightweight data for the Mission Hub admin member avatar strip (no full portal query). */
 export async function getAdminMembersHubPreview(): Promise<AdminMembersHubPreview> {
-  const today = startOfToday();
-
-  const [totalMembers, activeToday, activeThisWeek, recentRows] = await Promise.all([
+  const [
+    totalMembers,
+    engagedToday,
+    activeThisWeek,
+    visitStats,
+    recentVisitors,
+    recentRows,
+  ] = await Promise.all([
     prisma.communityMemberRecord.count({ where: { status: "active" } }),
-    prisma.communityMemberRecord.count({
-      where: {
-        status: "active",
-        OR: [
-          { updatedAt: { gte: today } },
-          { comments: { some: { createdAt: { gte: today } } } },
-        ],
-      },
-    }),
+    countEngagedMembersToday(),
     countActiveMembersThisWeek(),
+    getHubVisitStatsToday(),
+    listRecentHubVisitors(),
     prisma.communityMemberRecord.findMany({
       where: { status: "active" },
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
@@ -82,7 +82,10 @@ export async function getAdminMembersHubPreview(): Promise<AdminMembersHubPrevie
   return {
     avatars: pickAvatarStrip(recentRows),
     totalMembers,
-    activeToday,
+    engagedToday,
     activeThisWeek,
+    visitsToday: visitStats.visitsToday,
+    uniqueMembersVisitedToday: visitStats.uniqueMembersVisitedToday,
+    recentVisitors,
   };
 }

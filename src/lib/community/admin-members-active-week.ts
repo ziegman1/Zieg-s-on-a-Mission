@@ -1,5 +1,6 @@
 import "server-only";
 
+import { startOfSiteDay } from "@/lib/community/site-timezone";
 import { prisma } from "@/lib/db";
 
 export const ACTIVE_MEMBER_WINDOW_DAYS = 7;
@@ -50,10 +51,7 @@ export function countActiveMembersFromActivity(input: ActiveMemberActivityInput)
   return memberIds.size;
 }
 
-/** Unique active members in the last 7 days (comments, posts, reactions, profile updates). */
-export async function countActiveMembersThisWeek(): Promise<number> {
-  const since = activeMemberWindowStart();
-
+export async function gatherMemberEngagementSignals(since: Date) {
   const [profileUpdated, commentMembers, postAuthors, reactionKeys] = await Promise.all([
     prisma.communityMemberRecord.findMany({
       where: { status: "active", updatedAt: { gte: since } },
@@ -107,7 +105,7 @@ export async function countActiveMembersThisWeek(): Promise<number> {
         })
       : [];
 
-  return countActiveMembersFromActivity({
+  return {
     profileUpdatedMemberIds: profileUpdated.map((row) => row.id),
     commentMemberIds: commentMembers.map((row) => row.memberId),
     postAuthorUserIds: authorUserIds,
@@ -118,5 +116,20 @@ export async function countActiveMembersThisWeek(): Promise<number> {
     membersByVisitorKey: linkedMembers
       .filter((row): row is typeof row & { visitorKey: string } => Boolean(row.visitorKey))
       .map((row) => ({ id: row.id, visitorKey: row.visitorKey })),
-  });
+  };
+}
+
+export async function countEngagedMembersSince(since: Date): Promise<number> {
+  const signals = await gatherMemberEngagementSignals(since);
+  return countActiveMembersFromActivity(signals);
+}
+
+/** Unique engaged members since the start of today in America/Chicago. */
+export async function countEngagedMembersToday(now = Date.now()): Promise<number> {
+  return countEngagedMembersSince(startOfSiteDay(now));
+}
+
+/** Unique active members in the last 7 days (comments, posts, reactions, profile updates). */
+export async function countActiveMembersThisWeek(): Promise<number> {
+  return countEngagedMembersSince(activeMemberWindowStart());
 }

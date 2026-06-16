@@ -65,6 +65,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   communityMember CommunityMemberRecord?
+  communityHubActivityEvents CommunityHubActivityEventRecord[]
   communityPostsAuthored CommunityPostRecord[] @relation("CommunityPostAuthor")
   notificationsReceived CommunityNotificationRecord[] @relation("NotificationRecipient")
   notificationsSent     CommunityNotificationRecord[] @relation("NotificationActor")
@@ -473,11 +474,33 @@ model CommunityMemberRecord {
   comments CommunityPostCommentRecord[]
   notificationsActed CommunityNotificationRecord[]
   notificationPreferenceEvents NotificationPreferenceEventRecord[]
+  hubActivityEvents CommunityHubActivityEventRecord[]
 
   @@index([status])
   @@index([createdAt])
   @@index([userId])
   @@map("community_members")
+}
+
+model CommunityHubActivityEventRecord {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType  String   @map("event_type")
+  memberId   String?  @map("member_id") @db.Uuid
+  userId     String?  @map("user_id")
+  visitorKey String?  @map("visitor_key")
+  path       String?
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  member CommunityMemberRecord? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  user   User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([memberId, createdAt])
+  @@index([visitorKey, createdAt])
+  @@index([eventType, createdAt])
+  @@index([path, createdAt])
+  @@map("community_hub_activity_events")
 }
 
 model CommunityPostCommentRecord {

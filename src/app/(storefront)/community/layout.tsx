@@ -5,6 +5,8 @@ import { MissionHubShell } from "@/components/community/mission-hub-shell";
 import { CommunityPublishedSpacesProvider } from "@/components/community/community-published-spaces-context";
 import { getCurrentCommunityMember } from "@/lib/community/members";
 import { getAdminMembersHubPreview } from "@/lib/community/admin-members-preview";
+import { recordCommunityHubVisit } from "@/lib/community/hub-activity-events";
+import { getVisitorKey } from "@/lib/community/visitor-key";
 import { countUnreadNotifications } from "@/lib/community/notifications";
 import { listComposerSpacesForOwner } from "@/lib/community/composer-spaces";
 import { getCurrentCommunityOwner } from "@/lib/community/owner";
@@ -103,6 +105,18 @@ export default async function CommunityLayout({
     pathname === "/community/login" || pathname === "/community/join";
   const isSettingsPage = pathname.startsWith("/community/settings");
   const showBottomNav = !isAuthPage && !isSettingsPage;
+
+  if (pathname) {
+    const visitorKey = await getVisitorKey();
+    void recordCommunityHubVisit({
+      path: pathname,
+      memberId: member?.id ?? null,
+      userId: notificationUserId,
+      visitorKey: visitorKey ?? null,
+    }).catch((e) => {
+      console.error("[community layout] hub visit:", e);
+    });
+  }
 
   let partnershipPrefs = null;
   let showPartnershipOnboarding = false;

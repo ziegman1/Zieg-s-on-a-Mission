@@ -34,6 +34,42 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
   );
 }
 
+function formatVisited(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function RecentVisitorRow({
+  visitor,
+}: {
+  visitor: AdminMembersHubPreview["recentVisitors"][number];
+}) {
+  return (
+    <li className="flex items-start gap-2 py-2 border-b border-black/[0.04] last:border-0 text-[11px]">
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-brand-ink truncate">{visitor.label}</p>
+        <p className="text-brand-ink/50 truncate">
+          {visitor.isAnonymous
+            ? "Anonymous"
+            : visitor.email ?? "No email"}
+          {" · "}
+          {visitor.path ?? "/community"}
+        </p>
+      </div>
+      <time
+        className="shrink-0 text-brand-ink/45 tabular-nums"
+        dateTime={visitor.createdAt}
+      >
+        {formatVisited(visitor.createdAt)}
+      </time>
+    </li>
+  );
+}
+
 function MemberRow({ row }: { row: AdminMemberPortalRow }) {
   const name =
     row.displayName?.trim() ||
@@ -98,11 +134,29 @@ export function CommunityMembersAdminPanel({
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <StatPill label="Members" value={preview.totalMembers} />
-        <StatPill label="Active today" value={preview.activeToday} />
+        <StatPill label="Engaged today" value={preview.engagedToday} />
         <StatPill label="Active this week" value={preview.activeThisWeek} />
+        <StatPill label="Visits today" value={preview.visitsToday} />
+        <StatPill
+          label="Members visited today"
+          value={preview.uniqueMembersVisitedToday}
+        />
       </div>
+
+      {preview.recentVisitors.length > 0 ? (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-ink/45 mb-1 px-0.5">
+            Recent visitors
+          </p>
+          <ul className="max-h-36 overflow-y-auto overscroll-contain -mx-1 px-1 rounded-xl bg-brand-surface/50">
+            {preview.recentVisitors.map((visitor) => (
+              <RecentVisitorRow key={visitor.id} visitor={visitor} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <label className="relative block">
         <Search
