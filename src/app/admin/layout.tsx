@@ -11,6 +11,7 @@ const adminNav = [
   { href: "/admin/stats", label: "Stats" },
   { href: "/admin/site-builder", label: "Site builder" },
   { href: "/admin/community", label: "Community" },
+  { href: "/admin/support-campaign", label: "Support campaign" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/shipping", label: "Shipping" },

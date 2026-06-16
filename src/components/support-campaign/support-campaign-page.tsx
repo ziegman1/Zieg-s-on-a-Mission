@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { recordCampaignPledgeIntentAction } from "@/app/(storefront)/support-campaign/actions";
+import { useRouter } from "next/navigation";
+import { useCallback, useState, useTransition } from "react";
+import { addCampaignPledgeAction } from "@/app/(storefront)/support-campaign/actions";
 import { Button } from "@/components/ui/button";
 import {
   CAMPAIGN_COPY,
@@ -10,7 +11,6 @@ import {
 } from "@/data/support-campaign-config";
 import type { SupportCampaignState } from "@/lib/support-campaign/campaign-state";
 import { isCampaignActive } from "@/lib/support-campaign/campaign-countdown";
-import { SupportCampaignAdminPanel } from "./support-campaign-admin-panel";
 import { SupportCampaignCountdown } from "./support-campaign-countdown";
 import { SupportCampaignMeter } from "./support-campaign-meter";
 import { SupportCampaignPledgeCards } from "./support-campaign-pledge-cards";
@@ -28,18 +28,24 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 }
 
 export function SupportCampaignPage({
-  isSiteAdmin = false,
   campaignState,
 }: {
-  isSiteAdmin?: boolean;
   campaignState: SupportCampaignState;
 }) {
+  const router = useRouter();
   const [campaignActive, setCampaignActive] = useState(isCampaignActive);
+  const [, startTransition] = useTransition();
 
-  const handleSelectLevel = useCallback((amount: PartnershipLevel) => {
-    void recordCampaignPledgeIntentAction(amount);
-    openGivingPage();
-  }, []);
+  const handleSelectLevel = useCallback(
+    (amount: PartnershipLevel) => {
+      startTransition(async () => {
+        await addCampaignPledgeAction(amount);
+        router.refresh();
+      });
+      openGivingPage();
+    },
+    [router],
+  );
 
   return (
     <div className="bg-brand-surface text-brand-ink">
@@ -85,12 +91,6 @@ export function SupportCampaignPage({
           <div className="mt-6">
             <SupportCampaignPledgeCards onSelectLevel={handleSelectLevel} />
           </div>
-          {isSiteAdmin ? (
-            <SupportCampaignAdminPanel
-              pledgedAmount={campaignState.pledgedAmount}
-              goalAmount={campaignState.goalAmount}
-            />
-          ) : null}
         </div>
       </section>
 

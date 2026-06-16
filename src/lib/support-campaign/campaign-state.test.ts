@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const { transactionMock } = vi.hoisted(() => ({
+  transactionMock: vi.fn(),
+}));
+
 vi.mock("@/lib/db", () => ({
   prisma: {
     supportCampaignRecord: {
@@ -9,19 +13,20 @@ vi.mock("@/lib/db", () => ({
     },
     supportCampaignPledgeIntentRecord: {
       create: vi.fn(),
+      findMany: vi.fn(),
     },
+    $transaction: transactionMock,
   },
 }));
 
 import { prisma } from "@/lib/db";
 import {
+  addSupportCampaignPledge,
   getSupportCampaignState,
-  recordSupportCampaignPledgeIntent,
   updateSupportCampaignPledgedAmount,
 } from "@/lib/support-campaign/campaign-state";
 
 const mocked = vi.mocked(prisma.supportCampaignRecord);
-const mockedIntents = vi.mocked(prisma.supportCampaignPledgeIntentRecord);
 
 const sampleRow = {
   id: "support-campaign-2026",
@@ -69,23 +74,28 @@ describe("campaign-state", () => {
     expect(state.pledgedAmount).toBe(1250);
   });
 
-  it("records pledge intent without updating pledged amount", async () => {
-    mocked.upsert.mockResolvedValueOnce(sampleRow);
-    mockedIntents.create.mockResolvedValueOnce({
-      id: "intent-1",
-      campaignId: "support-campaign-2026",
-      amount: 100,
-      metadata: {},
-      createdAt: new Date(),
+  it("increments pledged amount and logs a public card click", async () => {
+    transactionMock.mockImplementationOnce(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
+      const tx = {
+        supportCampaignRecord: {
+          upsert: vi.fn().mockResolvedValue({ ...sampleRow, pledgedAmount: 100 }),
+        },
+        supportCampaignPledgeIntentRecord: {
+          create: vi.fn().mockResolvedValue({
+            id: "intent-1",
+            campaignId: "support-campaign-2026",
+            amount: 100,
+            metadata: { source: "public_card_click" },
+            createdAt: new Date(),
+          }),
+        },
+      };
+      return fn(tx as unknown as typeof prisma);
     });
 
-    await recordSupportCampaignPledgeIntent({ amount: 100 });
+    const state = await addSupportCampaignPledge(100);
 
-    expect(mockedIntents.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ amount: 100 }) }),
-    );
-    expect(mocked.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ update: {} }),
-    );
+    expect(transactionMock).toHaveBeenCalledOnce();
+    expect(state.pledgedAmount).toBe(100);
   });
 });

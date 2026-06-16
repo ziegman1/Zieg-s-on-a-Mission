@@ -104,7 +104,7 @@ export function SupportCampaignMeter({
           compact ? "mt-2.5 pt-2.5 text-[11px] leading-snug" : "mt-4 pt-4 text-xs",
         )}
       >
-        Progress reflects shared campaign commitments and may be updated as new pledges are confirmed.
+        Progress reflects current campaign pledge commitments and may be adjusted as gifts are confirmed.
       </p>
     </div>
   );

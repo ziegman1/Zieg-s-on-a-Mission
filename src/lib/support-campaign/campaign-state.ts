@@ -69,24 +69,58 @@ export async function updateSupportCampaignPledgedAmount(
   return mapRow(row);
 }
 
-export async function recordSupportCampaignPledgeIntent(input: {
+/** Add a public partnership-card pledge to the shared total and log the click. */
+export async function addSupportCampaignPledge(amount: number): Promise<SupportCampaignState> {
+  const normalized = Math.round(amount);
+  if (!Number.isFinite(normalized) || normalized <= 0) {
+    return getSupportCampaignState();
+  }
+
+  const row = await prisma.$transaction(async (tx) => {
+    const campaign = await tx.supportCampaignRecord.upsert({
+      where: { id: CAMPAIGN_SLUG },
+      create: { ...defaultCampaignData(), pledgedAmount: normalized },
+      update: { pledgedAmount: { increment: normalized } },
+    });
+
+    await tx.supportCampaignPledgeIntentRecord.create({
+      data: {
+        campaignId: CAMPAIGN_SLUG,
+        amount: normalized,
+        metadata: { source: "public_card_click" },
+      },
+    });
+
+    return campaign;
+  });
+
+  return mapRow(row);
+}
+
+export type SupportCampaignPledgeIntent = {
+  id: string;
   amount: number;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  const amount = Math.round(input.amount);
-  if (!Number.isFinite(amount) || amount <= 0) return;
+  createdAt: string;
+  metadata: Record<string, unknown>;
+};
 
-  await prisma.supportCampaignRecord.upsert({
-    where: { id: CAMPAIGN_SLUG },
-    create: defaultCampaignData(),
-    update: {},
+export async function listRecentSupportCampaignPledgeIntents(
+  limit = 50,
+): Promise<SupportCampaignPledgeIntent[]> {
+  const rows = await prisma.supportCampaignPledgeIntentRecord.findMany({
+    where: { campaignId: CAMPAIGN_SLUG },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: { id: true, amount: true, createdAt: true, metadata: true },
   });
 
-  await prisma.supportCampaignPledgeIntentRecord.create({
-    data: {
-      campaignId: CAMPAIGN_SLUG,
-      amount,
-      metadata: (input.metadata ?? {}) as import("@prisma/client").Prisma.InputJsonValue,
-    },
-  });
+  return rows.map((row) => ({
+    id: row.id,
+    amount: row.amount,
+    createdAt: row.createdAt.toISOString(),
+    metadata:
+      row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+        ? (row.metadata as Record<string, unknown>)
+        : {},
+  }));
 }
