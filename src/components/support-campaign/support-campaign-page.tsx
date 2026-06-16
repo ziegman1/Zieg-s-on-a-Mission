@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useState } from "react";
 import { addCampaignPledgeAction } from "@/app/(storefront)/support-campaign/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,13 +11,13 @@ import {
 } from "@/data/support-campaign-config";
 import type { SupportCampaignState } from "@/lib/support-campaign/campaign-state";
 import { isCampaignActive } from "@/lib/support-campaign/campaign-countdown";
+import { openCampaignGivingPage } from "@/lib/support-campaign/open-giving-page";
+import { runSupportCampaignPledgeClick } from "@/lib/support-campaign/pledge-click-flow";
 import { SupportCampaignCountdown } from "./support-campaign-countdown";
 import { SupportCampaignMeter } from "./support-campaign-meter";
 import { SupportCampaignPledgeCards } from "./support-campaign-pledge-cards";
 
-function openGivingPage(): void {
-  window.open(CAMPAIGN_GIVING_URL, "_blank", "noopener,noreferrer");
-}
+const OPENING_DELAY_MS = 450;
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -34,18 +34,48 @@ export function SupportCampaignPage({
 }) {
   const router = useRouter();
   const [campaignActive, setCampaignActive] = useState(isCampaignActive);
-  const [, startTransition] = useTransition();
+  const [displayedPledged, setDisplayedPledged] = useState(campaignState.pledgedAmount);
+  const [pledgePending, setPledgePending] = useState(false);
+  const [pledgePhase, setPledgePhase] = useState<"idle" | "recording" | "opening">("idle");
+  const [pledgeError, setPledgeError] = useState<string | null>(null);
 
   const handleSelectLevel = useCallback(
-    (amount: PartnershipLevel) => {
-      startTransition(async () => {
-        await addCampaignPledgeAction(amount);
-        router.refresh();
-      });
-      openGivingPage();
+    async (amount: PartnershipLevel) => {
+      if (pledgePending) return;
+
+      setPledgePending(true);
+      setPledgeError(null);
+      setPledgePhase("recording");
+
+      try {
+        const result = await runSupportCampaignPledgeClick(amount, {
+          addPledge: addCampaignPledgeAction,
+          onRecorded: (pledgedAmount) => {
+            setDisplayedPledged(pledgedAmount);
+            setPledgePhase("opening");
+          },
+          refresh: () => router.refresh(),
+          openGivingPage: openCampaignGivingPage,
+          delayMs: OPENING_DELAY_MS,
+        });
+
+        if (!result.ok) {
+          setPledgeError(result.error);
+        }
+      } finally {
+        setPledgePending(false);
+        setPledgePhase("idle");
+      }
     },
-    [router],
+    [pledgePending, router],
   );
+
+  const pledgeStatusMessage =
+    pledgePhase === "recording"
+      ? "Recording your pledge selection…"
+      : pledgePhase === "opening"
+        ? "Thank you — opening the giving page now."
+        : null;
 
   return (
     <div className="bg-brand-surface text-brand-ink">
@@ -71,7 +101,7 @@ export function SupportCampaignPage({
           </div>
           <div className="mx-auto mt-4 max-w-3xl">
             <SupportCampaignMeter
-              pledgedAmount={campaignState.pledgedAmount}
+              pledgedAmount={displayedPledged}
               goalAmount={campaignState.goalAmount}
               variant="compact"
             />
@@ -89,8 +119,25 @@ export function SupportCampaignPage({
               : CAMPAIGN_COPY.partnershipIntroExpired}
           </p>
           <div className="mt-6">
-            <SupportCampaignPledgeCards onSelectLevel={handleSelectLevel} />
+            <SupportCampaignPledgeCards
+              onSelectLevel={handleSelectLevel}
+              disabled={pledgePending}
+            />
           </div>
+          {pledgeStatusMessage ? (
+            <p
+              className="mt-4 text-center text-sm font-medium text-brand-primary"
+              role="status"
+              aria-live="polite"
+            >
+              {pledgeStatusMessage}
+            </p>
+          ) : null}
+          {pledgeError ? (
+            <p className="mt-3 text-center text-sm text-red-600" role="alert">
+              {pledgeError}
+            </p>
+          ) : null}
         </div>
       </section>
 

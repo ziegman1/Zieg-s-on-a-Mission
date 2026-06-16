@@ -98,4 +98,33 @@ describe("campaign-state", () => {
     expect(transactionMock).toHaveBeenCalledOnce();
     expect(state.pledgedAmount).toBe(100);
   });
+
+  it("accumulates pledged amount across multiple completed increments", async () => {
+    transactionMock
+      .mockImplementationOnce(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
+        const tx = {
+          supportCampaignRecord: {
+            upsert: vi.fn().mockResolvedValue({ ...sampleRow, pledgedAmount: 100 }),
+          },
+          supportCampaignPledgeIntentRecord: { create: vi.fn() },
+        };
+        return fn(tx as unknown as typeof prisma);
+      })
+      .mockImplementationOnce(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
+        const tx = {
+          supportCampaignRecord: {
+            upsert: vi.fn().mockResolvedValue({ ...sampleRow, pledgedAmount: 350 }),
+          },
+          supportCampaignPledgeIntentRecord: { create: vi.fn() },
+        };
+        return fn(tx as unknown as typeof prisma);
+      });
+
+    const first = await addSupportCampaignPledge(100);
+    const second = await addSupportCampaignPledge(250);
+
+    expect(first.pledgedAmount).toBe(100);
+    expect(second.pledgedAmount).toBe(350);
+    expect(transactionMock).toHaveBeenCalledTimes(2);
+  });
 });

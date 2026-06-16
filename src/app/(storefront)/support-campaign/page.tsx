@@ -4,6 +4,8 @@ import { CAMPAIGN_COPY } from "@/data/support-campaign-config";
 import { getSupportCampaignState } from "@/lib/support-campaign/campaign-state";
 
 /** Temporary campaign landing page — safe to delete when the campaign ends. */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: CAMPAIGN_COPY.metaTitle,
   description: CAMPAIGN_COPY.metaDescription,
