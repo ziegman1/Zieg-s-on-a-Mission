@@ -13,6 +13,7 @@ describe("support campaign pledge page client flow", () => {
     expect(page).toContain("await runSupportCampaignPledgeClick");
     expect(page).not.toContain("startTransition");
     expect(page).not.toContain("openGivingPage()");
+    expect(page).toContain("prepareCampaignGivingPage");
     expect(page).toContain("openCampaignGivingPage");
     expect(page).toContain("disabled={pledgePending}");
     expect(page).toContain("Recording your pledge selection");

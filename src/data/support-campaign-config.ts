@@ -42,13 +42,8 @@ export const CAMPAIGN_COPY = {
     "Jeremy and Lindsay are serving with Team Expansion to mobilize, equip, and send 300 missionaries to the unreached by August 31, 2031.",
   heroCampaignNote:
     "This season, we are prayerfully inviting friends to help close a gap of $2,000 in new monthly partnership so this work can continue with stability and faithfulness.",
-  heroCampaignNoteExpired:
-    "Thank you for praying and giving during this campaign season. Monthly partnership still sustains the mission—you can give anytime through our secure page.",
-  countdownActiveLabel: "Time remaining in this campaign",
-  countdownEndedLabel: "Campaign Ended",
   partnershipHeading: "Choose your monthly partnership level",
   partnershipIntro: "Select a level to open our secure giving page.",
-  partnershipIntroExpired: "Choose a level to open our secure monthly giving page.",
   heartbeatHeading: "Why this matters",
   heartbeatLead:
     "Every day, more than 70,000 people die and enter eternity separated from Christ—not because they have rejected the Gospel, but because they have never had the opportunity to hear it.",

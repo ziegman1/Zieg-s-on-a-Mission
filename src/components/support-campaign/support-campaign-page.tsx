@@ -10,10 +10,11 @@ import {
   type PartnershipLevel,
 } from "@/data/support-campaign-config";
 import type { SupportCampaignState } from "@/lib/support-campaign/campaign-state";
-import { isCampaignActive } from "@/lib/support-campaign/campaign-countdown";
-import { openCampaignGivingPage } from "@/lib/support-campaign/open-giving-page";
+import {
+  openCampaignGivingPage,
+  prepareCampaignGivingPage,
+} from "@/lib/support-campaign/open-giving-page";
 import { runSupportCampaignPledgeClick } from "@/lib/support-campaign/pledge-click-flow";
-import { SupportCampaignCountdown } from "./support-campaign-countdown";
 import { SupportCampaignMeter } from "./support-campaign-meter";
 import { SupportCampaignPledgeCards } from "./support-campaign-pledge-cards";
 
@@ -33,7 +34,6 @@ export function SupportCampaignPage({
   campaignState: SupportCampaignState;
 }) {
   const router = useRouter();
-  const [campaignActive, setCampaignActive] = useState(isCampaignActive);
   const [displayedPledged, setDisplayedPledged] = useState(campaignState.pledgedAmount);
   const [pledgePending, setPledgePending] = useState(false);
   const [pledgePhase, setPledgePhase] = useState<"idle" | "recording" | "opening">("idle");
@@ -50,6 +50,7 @@ export function SupportCampaignPage({
       try {
         const result = await runSupportCampaignPledgeClick(amount, {
           addPledge: addCampaignPledgeAction,
+          prepareGivingPage: prepareCampaignGivingPage,
           onRecorded: (pledgedAmount) => {
             setDisplayedPledged(pledgedAmount);
             setPledgePhase("opening");
@@ -92,13 +93,8 @@ export function SupportCampaignPage({
             {CAMPAIGN_COPY.heroVision}
           </p>
           <p className="mx-auto mt-3 max-w-3xl text-base text-brand-ink/80 leading-relaxed">
-            {campaignActive
-              ? CAMPAIGN_COPY.heroCampaignNote
-              : CAMPAIGN_COPY.heroCampaignNoteExpired}
+            {CAMPAIGN_COPY.heroCampaignNote}
           </p>
-          <div className="mx-auto mt-4 max-w-3xl">
-            <SupportCampaignCountdown onActiveChange={setCampaignActive} />
-          </div>
           <div className="mx-auto mt-4 max-w-3xl">
             <SupportCampaignMeter
               pledgedAmount={displayedPledged}
@@ -114,9 +110,7 @@ export function SupportCampaignPage({
         <div className="mx-auto max-w-5xl">
           <SectionHeading>{CAMPAIGN_COPY.partnershipHeading}</SectionHeading>
           <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-brand-ink/75 leading-relaxed">
-            {campaignActive
-              ? CAMPAIGN_COPY.partnershipIntro
-              : CAMPAIGN_COPY.partnershipIntroExpired}
+            {CAMPAIGN_COPY.partnershipIntro}
           </p>
           <div className="mt-6">
             <SupportCampaignPledgeCards
