@@ -2,12 +2,9 @@ import type { AddCampaignPledgeResult } from "@/app/(storefront)/support-campaig
 
 export type PledgeClickFlowDeps = {
   addPledge: (amount: number) => Promise<AddCampaignPledgeResult>;
-  refresh: () => void;
   openGivingPage: () => void;
-  /** Called after a successful pledge, before refresh/delay/open. */
+  /** Called after a successful pledge, before redirect. */
   onRecorded?: (pledgedAmount: number) => void | Promise<void>;
-  /** Pause before redirect so the thank-you message is visible. */
-  delayMs?: number;
 };
 
 export async function runSupportCampaignPledgeClick(
@@ -18,15 +15,6 @@ export async function runSupportCampaignPledgeClick(
   if (!result.ok) return result;
 
   await deps.onRecorded?.(result.pledgedAmount);
-  deps.refresh();
-
-  const delay = deps.delayMs ?? 0;
-  if (delay > 0) {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, delay);
-    });
-  }
-
   deps.openGivingPage();
   return result;
 }

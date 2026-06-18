@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { runSupportCampaignPledgeClick } from "./pledge-click-flow";
 
 describe("runSupportCampaignPledgeClick", () => {
-  it("records pledge, updates UI, refreshes, then redirects in the same tab", async () => {
+  it("records pledge, updates UI, then redirects without refresh", async () => {
     const order: string[] = [];
     const addPledge = vi.fn(async () => {
       order.push("addPledge");
@@ -21,19 +21,19 @@ describe("runSupportCampaignPledgeClick", () => {
     const result = await runSupportCampaignPledgeClick(100, {
       addPledge,
       onRecorded,
-      refresh,
       openGivingPage,
-      delayMs: 0,
     });
 
     expect(result).toEqual({ ok: true, pledgedAmount: 500 });
-    expect(order).toEqual(["addPledge", "onRecorded", "refresh", "openGivingPage"]);
+    expect(order).toEqual(["addPledge", "onRecorded", "openGivingPage"]);
+    expect(refresh).not.toHaveBeenCalled();
     expect(openGivingPage).toHaveBeenCalledOnce();
-    expect(openGivingPage).toHaveBeenCalledAfter(refresh);
+    expect(openGivingPage).toHaveBeenCalledAfter(onRecorded);
   });
 
   it("does not redirect when the pledge action fails", async () => {
     const openGivingPage = vi.fn();
+    const onRecorded = vi.fn();
     const addPledge = vi.fn(async () => ({
       ok: false as const,
       error: "nope",
@@ -41,11 +41,12 @@ describe("runSupportCampaignPledgeClick", () => {
 
     const result = await runSupportCampaignPledgeClick(100, {
       addPledge,
-      refresh: vi.fn(),
+      onRecorded,
       openGivingPage,
     });
 
     expect(result).toEqual({ ok: false, error: "nope" });
+    expect(onRecorded).not.toHaveBeenCalled();
     expect(openGivingPage).not.toHaveBeenCalled();
   });
 
@@ -59,15 +60,11 @@ describe("runSupportCampaignPledgeClick", () => {
 
     await runSupportCampaignPledgeClick(100, {
       addPledge,
-      refresh: vi.fn(),
       openGivingPage,
-      delayMs: 0,
     });
     await runSupportCampaignPledgeClick(250, {
       addPledge,
-      refresh: vi.fn(),
       openGivingPage,
-      delayMs: 0,
     });
 
     expect(addPledge).toHaveBeenCalledTimes(2);

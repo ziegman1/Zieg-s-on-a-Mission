@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { addCampaignPledgeAction } from "@/app/(storefront)/support-campaign/actions";
 import { Button } from "@/components/ui/button";
@@ -15,8 +14,6 @@ import { runSupportCampaignPledgeClick } from "@/lib/support-campaign/pledge-cli
 import { SupportCampaignMeter } from "./support-campaign-meter";
 import { SupportCampaignPledgeCards } from "./support-campaign-pledge-cards";
 
-const OPENING_DELAY_MS = 450;
-
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="font-serif text-xl sm:text-2xl text-brand-primary tracking-wide text-center">
@@ -30,7 +27,6 @@ export function SupportCampaignPage({
 }: {
   campaignState: SupportCampaignState;
 }) {
-  const router = useRouter();
   const [displayedPledged, setDisplayedPledged] = useState(campaignState.pledgedAmount);
   const [pledgePending, setPledgePending] = useState(false);
   const [pledgePhase, setPledgePhase] = useState<"idle" | "recording" | "opening">("idle");
@@ -44,34 +40,29 @@ export function SupportCampaignPage({
       setPledgeError(null);
       setPledgePhase("recording");
 
-      try {
-        const result = await runSupportCampaignPledgeClick(amount, {
-          addPledge: addCampaignPledgeAction,
-          onRecorded: (pledgedAmount) => {
-            setDisplayedPledged(pledgedAmount);
-            setPledgePhase("opening");
-          },
-          refresh: () => router.refresh(),
-          openGivingPage: openCampaignGivingPage,
-          delayMs: OPENING_DELAY_MS,
-        });
+      const result = await runSupportCampaignPledgeClick(amount, {
+        addPledge: addCampaignPledgeAction,
+        onRecorded: (pledgedAmount) => {
+          setDisplayedPledged(pledgedAmount);
+          setPledgePhase("opening");
+        },
+        openGivingPage: openCampaignGivingPage,
+      });
 
-        if (!result.ok) {
-          setPledgeError(result.error);
-        }
-      } finally {
+      if (!result.ok) {
+        setPledgeError(result.error);
         setPledgePending(false);
         setPledgePhase("idle");
       }
     },
-    [pledgePending, router],
+    [pledgePending],
   );
 
   const pledgeStatusMessage =
     pledgePhase === "recording"
       ? "Recording your pledge selection…"
       : pledgePhase === "opening"
-        ? "Thank you — opening the giving page now."
+        ? "Opening secure giving page…"
         : null;
 
   return (
