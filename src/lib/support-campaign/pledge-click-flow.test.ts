@@ -2,13 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { runSupportCampaignPledgeClick } from "./pledge-click-flow";
 
 describe("runSupportCampaignPledgeClick", () => {
-  it("prepares giving page before awaiting the pledge action", async () => {
+  it("records pledge, updates UI, refreshes, then redirects in the same tab", async () => {
     const order: string[] = [];
-    const prepared = { closed: false, close: vi.fn() } as unknown as Window;
-    const prepareGivingPage = vi.fn(() => {
-      order.push("prepareGivingPage");
-      return prepared;
-    });
     const addPledge = vi.fn(async () => {
       order.push("addPledge");
       return { ok: true as const, pledgedAmount: 500 };
@@ -25,7 +20,6 @@ describe("runSupportCampaignPledgeClick", () => {
 
     const result = await runSupportCampaignPledgeClick(100, {
       addPledge,
-      prepareGivingPage,
       onRecorded,
       refresh,
       openGivingPage,
@@ -33,19 +27,12 @@ describe("runSupportCampaignPledgeClick", () => {
     });
 
     expect(result).toEqual({ ok: true, pledgedAmount: 500 });
-    expect(order).toEqual([
-      "prepareGivingPage",
-      "addPledge",
-      "onRecorded",
-      "refresh",
-      "openGivingPage",
-    ]);
-    expect(openGivingPage).toHaveBeenCalledWith(prepared);
-    expect(prepareGivingPage).toHaveBeenCalledBefore(addPledge);
+    expect(order).toEqual(["addPledge", "onRecorded", "refresh", "openGivingPage"]);
+    expect(openGivingPage).toHaveBeenCalledOnce();
+    expect(openGivingPage).toHaveBeenCalledAfter(refresh);
   });
 
-  it("closes prepared tab and does not open giving page when pledge fails", async () => {
-    const prepared = { closed: false, close: vi.fn() } as unknown as Window;
+  it("does not redirect when the pledge action fails", async () => {
     const openGivingPage = vi.fn();
     const addPledge = vi.fn(async () => ({
       ok: false as const,
@@ -54,13 +41,11 @@ describe("runSupportCampaignPledgeClick", () => {
 
     const result = await runSupportCampaignPledgeClick(100, {
       addPledge,
-      prepareGivingPage: () => prepared,
       refresh: vi.fn(),
       openGivingPage,
     });
 
     expect(result).toEqual({ ok: false, error: "nope" });
-    expect(prepared.close).toHaveBeenCalledOnce();
     expect(openGivingPage).not.toHaveBeenCalled();
   });
 

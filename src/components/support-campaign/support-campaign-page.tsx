@@ -10,10 +10,7 @@ import {
   type PartnershipLevel,
 } from "@/data/support-campaign-config";
 import type { SupportCampaignState } from "@/lib/support-campaign/campaign-state";
-import {
-  openCampaignGivingPage,
-  prepareCampaignGivingPage,
-} from "@/lib/support-campaign/open-giving-page";
+import { openCampaignGivingPage } from "@/lib/support-campaign/open-giving-page";
 import { runSupportCampaignPledgeClick } from "@/lib/support-campaign/pledge-click-flow";
 import { SupportCampaignMeter } from "./support-campaign-meter";
 import { SupportCampaignPledgeCards } from "./support-campaign-pledge-cards";
@@ -50,7 +47,6 @@ export function SupportCampaignPage({
       try {
         const result = await runSupportCampaignPledgeClick(amount, {
           addPledge: addCampaignPledgeAction,
-          prepareGivingPage: prepareCampaignGivingPage,
           onRecorded: (pledgedAmount) => {
             setDisplayedPledged(pledgedAmount);
             setPledgePhase("opening");
