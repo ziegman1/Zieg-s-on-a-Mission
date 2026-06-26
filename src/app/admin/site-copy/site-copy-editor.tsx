@@ -153,6 +153,14 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
               }
             />
           </Field>
+          <Field label="Subheadline">
+            <Input
+              value={copy.homeHero.subheadline}
+              onChange={(e) =>
+                setCopy((c) => ({ ...c, homeHero: { ...c.homeHero, subheadline: e.target.value } }))
+              }
+            />
+          </Field>
           <Field label="Body">
             <Textarea
               rows={6}

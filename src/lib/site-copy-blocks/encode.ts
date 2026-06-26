@@ -91,6 +91,7 @@ export function siteCopyToBlocks(copy: SiteCopy): ContentBlock[] {
 
   blocks.push(
     scalar(order, "home", "hero", "homeHero.headline", "Hero headline", copy.homeHero.headline, "heading"),
+    scalar(order, "home", "hero", "homeHero.subheadline", "Hero subheadline", copy.homeHero.subheadline, "heading"),
     scalar(order, "home", "hero", "homeHero.body", "Hero body", copy.homeHero.body, "textarea"),
     scalar(order, "home", "hero", "homeHero.primaryCtaLabel", "Primary CTA label", copy.homeHero.primaryCtaLabel, "cta"),
     scalar(order, "home", "hero", "homeHero.secondaryCtaLabel", "Secondary CTA label", copy.homeHero.secondaryCtaLabel, "cta"),

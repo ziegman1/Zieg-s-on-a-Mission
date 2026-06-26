@@ -145,6 +145,7 @@ export function blocksToSiteCopy(blocks: ContentBlock[]): SiteCopy {
     },
     homeHero: {
       headline: fieldValue(byKey, "homeHero.headline", d.homeHero.headline),
+      subheadline: fieldValue(byKey, "homeHero.subheadline", ""),
       body: fieldValue(byKey, "homeHero.body", d.homeHero.body),
       primaryCtaLabel: fieldValue(byKey, "homeHero.primaryCtaLabel", d.homeHero.primaryCtaLabel),
       secondaryCtaLabel: fieldValue(

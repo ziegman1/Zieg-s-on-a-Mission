@@ -13,9 +13,11 @@ import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
 import {
   HOME_HERO_BODY,
+  HOME_HERO_BODY_WITH_SUBHEADLINE,
   HOME_HERO_CONTENT,
   HOME_HERO_EYEBROW,
   HOME_HERO_HEADLINE,
+  HOME_HERO_SUBHEADLINE,
   HOME_HERO_IMAGE,
   HOME_HERO_OVERLAY,
   homeHeroButtonClasses,
@@ -78,6 +80,7 @@ export function HeroSection({
   const src = contentStr(c, "imageUrl").trim() || DEFAULT_HOME_HERO_IMAGE_PATH;
   const eyebrow = contentStr(c, "eyebrow");
   const headline = contentStr(c, "headline");
+  const subheadline = contentStr(c, "subheadline");
   const body = contentStr(c, "body");
   const primaryLabel = contentStr(c, "primaryCtaLabel");
   const primaryUrl = contentStr(c, "primaryCtaUrl") || "/partner";
@@ -93,7 +96,7 @@ export function HeroSection({
   const show = (key: string, text: string) =>
     ctx?.editMode || (text.trim().length > 0 && fieldVisible(c, key));
 
-  if (!ctx?.editMode && !headline.trim() && !body.trim()) return null;
+  if (!ctx?.editMode && !headline.trim() && !subheadline.trim() && !body.trim()) return null;
 
   return (
     <section
@@ -156,12 +159,31 @@ export function HeroSection({
               />
             </EditableElement>
           ) : null}
+          {show("subheadline", subheadline) ? (
+            <EditableElement
+              sectionId={section.id}
+              elementId="subheadline"
+              style={getFieldStyle(c, "subheadline")}
+            >
+              <SiteBuilderFormattedContent
+                text={subheadline}
+                className={cn(
+                  isHome ? HOME_HERO_SUBHEADLINE : "mt-2 text-lg text-brand-ink/80 max-w-prose",
+                )}
+                emptyPlaceholder={ctx?.editMode ? "Subheadline (empty)" : undefined}
+              />
+            </EditableElement>
+          ) : null}
           {show("body", body) ? (
             <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
               <SiteBuilderFormattedContent
                 text={body}
                 className={cn(
-                  isHome ? HOME_HERO_BODY : "mt-5 text-lg text-brand-ink/85 max-w-prose",
+                  isHome
+                    ? subheadline.trim()
+                      ? HOME_HERO_BODY_WITH_SUBHEADLINE
+                      : HOME_HERO_BODY
+                    : "mt-5 text-lg text-brand-ink/85 max-w-prose",
                 )}
                 emptyPlaceholder={ctx?.editMode ? "Body (empty)" : undefined}
               />

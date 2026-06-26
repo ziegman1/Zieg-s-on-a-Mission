@@ -55,6 +55,7 @@ export async function getMergedLegalConfig() {
 export function homeHeroWithHrefs(copy: SiteCopy) {
   return {
     headline: copy.homeHero.headline,
+    subheadline: copy.homeHero.subheadline ?? "",
     body: copy.homeHero.body,
     primaryCta: { href: "/partner" as const, label: copy.homeHero.primaryCtaLabel },
     secondaryCta: { href: "/mission" as const, label: copy.homeHero.secondaryCtaLabel },

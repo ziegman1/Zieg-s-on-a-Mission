@@ -14,8 +14,14 @@ export const HOME_HERO_TEXT_SHADOW = "[text-shadow:0_2px_10px_rgba(0,0,0,0.18)]"
 export const HOME_HERO_HEADLINE =
   `text-[#F5F1EA] ${HOME_HERO_TEXT_SHADOW}`;
 
+export const HOME_HERO_SUBHEADLINE =
+  `mt-3 sm:mt-4 max-w-[620px] text-[1.15rem] sm:text-xl md:text-[1.35rem] font-medium leading-[1.35] text-[#F5F1EA] ${HOME_HERO_TEXT_SHADOW}`;
+
 export const HOME_HERO_BODY =
   `mt-6 max-w-[620px] text-[1.1rem] leading-[1.75] text-[#F5F1EA] ${HOME_HERO_TEXT_SHADOW}`;
+
+export const HOME_HERO_BODY_WITH_SUBHEADLINE =
+  `mt-4 sm:mt-5 max-w-[620px] text-[1.1rem] leading-[1.75] text-[#F5F1EA] ${HOME_HERO_TEXT_SHADOW}`;
 
 export const HOME_HERO_EYEBROW = "text-[#F5F1EA]/90";
 

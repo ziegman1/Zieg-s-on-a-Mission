@@ -138,6 +138,7 @@ function defaultHomeSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
   const sections: PageSection[] = [
     sec("home", "hero", "hero", "Home hero", {
       headline: c.homeHero.headline,
+      subheadline: c.homeHero.subheadline,
       body: c.homeHero.body,
       imageUrl: g.heroImageUrl || DEFAULT_HOME_HERO_IMAGE_PATH,
       primaryCtaLabel: c.homeHero.primaryCtaLabel,

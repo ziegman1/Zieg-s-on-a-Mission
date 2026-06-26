@@ -47,6 +47,7 @@ export const siteCopySaveSchema = z.object({
   }),
   homeHero: z.object({
     headline: z.string().min(1).max(300),
+    subheadline: z.string().max(300).optional().default(""),
     body: z.string().min(1).max(20000),
     primaryCtaLabel: z.string().min(1).max(120),
     secondaryCtaLabel: z.string().min(1).max(120),

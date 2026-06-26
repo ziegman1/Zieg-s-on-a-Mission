@@ -26,10 +26,11 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryEntry> = {
   hero: {
     type: "hero",
     label: "Hero",
-    description: "Full-width hero with headline, body, and buttons",
+    description: "Full-width hero with headline, subheadline, body, and buttons",
     fields: [
       { key: "eyebrow", label: "Eyebrow", kind: "text" },
       { key: "headline", label: "Headline", kind: "text" },
+      { key: "subheadline", label: "Subheadline", kind: "text" },
       { key: "body", label: "Body", kind: "textarea" },
       { key: "imageUrl", label: "Background image URL", kind: "image" },
       { key: "imageAlt", label: "Image alt text", kind: "text" },
@@ -43,6 +44,7 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryEntry> = {
     defaultContent: {
       eyebrow: "",
       headline: "",
+      subheadline: "",
       body: "",
       imageUrl: "",
       imageAlt: "",

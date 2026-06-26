@@ -9,10 +9,12 @@ import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 import { Button } from "@/components/ui/button";
 import {
   HOME_HERO_BODY,
+  HOME_HERO_BODY_WITH_SUBHEADLINE,
   HOME_HERO_CONTENT,
   HOME_HERO_HEADLINE,
   HOME_HERO_IMAGE,
   HOME_HERO_OVERLAY,
+  HOME_HERO_SUBHEADLINE,
   homeHeroButtonClasses,
 } from "@/components/site-builder/sections/home-hero-visual";
 
@@ -48,7 +50,16 @@ async function LegacyHomeContent() {
             >
               {hero.headline}
             </h1>
-            <p className={HOME_HERO_BODY}>{hero.body}</p>
+            {hero.subheadline.trim() ? (
+              <p className={HOME_HERO_SUBHEADLINE}>{hero.subheadline}</p>
+            ) : null}
+            <p
+              className={
+                hero.subheadline.trim() ? HOME_HERO_BODY_WITH_SUBHEADLINE : HOME_HERO_BODY
+              }
+            >
+              {hero.body}
+            </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href={hero.primaryCta.href} className={homeHeroButtonClasses("primary")}>
                 {hero.primaryCta.label}

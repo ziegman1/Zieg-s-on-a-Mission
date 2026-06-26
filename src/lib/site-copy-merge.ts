@@ -175,6 +175,18 @@ function mergeMerchPage(saved: unknown, fb: SiteCopy["merchPage"]): SiteCopy["me
   };
 }
 
+function mergeHomeHero(
+  saved: Partial<SiteCopy["homeHero"]> | undefined,
+  defaults: SiteCopy["homeHero"],
+): SiteCopy["homeHero"] {
+  if (!saved) return { ...defaults };
+  const merged = { ...defaults, ...saved };
+  if (!("subheadline" in saved)) {
+    merged.subheadline = "";
+  }
+  return merged;
+}
+
 function mergeHomeGuided(saved: unknown, fallback: SiteCopy["homeGuided"]): SiteCopy["homeGuided"] {
   if (!saved || typeof saved !== "object") return fallback;
   const s = saved as Record<string, unknown>;
@@ -219,7 +231,7 @@ export function mergeSiteCopyPayload(dbPayload: unknown): SiteCopy {
     navLinks: mergeNavLinks(patch.navLinks),
     footer: { ...d.footer, ...patch.footer },
     home: { ...d.home, ...patch.home },
-    homeHero: { ...d.homeHero, ...patch.homeHero },
+    homeHero: mergeHomeHero(patch.homeHero, d.homeHero),
     homeGuided: mergeHomeGuided(patch.homeGuided, d.homeGuided),
     about: {
       ...d.about,
