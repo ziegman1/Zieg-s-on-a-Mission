@@ -4,6 +4,11 @@ import { aboutHeroIsVisible } from "./about-hero";
 import { defaultSectionsForPage } from "./defaults";
 import { partitionMinistrySections } from "./ministry-sections-layout";
 import { mergeSiteCopyPayload } from "@/lib/site-copy-merge";
+import {
+  ABOUT_HERO_MIGRATION_STARTER,
+  aboutPageNeedsHeroMigration,
+  migrateAboutPageSections,
+} from "./about-page-migration";
 import type { PageSection } from "./types";
 
 describe("default About sections", () => {
@@ -104,5 +109,95 @@ describe("legacy About hero copy", () => {
     });
     expect(aboutHeroIsVisible(merged.about)).toBe(false);
     expect(merged.about.heroEyebrow).toBe("");
+  });
+});
+
+describe("migrateAboutPageSections", () => {
+  const legacyHeader: PageSection = {
+    id: "hdr-1",
+    pageKey: "about",
+    sectionKey: "header",
+    sectionType: "text_section",
+    label: "Page header",
+    visible: true,
+    sortOrder: 0,
+    content: { headline: "About us", body: "Old lede" },
+    settings: {},
+  };
+  const whoWeAre: PageSection = {
+    id: "sec-0",
+    pageKey: "about",
+    sectionKey: "section-0",
+    sectionType: "text_section",
+    label: "Who we are",
+    visible: true,
+    sortOrder: 1,
+    content: { headline: "Who we are", body: "Custom who body" },
+    settings: {},
+  };
+  const partnership: PageSection = {
+    id: "sec-1",
+    pageKey: "about",
+    sectionKey: "section-1",
+    sectionType: "text_section",
+    label: "Partnership first",
+    visible: true,
+    sortOrder: 2,
+    content: { headline: "Partnership first", body: "Custom partnership body" },
+    settings: {},
+  };
+  const footer: PageSection = {
+    id: "footer-1",
+    pageKey: "about",
+    sectionKey: "footer-nav",
+    sectionType: "cta",
+    label: "Page links",
+    visible: true,
+    sortOrder: 3,
+    content: { primaryCtaLabel: "Become a partner", primaryCtaUrl: "/partner" },
+    settings: {},
+  };
+
+  it("detects legacy About pages that need a hero", () => {
+    expect(aboutPageNeedsHeroMigration([legacyHeader, whoWeAre])).toBe(true);
+    expect(aboutPageNeedsHeroMigration([whoWeAre, partnership])).toBe(false);
+  });
+
+  it("prepends hero, removes header, and preserves saved body sections", () => {
+    const { sections, changed } = migrateAboutPageSections([
+      legacyHeader,
+      whoWeAre,
+      partnership,
+      footer,
+    ]);
+    expect(changed).toBe(true);
+    expect(sections.map((s) => s.sectionKey)).toEqual([
+      "hero",
+      "section-0",
+      "section-1",
+      "footer-nav",
+    ]);
+    expect(String(sections[0]?.content.headline ?? "")).toBe(ABOUT_HERO_MIGRATION_STARTER.headline);
+    expect(String(sections[1]?.content.body ?? "")).toBe("Custom who body");
+    expect(String(sections[2]?.content.body ?? "")).toBe("Custom partnership body");
+    expect(sections.find((s) => s.sectionKey === "header")).toBeUndefined();
+  });
+
+  it("is a no-op when hero already exists", () => {
+    const hero: PageSection = {
+      id: "hero",
+      pageKey: "about",
+      sectionKey: "hero",
+      sectionType: "hero",
+      label: "About hero",
+      visible: true,
+      sortOrder: 0,
+      content: {},
+      settings: {},
+    };
+    const input = [hero, whoWeAre];
+    const { sections, changed } = migrateAboutPageSections(input);
+    expect(changed).toBe(false);
+    expect(sections).toEqual(input);
   });
 });

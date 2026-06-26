@@ -10,11 +10,13 @@ import type { PageSection, SectionType } from "@/lib/site-builder/types";
 import { registryFor } from "@/lib/site-builder/registry";
 import { newBlockId } from "@/lib/site-copy-blocks/utils";
 import { selectionFromElement } from "@/lib/site-builder/section-elements";
+import { aboutPageNeedsHeroMigration } from "@/lib/site-builder/about-page-migration";
 import { replaceSectionInList, updateSectionInList } from "@/lib/site-builder/patch-section";
 import {
   loadBuilderPageAction,
   publishAllBuilderPagesAction,
   restoreBuilderPageDefaultsAction,
+  prependAboutHeroAction,
   restoreBuilderSectionDefaultsAction,
   saveBuilderPageAction,
 } from "./actions";
@@ -247,7 +249,7 @@ export function SiteBuilderEditor({
   const addSection = useCallback(
     (type: SectionType) => {
       const reg = registryFor(type);
-      const key = `custom-${Date.now()}`;
+      const key = type === "hero" ? "hero" : `custom-${Date.now()}`;
       let newId = "";
       setPages((p) => {
         const current = p[activePage]?.sections ?? [];
@@ -258,14 +260,21 @@ export function SiteBuilderEditor({
           sectionType: type,
           label: `New ${reg.label}`,
           visible: true,
-          sortOrder: current.length,
+          sortOrder: type === "hero" ? 0 : current.length,
           content: structuredClone(reg.defaultContent),
           settings: structuredClone(reg.defaultSettings ?? {}),
         };
+        const nextSections =
+          type === "hero"
+            ? [block, ...current.filter((s) => s.sectionKey !== "hero")].map((section, index) => ({
+                ...section,
+                sortOrder: index,
+              }))
+            : [...current, { ...block, sortOrder: current.length }];
         newId = block.id;
         return {
           ...p,
-          [activePage]: { sections: [...current, block], hasCustom: p[activePage]?.hasCustom ?? false },
+          [activePage]: { sections: nextSections, hasCustom: p[activePage]?.hasCustom ?? false },
         };
       });
       setDirty(true);
@@ -359,6 +368,24 @@ export function SiteBuilderEditor({
     setDirty(true);
   }
 
+  async function handlePrependAboutHero() {
+    setStatus("saving");
+    setError(null);
+    const res = await prependAboutHeroAction(sections);
+    if (!res.ok) {
+      setStatus("error");
+      setError(res.error);
+      return;
+    }
+    updateSections(res.sections);
+    setDirty(!res.saved);
+    setStatus(res.saved ? "saved" : "idle");
+    setPageSuccessMessage(res.message);
+    setTimeout(() => setStatus("idle"), 5000);
+  }
+
+  const showAboutHeroMigration = activePage === "about" && aboutPageNeedsHeroMigration(sections);
+
   const previewContext = useMemo(
     () => ({
       editMode: true as const,
@@ -446,9 +473,22 @@ export function SiteBuilderEditor({
             </Button>
           </div>
         ) : (
-          <Button type="button" size="sm" variant="outline" onClick={() => setConfirmRestore(true)}>
-            Restore page defaults
-          </Button>
+          <>
+            {showAboutHeroMigration ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handlePrependAboutHero()}
+                disabled={status === "saving"}
+              >
+                Add About hero
+              </Button>
+            ) : null}
+            <Button type="button" size="sm" variant="outline" onClick={() => setConfirmRestore(true)}>
+              Restore page defaults
+            </Button>
+          </>
         )}
       </div>
 

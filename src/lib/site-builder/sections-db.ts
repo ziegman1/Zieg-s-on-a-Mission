@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/db";
 import { defaultSectionsForPage } from "./defaults";
+import { migrateAboutPageSections } from "./about-page-migration";
 import { migrateGivePageSections } from "./give-page-sections";
 import { logSiteBuilderSaveError } from "./save-errors";
 import { prepareSectionsForSave } from "./sanitize";
@@ -75,6 +76,17 @@ export async function loadPageSections(pageKey: string): Promise<PageSection[]> 
           await savePageSections(pageKey, sections);
         } catch (error) {
           logSiteBuilderSaveError(error, { op: "migrateGivePageSections", pageKey });
+        }
+      }
+    }
+    if (pageKey === "about") {
+      const migrated = migrateAboutPageSections(sections);
+      if (migrated.changed) {
+        sections = migrated.sections;
+        try {
+          await savePageSections(pageKey, sections);
+        } catch (error) {
+          logSiteBuilderSaveError(error, { op: "migrateAboutPageSections", pageKey });
         }
       }
     }

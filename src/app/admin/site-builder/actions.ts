@@ -3,6 +3,7 @@
 import { diagServerAction } from "@/lib/admin-builder-diagnostics";
 import { revalidatePath } from "next/cache";
 import { defaultSectionsForPage } from "@/lib/site-builder/defaults";
+import { aboutPageNeedsHeroMigration, migrateAboutPageSections } from "@/lib/site-builder/about-page-migration";
 import {
   deletePageSections,
   getPageSectionsDiagnostics,
@@ -118,6 +119,36 @@ export async function saveBuilderPageAction(
           ? detail
           : `Could not save page sections. ${detail}`;
     return { ok: false, error };
+  }
+}
+
+export async function prependAboutHeroAction(currentSections: PageSection[]) {
+  const session = await requireAdminSession();
+  if (!session) return { ok: false as const, error: "Unauthorized" };
+
+  const migrated = migrateAboutPageSections(currentSections);
+  if (!migrated.changed) {
+    const message = aboutPageNeedsHeroMigration(currentSections)
+      ? "Could not add About hero."
+      : currentSections.some((s) => s.sectionKey === "hero")
+        ? "About page already has a hero section."
+        : "About page does not need hero migration.";
+    return { ok: true as const, sections: currentSections, hasCustom: true, message, saved: false };
+  }
+
+  try {
+    await savePageSections("about", migrated.sections);
+    await revalidateForPage("about");
+    return {
+      ok: true as const,
+      sections: migrated.sections,
+      hasCustom: true,
+      saved: true,
+      message: "Added About hero section and removed the old page header. Edit hero copy below, then save again if needed.",
+    };
+  } catch (e) {
+    logSiteBuilderSaveError(e, { op: "prependAboutHeroAction", pageKey: "about" });
+    return { ok: false as const, error: formatSiteBuilderSaveError(e) };
   }
 }
 
