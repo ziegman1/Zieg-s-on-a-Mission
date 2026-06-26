@@ -15,6 +15,8 @@ import {
 import {
   GET_INVOLVED_NAV,
   GIVE_NOW_NAV,
+  HEADER_NAV_AFTER_GET_INVOLVED,
+  HEADER_NAV_BEFORE_GET_INVOLVED,
   STOREFRONT_HEADER_NAV,
   navLabel,
   type NavLabelOverrides,
@@ -165,28 +167,22 @@ export function StorefrontHeader({
     </div>
   );
 
-  const beforeMission = STOREFRONT_HEADER_NAV.filter((item) =>
-    ["/", "/about"].includes(item.href),
+  const navBeforeGetInvolved = STOREFRONT_HEADER_NAV.filter((item) =>
+    (HEADER_NAV_BEFORE_GET_INVOLVED as readonly string[]).includes(item.href),
   );
-  const afterMission = STOREFRONT_HEADER_NAV.filter((item) =>
-    ["/community", "/blog", "/contact"].includes(item.href),
+  const navAfterGetInvolved = STOREFRONT_HEADER_NAV.filter((item) =>
+    (HEADER_NAV_AFTER_GET_INVOLVED as readonly string[]).includes(item.href),
   );
-  const missionLink = STOREFRONT_HEADER_NAV.find((item) => item.href === "/mission");
 
   const desktopNavLinks = (
     <>
-      {beforeMission.map((item) => (
+      {navBeforeGetInvolved.map((item) => (
         <Link key={item.href} href={item.href} className={NAV_LINK_CLASS}>
           {navLabel(item.href, item.label, labelOverrides)}
         </Link>
       ))}
-      {missionLink ? (
-        <Link href={missionLink.href} className={NAV_LINK_CLASS}>
-          {navLabel(missionLink.href, missionLink.label, labelOverrides)}
-        </Link>
-      ) : null}
       {getInvolvedDropdownDesktop}
-      {afterMission.map((item) => (
+      {navAfterGetInvolved.map((item) => (
         <Link key={item.href} href={item.href} className={NAV_LINK_CLASS}>
           {navLabel(item.href, item.label, labelOverrides)}
         </Link>
@@ -253,7 +249,7 @@ export function StorefrontHeader({
           className="md:hidden border-t border-white/20 bg-brand-primary/98 backdrop-blur-sm"
         >
           <nav className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-1" aria-label="Mobile primary">
-            {beforeMission.map((item) => (
+            {navBeforeGetInvolved.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -263,17 +259,8 @@ export function StorefrontHeader({
                 {navLabel(item.href, item.label, labelOverrides)}
               </Link>
             ))}
-            {missionLink ? (
-              <Link
-                href={missionLink.href}
-                onClick={closeMobile}
-                className="rounded-lg px-3 py-2.5 text-white hover:bg-white/10"
-              >
-                {navLabel(missionLink.href, missionLink.label, labelOverrides)}
-              </Link>
-            ) : null}
             {getInvolvedAccordionMobile}
-            {afterMission.map((item) => (
+            {navAfterGetInvolved.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

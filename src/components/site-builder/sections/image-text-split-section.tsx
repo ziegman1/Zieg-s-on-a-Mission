@@ -76,18 +76,20 @@ export function ImageTextSplitSection({
       sectionId={section.id}
       elementId="image"
       style={imgStyle}
-      className="col-span-2 md:col-span-1 flex items-center justify-center md:justify-end"
+      className="col-span-2 md:col-span-1 flex justify-center md:h-full md:min-h-0"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={imgUrl}
-        alt={contentStr(c, "imageAlt")}
-        className={cn(
-          "max-h-64 w-full max-w-md rounded-lg object-cover shadow-sm border border-gray-200/80",
-          imgCls,
-        )}
-        style={imgInline}
-      />
+      <div className="w-full max-w-md md:max-w-none h-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imgUrl}
+          alt={contentStr(c, "imageAlt")}
+          className={cn(
+            "w-full max-h-64 md:max-h-none md:h-full rounded-lg object-cover shadow-sm border border-gray-200/80",
+            imgCls,
+          )}
+          style={imgInline}
+        />
+      </div>
     </EditableElement>
   ) : (
     <div className="hidden md:block md:col-span-1 min-h-[5rem]" aria-hidden />
@@ -97,7 +99,7 @@ export function ImageTextSplitSection({
     <section className={sectionBg}>
       <div className="max-w-5xl mx-auto px-6 py-12 sm:py-16">
         <div className="border-t border-gray-200 w-full mb-8 sm:mb-10" />
-        <div className="grid md:grid-cols-2 gap-8 md:gap-10 items-center">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-10 md:items-stretch">
           {isTextLeft ? (
             <>
               {textColumn}

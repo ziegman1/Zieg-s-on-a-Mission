@@ -67,15 +67,15 @@ export function defaultMissionCounterConfig(): MissionCounterConfig {
       worldPopulationBaseline: "8100000000",
       worldPopulationBaselineAt: "2025-01-01T12:00:00.000Z",
       worldPopulationPerSecond: "2.3",
-      bornWithoutAccessPerDay: "150000",
-      dieWithoutAccessPerDay: "70000",
+      bornWithoutAccessPerDay: "159000",
+      dieWithoutAccessPerDay: "76000",
     },
     {
       worldPopulationBaseline: 8_100_000_000,
       worldPopulationBaselineAtMs: Date.parse("2025-01-01T12:00:00.000Z"),
       worldPopulationPerSecond: 2.3,
-      bornWithoutAccessPerDay: 150_000,
-      dieWithoutAccessPerDay: 70_000,
+      bornWithoutAccessPerDay: 159_000,
+      dieWithoutAccessPerDay: 76_000,
     },
   );
 }

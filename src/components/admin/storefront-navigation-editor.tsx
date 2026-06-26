@@ -86,7 +86,7 @@ export function StorefrontNavigationEditor({
       <div>
         <h2 className="font-medium text-brand-primary text-sm">Live header navigation</h2>
         <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
-          These labels update the storefront header immediately after save. Structure: Home · About · Mission ·{" "}
+          These labels update the storefront header immediately after save. Structure: Home · About & Mission ·
           Get Involved ▼ · Community · Blog · Contact, plus Give Now. Merch stays in the footer only.
         </p>
       </div>

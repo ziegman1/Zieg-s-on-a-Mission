@@ -1,7 +1,7 @@
 /** Default copy and baseline numbers for the homepage Mission Counter section. */
 
 export const MISSION_COUNTER_DISCLAIMER =
-  "Estimates based on current population and missions research. Counters are calculated from configured daily rates and are not live census data.";
+  "Estimated from global births/deaths and the current unreached population share reported by Joshua Project. Counters are calculated from configured daily rates and are not live census data.";
 
 export const DEFAULT_MISSION_COUNTER_CONTENT = {
   headline: "The Number That Keeps Us Up At Night",
@@ -16,8 +16,8 @@ That's where we've aimed our lives. Not the shortage of need, but the shortage o
   worldPopulationBaseline: "8100000000",
   worldPopulationBaselineAt: "2025-01-01T12:00:00.000Z",
   worldPopulationPerSecond: "2.3",
-  bornWithoutAccessPerDay: "150000",
-  dieWithoutAccessPerDay: "70000",
+  bornWithoutAccessPerDay: "159000",
+  dieWithoutAccessPerDay: "76000",
   sourceNote: MISSION_COUNTER_DISCLAIMER,
   sourceUrl: "https://joshuaproject.net",
 } as const;

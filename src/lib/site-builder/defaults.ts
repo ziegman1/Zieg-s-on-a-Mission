@@ -553,9 +553,9 @@ function defaultGlobalSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
     c.navLinks.find((l) => l.href === href)?.label ?? fallback;
 
   const headerLabels = [
-    ...STOREFRONT_HEADER_NAV.slice(0, 3).map((item) => `${labelFor(item.href, item.label)} → ${item.href}`),
+    ...STOREFRONT_HEADER_NAV.slice(0, 2).map((item) => `${labelFor(item.href, item.label)} → ${item.href}`),
     `${getInvolvedLabel} (dropdown) → /partner, /advocacy-team`,
-    ...STOREFRONT_HEADER_NAV.slice(3).map((item) => `${labelFor(item.href, item.label)} → ${item.href}`),
+    ...STOREFRONT_HEADER_NAV.slice(2).map((item) => `${labelFor(item.href, item.label)} → ${item.href}`),
   ];
 
   return [
