@@ -569,4 +569,5 @@ export const EDITABLE_SECTION_TYPES: SectionType[] = [
   "cta",
   "timeline",
   "featured_posts",
+  "mission_counter",
 ];

@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import { defaultSectionsForPage } from "@/lib/site-builder/defaults";
 import { aboutNeedsMissionPageMigration, migrateAboutMissionPageSections } from "@/lib/site-builder/about-mission-migration";
 import {
+  insertHomeMissionCounterAfterHero,
+} from "@/lib/site-builder/home-mission-counter-migration";
+import {
   deletePageSections,
   getPageSectionsDiagnostics,
   loadPageSectionsForAdmin,
@@ -150,6 +153,38 @@ export async function applyAboutMissionPageAction(currentSections: PageSection[]
     };
   } catch (e) {
     logSiteBuilderSaveError(e, { op: "applyAboutMissionPageAction", pageKey: "about" });
+    return { ok: false as const, error: formatSiteBuilderSaveError(e) };
+  }
+}
+
+export async function insertHomeMissionCounterAction(currentSections: PageSection[]) {
+  const session = await requireAdminSession();
+  if (!session) return { ok: false as const, error: "Unauthorized" };
+
+  const migrated = insertHomeMissionCounterAfterHero(currentSections);
+  if (!migrated.changed) {
+    return {
+      ok: true as const,
+      sections: currentSections,
+      hasCustom: true,
+      message: "Home page already includes the Mission counter section.",
+      saved: false,
+    };
+  }
+
+  try {
+    await savePageSections("home", migrated.sections);
+    await revalidateForPage("home");
+    return {
+      ok: true as const,
+      sections: migrated.sections,
+      hasCustom: true,
+      saved: true,
+      message:
+        "Inserted Mission counter after the Home hero. Review the preview, edit copy or numbers as needed, then save.",
+    };
+  } catch (e) {
+    logSiteBuilderSaveError(e, { op: "insertHomeMissionCounterAction", pageKey: "home" });
     return { ok: false as const, error: formatSiteBuilderSaveError(e) };
   }
 }

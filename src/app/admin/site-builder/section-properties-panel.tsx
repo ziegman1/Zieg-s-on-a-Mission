@@ -342,6 +342,7 @@ export function AddSectionPicker({
       <option value="cta">CTA</option>
       <option value="quote">Quote</option>
       <option value="timeline">Timeline</option>
+      <option value="mission_counter">Mission counter</option>
     </select>
   );
 }

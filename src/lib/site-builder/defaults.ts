@@ -22,6 +22,7 @@ import {
   STOREFRONT_HEADER_NAV,
 } from "@/data/storefront-navigation";
 import { ABOUT_MISSION_PAGE_CONTENT } from "@/data/about-mission-page-content";
+import { DEFAULT_MISSION_COUNTER_CONTENT } from "@/data/mission-counter-defaults";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
 import type { PageSection, SectionType } from "./types";
 import { registryFor } from "./registry";
@@ -148,6 +149,20 @@ function defaultHomeSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       secondaryCtaUrl: "/mission",
       tertiaryCtaLabel: "Get Involved",
       tertiaryCtaUrl: "/partner",
+    }),
+    sec("home", "mission-counter", "mission_counter", "Mission counter", {
+      headline: DEFAULT_MISSION_COUNTER_CONTENT.headline,
+      body: DEFAULT_MISSION_COUNTER_CONTENT.body,
+      populationLabel: DEFAULT_MISSION_COUNTER_CONTENT.populationLabel,
+      bornLabel: DEFAULT_MISSION_COUNTER_CONTENT.bornLabel,
+      diedLabel: DEFAULT_MISSION_COUNTER_CONTENT.diedLabel,
+      worldPopulationBaseline: DEFAULT_MISSION_COUNTER_CONTENT.worldPopulationBaseline,
+      worldPopulationBaselineAt: DEFAULT_MISSION_COUNTER_CONTENT.worldPopulationBaselineAt,
+      worldPopulationPerSecond: DEFAULT_MISSION_COUNTER_CONTENT.worldPopulationPerSecond,
+      bornWithoutAccessPerDay: DEFAULT_MISSION_COUNTER_CONTENT.bornWithoutAccessPerDay,
+      dieWithoutAccessPerDay: DEFAULT_MISSION_COUNTER_CONTENT.dieWithoutAccessPerDay,
+      sourceNote: DEFAULT_MISSION_COUNTER_CONTENT.sourceNote,
+      sourceUrl: DEFAULT_MISSION_COUNTER_CONTENT.sourceUrl,
     }),
   ];
 

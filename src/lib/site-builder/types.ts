@@ -6,6 +6,7 @@ export const SECTION_TYPES = [
   "quote",
   "cta",
   "stats",
+  "mission_counter",
   "timeline",
   "newsletter_signup",
   "featured_posts",

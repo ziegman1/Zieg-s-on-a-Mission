@@ -14,6 +14,8 @@ export type SectionRegistryEntry = {
   defaultSettings?: Record<string, unknown>;
 };
 
+import { DEFAULT_MISSION_COUNTER_CONTENT } from "@/data/mission-counter-defaults";
+
 const list = (items: string[] = [""]) =>
   items.map((text, i) => ({
     id: `item-${i}`,
@@ -167,6 +169,39 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryEntry> = {
     fields: [{ key: "items", label: "Stats", kind: "list", itemLabel: "Stat label" }],
     defaultContent: {
       items: list(["", ""]),
+    },
+  },
+  mission_counter: {
+    type: "mission_counter",
+    label: "Mission counter",
+    description: "Live population and gospel-access counters beside urgency copy",
+    fields: [
+      { key: "headline", label: "Headline", kind: "text" },
+      { key: "body", label: "Body", kind: "textarea" },
+      { key: "populationLabel", label: "World population label", kind: "text" },
+      { key: "bornLabel", label: "Born today label", kind: "text" },
+      { key: "diedLabel", label: "Died today label", kind: "text" },
+      { key: "worldPopulationBaseline", label: "World population baseline", kind: "text" },
+      { key: "worldPopulationBaselineAt", label: "Baseline timestamp (ISO)", kind: "text" },
+      { key: "worldPopulationPerSecond", label: "Population growth per second", kind: "text" },
+      { key: "bornWithoutAccessPerDay", label: "Born without access per day", kind: "text" },
+      { key: "dieWithoutAccessPerDay", label: "Died without access per day", kind: "text" },
+      { key: "sourceNote", label: "Source / disclaimer", kind: "textarea" },
+      { key: "sourceUrl", label: "Source URL", kind: "url" },
+    ],
+    defaultContent: {
+      headline: DEFAULT_MISSION_COUNTER_CONTENT.headline,
+      body: DEFAULT_MISSION_COUNTER_CONTENT.body,
+      populationLabel: DEFAULT_MISSION_COUNTER_CONTENT.populationLabel,
+      bornLabel: DEFAULT_MISSION_COUNTER_CONTENT.bornLabel,
+      diedLabel: DEFAULT_MISSION_COUNTER_CONTENT.diedLabel,
+      worldPopulationBaseline: DEFAULT_MISSION_COUNTER_CONTENT.worldPopulationBaseline,
+      worldPopulationBaselineAt: DEFAULT_MISSION_COUNTER_CONTENT.worldPopulationBaselineAt,
+      worldPopulationPerSecond: DEFAULT_MISSION_COUNTER_CONTENT.worldPopulationPerSecond,
+      bornWithoutAccessPerDay: DEFAULT_MISSION_COUNTER_CONTENT.bornWithoutAccessPerDay,
+      dieWithoutAccessPerDay: DEFAULT_MISSION_COUNTER_CONTENT.dieWithoutAccessPerDay,
+      sourceNote: DEFAULT_MISSION_COUNTER_CONTENT.sourceNote,
+      sourceUrl: DEFAULT_MISSION_COUNTER_CONTENT.sourceUrl,
     },
   },
   timeline: {

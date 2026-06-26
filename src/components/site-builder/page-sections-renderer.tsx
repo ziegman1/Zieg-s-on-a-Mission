@@ -9,6 +9,7 @@ import { QuoteSection } from "./sections/quote-section";
 import { TextSectionBlock } from "./sections/text-section";
 import { TimelineSection } from "./sections/timeline-section";
 import { FeaturedPostsSection } from "./sections/featured-posts-section";
+import { MissionCounterSection } from "./sections/mission-counter-section";
 import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
 import { partitionMinistrySections } from "@/lib/site-builder/ministry-sections-layout";
 import { EditableSectionShell } from "./editable-element";
@@ -62,6 +63,8 @@ export function PageSectionsRenderer({
                 return <TextSectionBlock section={section} />;
               case "card_grid":
                 return <CardGridSection section={section} />;
+              case "mission_counter":
+                return <MissionCounterSection section={section} />;
               case "cta":
                 return <CtaSection section={section} siteTagline={siteTagline} />;
               default:
@@ -105,6 +108,8 @@ function renderPartnerSection(section: PageSection) {
       return <CardGridSection section={section} />;
     case "timeline":
       return <TimelineSection section={section} />;
+    case "mission_counter":
+      return <MissionCounterSection section={section} />;
     case "quote":
       return <QuoteSection section={section} />;
     case "cta":
@@ -124,6 +129,8 @@ function renderGenericSection(section: PageSection, siteTagline: string) {
       return <CtaSection section={section} siteTagline={siteTagline} />;
     case "quote":
       return <QuoteSection section={section} />;
+    case "mission_counter":
+      return <MissionCounterSection section={section} />;
     default:
       return null;
   }
@@ -176,6 +183,8 @@ function renderMinistrySection(section: PageSection) {
       return <TimelineSection section={section} />;
     case "featured_posts":
       return <FeaturedPostsSection section={section} />;
+    case "mission_counter":
+      return <MissionCounterSection section={section} />;
     case "image_text_split":
       return <ImageTextSplitSection section={section} index={0} />;
     default:

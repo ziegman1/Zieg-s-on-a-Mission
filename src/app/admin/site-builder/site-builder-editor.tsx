@@ -11,12 +11,14 @@ import { registryFor } from "@/lib/site-builder/registry";
 import { newBlockId } from "@/lib/site-copy-blocks/utils";
 import { selectionFromElement } from "@/lib/site-builder/section-elements";
 import { aboutNeedsMissionPageMigration } from "@/lib/site-builder/about-mission-migration";
+import { homeNeedsMissionCounterMigration } from "@/lib/site-builder/home-mission-counter-migration";
 import { replaceSectionInList, updateSectionInList } from "@/lib/site-builder/patch-section";
 import {
   loadBuilderPageAction,
   publishAllBuilderPagesAction,
   restoreBuilderPageDefaultsAction,
   applyAboutMissionPageAction,
+  insertHomeMissionCounterAction,
   restoreBuilderSectionDefaultsAction,
   saveBuilderPageAction,
 } from "./actions";
@@ -384,7 +386,25 @@ export function SiteBuilderEditor({
     setTimeout(() => setStatus("idle"), 5000);
   }
 
+  async function handleInsertHomeMissionCounter() {
+    setStatus("saving");
+    setError(null);
+    const res = await insertHomeMissionCounterAction(sections);
+    if (!res.ok) {
+      setStatus("error");
+      setError(res.error);
+      return;
+    }
+    updateSections(res.sections);
+    setDirty(!res.saved);
+    setStatus(res.saved ? "saved" : "idle");
+    setPageSuccessMessage(res.message);
+    setTimeout(() => setStatus("idle"), 5000);
+  }
+
   const showAboutMissionMigration = activePage === "about" && aboutNeedsMissionPageMigration(sections);
+  const showHomeMissionCounterMigration =
+    activePage === "home" && homeNeedsMissionCounterMigration(sections);
 
   const previewContext = useMemo(
     () => ({
@@ -474,6 +494,17 @@ export function SiteBuilderEditor({
           </div>
         ) : (
           <>
+            {showHomeMissionCounterMigration ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handleInsertHomeMissionCounter()}
+                disabled={status === "saving"}
+              >
+                Add Mission counter after hero
+              </Button>
+            ) : null}
             {showAboutMissionMigration ? (
               <Button
                 type="button"

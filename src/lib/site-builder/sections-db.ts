@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/db";
 import { defaultSectionsForPage } from "./defaults";
 import { migrateAboutMissionPageSections } from "./about-mission-migration";
+import { insertHomeMissionCounterAfterHero } from "./home-mission-counter-migration";
 import { migrateGivePageSections } from "./give-page-sections";
 import { logSiteBuilderSaveError } from "./save-errors";
 import { prepareSectionsForSave } from "./sanitize";
@@ -87,6 +88,17 @@ export async function loadPageSections(pageKey: string): Promise<PageSection[]> 
           await savePageSections(pageKey, sections);
         } catch (error) {
           logSiteBuilderSaveError(error, { op: "migrateAboutMissionPageSections", pageKey });
+        }
+      }
+    }
+    if (pageKey === "home") {
+      const migrated = insertHomeMissionCounterAfterHero(sections);
+      if (migrated.changed) {
+        sections = migrated.sections;
+        try {
+          await savePageSections(pageKey, sections);
+        } catch (error) {
+          logSiteBuilderSaveError(error, { op: "insertHomeMissionCounterAfterHero", pageKey });
         }
       }
     }
