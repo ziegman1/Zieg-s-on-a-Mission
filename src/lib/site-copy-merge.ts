@@ -197,10 +197,27 @@ function mergeAbout(
     ...saved,
     sections: mergeAboutSections(saved.sections, defaults.sections),
   };
-  if (!("heroEyebrow" in saved)) merged.heroEyebrow = "";
-  if (!("heroHeadline" in saved)) merged.heroHeadline = "";
-  if (!("heroSubheadline" in saved)) merged.heroSubheadline = "";
-  if (!("heroBody" in saved)) merged.heroBody = "";
+  const optionalHeroKeys = [
+    "heroEyebrow",
+    "heroHeadline",
+    "heroSubheadline",
+    "heroBody",
+    "heroPrimaryCtaLabel",
+    "heroPrimaryCtaUrl",
+    "heroSecondaryCtaLabel",
+    "heroSecondaryCtaUrl",
+    "closingCtaHeadline",
+    "closingCtaBody",
+    "closingPrimaryCtaLabel",
+    "closingPrimaryCtaUrl",
+    "closingSecondaryCtaLabel",
+    "closingSecondaryCtaUrl",
+    "closingTertiaryCtaLabel",
+    "closingTertiaryCtaUrl",
+  ] as const;
+  for (const key of optionalHeroKeys) {
+    if (!(key in saved)) merged[key] = "";
+  }
   return merged;
 }
 

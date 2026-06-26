@@ -2,6 +2,7 @@
  * Default storefront copy. Admin edits merge on top (see getSiteCopy).
  */
 
+import { ABOUT_MISSION_PAGE_CONTENT } from "./about-mission-page-content";
 import { DEFAULT_HOME_GUIDED, type HomeGuided } from "./home-guided-default-sections";
 import {
   DEFAULT_GIVE_PAGE,
@@ -55,7 +56,19 @@ export type SiteCopy = {
     heroHeadline: string;
     heroSubheadline: string;
     heroBody: string;
+    heroPrimaryCtaLabel: string;
+    heroPrimaryCtaUrl: string;
+    heroSecondaryCtaLabel: string;
+    heroSecondaryCtaUrl: string;
     sections: { heading: string; body: string }[];
+    closingCtaHeadline: string;
+    closingCtaBody: string;
+    closingPrimaryCtaLabel: string;
+    closingPrimaryCtaUrl: string;
+    closingSecondaryCtaLabel: string;
+    closingSecondaryCtaUrl: string;
+    closingTertiaryCtaLabel: string;
+    closingTertiaryCtaUrl: string;
   };
   mission: {
     title: string;
@@ -130,23 +143,28 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
   },
   homeGuided: DEFAULT_HOME_GUIDED,
   about: {
-    title: "About us",
-    lede: `We're Jeremy and family—ordinary people who believe God calls every follower of Jesus into mission, whether across the street or around the world.`,
-    heroEyebrow: "Our Story",
-    heroHeadline: "About Us",
-    heroSubheadline: "Following Jesus into a calling greater than ourselves.",
-    heroBody:
-      "Jeremy and Lindsay’s journey has been shaped by obedience, discipleship, and a desire to help others discover God’s heart for the nations.",
-    sections: [
-      {
-        heading: "Who we are",
-        body: `We serve with Team Expansion and care deeply about disciples being made and churches being planted where Christ is least known. This site is our home for the story — and an invitation to join the mission as a monthly partner, friend, or prayer supporter.`,
-      },
-      {
-        heading: "Partnership first",
-        body: `We’re growing a team of monthly partners who make ongoing ministry possible. You’ll also find ways to give a one-time gift, explore optional merch and thank-you gifts, and read updates on the blog. Thank you for stopping by and for your prayers.`,
-      },
-    ],
+    title: "About & Mission",
+    lede: "",
+    heroEyebrow: ABOUT_MISSION_PAGE_CONTENT.hero.eyebrow,
+    heroHeadline: ABOUT_MISSION_PAGE_CONTENT.hero.headline,
+    heroSubheadline: ABOUT_MISSION_PAGE_CONTENT.hero.subheadline,
+    heroBody: ABOUT_MISSION_PAGE_CONTENT.hero.body,
+    heroPrimaryCtaLabel: ABOUT_MISSION_PAGE_CONTENT.hero.primaryCtaLabel,
+    heroPrimaryCtaUrl: ABOUT_MISSION_PAGE_CONTENT.hero.primaryCtaUrl,
+    heroSecondaryCtaLabel: ABOUT_MISSION_PAGE_CONTENT.hero.secondaryCtaLabel,
+    heroSecondaryCtaUrl: ABOUT_MISSION_PAGE_CONTENT.hero.secondaryCtaUrl,
+    sections: ABOUT_MISSION_PAGE_CONTENT.bodySections.map((section) => ({
+      heading: section.headline,
+      body: section.body,
+    })),
+    closingCtaHeadline: ABOUT_MISSION_PAGE_CONTENT.closingCta.headline,
+    closingCtaBody: ABOUT_MISSION_PAGE_CONTENT.closingCta.body,
+    closingPrimaryCtaLabel: ABOUT_MISSION_PAGE_CONTENT.closingCta.primaryCtaLabel,
+    closingPrimaryCtaUrl: ABOUT_MISSION_PAGE_CONTENT.closingCta.primaryCtaUrl,
+    closingSecondaryCtaLabel: ABOUT_MISSION_PAGE_CONTENT.closingCta.secondaryCtaLabel,
+    closingSecondaryCtaUrl: ABOUT_MISSION_PAGE_CONTENT.closingCta.secondaryCtaUrl,
+    closingTertiaryCtaLabel: ABOUT_MISSION_PAGE_CONTENT.closingCta.tertiaryCtaLabel,
+    closingTertiaryCtaUrl: ABOUT_MISSION_PAGE_CONTENT.closingCta.tertiaryCtaUrl,
   },
   mission: {
     title: "Our mission",

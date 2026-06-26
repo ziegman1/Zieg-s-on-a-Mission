@@ -146,6 +146,8 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryEntry> = {
       { key: "primaryCtaUrl", label: "Primary URL", kind: "url" },
       { key: "secondaryCtaLabel", label: "Secondary button", kind: "text" },
       { key: "secondaryCtaUrl", label: "Secondary URL", kind: "url" },
+      { key: "tertiaryCtaLabel", label: "Third button", kind: "text" },
+      { key: "tertiaryCtaUrl", label: "Third button URL", kind: "url" },
     ],
     defaultContent: {
       headline: "",
@@ -154,6 +156,8 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryEntry> = {
       primaryCtaUrl: "",
       secondaryCtaLabel: "",
       secondaryCtaUrl: "",
+      tertiaryCtaLabel: "",
+      tertiaryCtaUrl: "",
     },
   },
   stats: {

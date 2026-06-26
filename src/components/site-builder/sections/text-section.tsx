@@ -159,10 +159,11 @@ export function TextSectionBlock({
 
   return (
     <section
-      id={section.pageKey === "about" && section.sectionKey === "section-0" ? "story" : undefined}
+      id={section.pageKey === "about" && section.sectionKey === "story" ? "story" : undefined}
       className={cn(
         "mx-auto max-w-3xl px-4 py-12 sm:py-16",
         section.pageKey === "partner" && "py-16 sm:py-20",
+        section.pageKey === "about" && "py-8 sm:py-10 px-0",
         section.pageKey === "give" && section.sectionKey !== "header" && "py-0 px-0",
       )}
     >

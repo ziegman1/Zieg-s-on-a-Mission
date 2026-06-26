@@ -200,7 +200,7 @@ export function listEditableElements(section: PageSection): string[] {
       ids.push("cta:secondary");
     }
   }
-  if (t === "hero") ids.push("cta:tertiary");
+  if (t === "hero" || t === "cta") ids.push("cta:tertiary");
   if (t === "hero" || t === "image_text_split") ids.push("image");
   if (t === "quote") {
     ids.push("quote:text", "quote:attribution");

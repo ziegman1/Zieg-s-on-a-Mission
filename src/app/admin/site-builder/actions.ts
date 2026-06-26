@@ -3,7 +3,7 @@
 import { diagServerAction } from "@/lib/admin-builder-diagnostics";
 import { revalidatePath } from "next/cache";
 import { defaultSectionsForPage } from "@/lib/site-builder/defaults";
-import { aboutPageNeedsHeroMigration, migrateAboutPageSections } from "@/lib/site-builder/about-page-migration";
+import { aboutNeedsMissionPageMigration, migrateAboutMissionPageSections } from "@/lib/site-builder/about-mission-migration";
 import {
   deletePageSections,
   getPageSectionsDiagnostics,
@@ -122,18 +122,19 @@ export async function saveBuilderPageAction(
   }
 }
 
-export async function prependAboutHeroAction(currentSections: PageSection[]) {
+export async function applyAboutMissionPageAction(currentSections: PageSection[]) {
   const session = await requireAdminSession();
   if (!session) return { ok: false as const, error: "Unauthorized" };
 
-  const migrated = migrateAboutPageSections(currentSections);
+  const migrated = migrateAboutMissionPageSections(currentSections);
   if (!migrated.changed) {
-    const message = aboutPageNeedsHeroMigration(currentSections)
-      ? "Could not add About hero."
-      : currentSections.some((s) => s.sectionKey === "hero")
-        ? "About page already has a hero section."
-        : "About page does not need hero migration.";
-    return { ok: true as const, sections: currentSections, hasCustom: true, message, saved: false };
+    return {
+      ok: true as const,
+      sections: currentSections,
+      hasCustom: true,
+      message: "About page already uses the About & Mission layout.",
+      saved: false,
+    };
   }
 
   try {
@@ -144,10 +145,11 @@ export async function prependAboutHeroAction(currentSections: PageSection[]) {
       sections: migrated.sections,
       hasCustom: true,
       saved: true,
-      message: "Added About hero section and removed the old page header. Edit hero copy below, then save again if needed.",
+      message:
+        "Applied the About & Mission page layout. Review each section in the preview, edit copy as needed, then save.",
     };
   } catch (e) {
-    logSiteBuilderSaveError(e, { op: "prependAboutHeroAction", pageKey: "about" });
+    logSiteBuilderSaveError(e, { op: "applyAboutMissionPageAction", pageKey: "about" });
     return { ok: false as const, error: formatSiteBuilderSaveError(e) };
   }
 }

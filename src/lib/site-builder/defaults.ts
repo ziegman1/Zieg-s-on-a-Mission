@@ -21,6 +21,7 @@ import {
   STOREFRONT_FOOTER_NAV,
   STOREFRONT_HEADER_NAV,
 } from "@/data/storefront-navigation";
+import { ABOUT_MISSION_PAGE_CONTENT } from "@/data/about-mission-page-content";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
 import type { PageSection, SectionType } from "./types";
 import { registryFor } from "./registry";
@@ -197,25 +198,34 @@ function defaultHomeSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
   return sections;
 }
 
-function defaultAboutSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
+function defaultAboutSections(_c: typeof DEFAULT_SITE_COPY): PageSection[] {
+  const page = ABOUT_MISSION_PAGE_CONTENT;
   return [
     sec("about", "hero", "hero", "About hero", {
-      eyebrow: c.about.heroEyebrow,
-      headline: c.about.heroHeadline,
-      subheadline: c.about.heroSubheadline,
-      body: c.about.heroBody,
+      eyebrow: page.hero.eyebrow,
+      headline: page.hero.headline,
+      subheadline: page.hero.subheadline,
+      body: page.hero.body,
+      primaryCtaLabel: page.hero.primaryCtaLabel,
+      primaryCtaUrl: page.hero.primaryCtaUrl,
+      secondaryCtaLabel: page.hero.secondaryCtaLabel,
+      secondaryCtaUrl: page.hero.secondaryCtaUrl,
     }),
-    ...c.about.sections.map((s, i) =>
-      sec(`about`, `section-${i}`, "text_section", s.heading, {
-        headline: s.heading,
-        body: s.body,
+    ...page.bodySections.map((row) =>
+      sec("about", row.sectionKey, "text_section", row.label, {
+        headline: row.headline,
+        body: row.body,
       }),
     ),
-    sec("about", "footer-nav", "cta", "Page links", {
-      primaryCtaLabel: "Become a partner",
-      primaryCtaUrl: "/partner",
-      secondaryCtaLabel: "Give",
-      secondaryCtaUrl: "/give",
+    sec("about", "where-you-come-in", "cta", "Where you come in", {
+      headline: page.closingCta.headline,
+      body: page.closingCta.body,
+      primaryCtaLabel: page.closingCta.primaryCtaLabel,
+      primaryCtaUrl: page.closingCta.primaryCtaUrl,
+      secondaryCtaLabel: page.closingCta.secondaryCtaLabel,
+      secondaryCtaUrl: page.closingCta.secondaryCtaUrl,
+      tertiaryCtaLabel: page.closingCta.tertiaryCtaLabel,
+      tertiaryCtaUrl: page.closingCta.tertiaryCtaUrl,
     }),
   ];
 }

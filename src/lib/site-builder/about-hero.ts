@@ -25,6 +25,34 @@ export function aboutHeroSectionFromCopy(copy: SiteCopy): PageSection {
       headline: about.heroHeadline,
       subheadline: about.heroSubheadline,
       body: about.heroBody,
+      primaryCtaLabel: about.heroPrimaryCtaLabel,
+      primaryCtaUrl: about.heroPrimaryCtaUrl,
+      secondaryCtaLabel: about.heroSecondaryCtaLabel,
+      secondaryCtaUrl: about.heroSecondaryCtaUrl,
+    },
+    settings: {},
+  };
+}
+
+export function aboutClosingCtaSectionFromCopy(copy: SiteCopy): PageSection {
+  const { about } = copy;
+  return {
+    id: "about-closing-legacy",
+    pageKey: "about",
+    sectionKey: "where-you-come-in",
+    sectionType: "cta",
+    label: "Where you come in",
+    visible: true,
+    sortOrder: 99,
+    content: {
+      headline: about.closingCtaHeadline,
+      body: about.closingCtaBody,
+      primaryCtaLabel: about.closingPrimaryCtaLabel,
+      primaryCtaUrl: about.closingPrimaryCtaUrl,
+      secondaryCtaLabel: about.closingSecondaryCtaLabel,
+      secondaryCtaUrl: about.closingSecondaryCtaUrl,
+      tertiaryCtaLabel: about.closingTertiaryCtaLabel,
+      tertiaryCtaUrl: about.closingTertiaryCtaUrl,
     },
     settings: {},
   };

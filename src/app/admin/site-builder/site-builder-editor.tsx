@@ -10,13 +10,13 @@ import type { PageSection, SectionType } from "@/lib/site-builder/types";
 import { registryFor } from "@/lib/site-builder/registry";
 import { newBlockId } from "@/lib/site-copy-blocks/utils";
 import { selectionFromElement } from "@/lib/site-builder/section-elements";
-import { aboutPageNeedsHeroMigration } from "@/lib/site-builder/about-page-migration";
+import { aboutNeedsMissionPageMigration } from "@/lib/site-builder/about-mission-migration";
 import { replaceSectionInList, updateSectionInList } from "@/lib/site-builder/patch-section";
 import {
   loadBuilderPageAction,
   publishAllBuilderPagesAction,
   restoreBuilderPageDefaultsAction,
-  prependAboutHeroAction,
+  applyAboutMissionPageAction,
   restoreBuilderSectionDefaultsAction,
   saveBuilderPageAction,
 } from "./actions";
@@ -368,10 +368,10 @@ export function SiteBuilderEditor({
     setDirty(true);
   }
 
-  async function handlePrependAboutHero() {
+  async function handleApplyAboutMissionPage() {
     setStatus("saving");
     setError(null);
-    const res = await prependAboutHeroAction(sections);
+    const res = await applyAboutMissionPageAction(sections);
     if (!res.ok) {
       setStatus("error");
       setError(res.error);
@@ -384,7 +384,7 @@ export function SiteBuilderEditor({
     setTimeout(() => setStatus("idle"), 5000);
   }
 
-  const showAboutHeroMigration = activePage === "about" && aboutPageNeedsHeroMigration(sections);
+  const showAboutMissionMigration = activePage === "about" && aboutNeedsMissionPageMigration(sections);
 
   const previewContext = useMemo(
     () => ({
@@ -474,15 +474,15 @@ export function SiteBuilderEditor({
           </div>
         ) : (
           <>
-            {showAboutHeroMigration ? (
+            {showAboutMissionMigration ? (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => void handlePrependAboutHero()}
+                onClick={() => void handleApplyAboutMissionPage()}
                 disabled={status === "saving"}
               >
-                Add About hero
+                Apply About & Mission layout
               </Button>
             ) : null}
             <Button type="button" size="sm" variant="outline" onClick={() => setConfirmRestore(true)}>

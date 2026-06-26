@@ -23,7 +23,7 @@ function CtaButton({
   asLink = false,
 }: {
   section: PageSection;
-  slot: "primary" | "secondary";
+  slot: "primary" | "secondary" | "tertiary";
   label: string;
   url: string;
   role: StorefrontButtonRole;
@@ -69,6 +69,8 @@ export function CtaSection({
   const primaryUrl = contentStr(c, "primaryCtaUrl") || "/partner";
   const secondary = contentStr(c, "secondaryCtaLabel");
   const secondaryUrl = contentStr(c, "secondaryCtaUrl") || "/give";
+  const tertiary = contentStr(c, "tertiaryCtaLabel");
+  const tertiaryUrl = contentStr(c, "tertiaryCtaUrl") || "/contact";
 
   if (!headline.trim() && !body.trim() && !primary.trim()) return null;
 
@@ -122,6 +124,7 @@ export function CtaSection({
       <div className="not-prose mt-6 flex flex-wrap justify-center gap-3">
         <CtaButton section={section} slot="primary" label={primary} url={primaryUrl} role="primary" />
         <CtaButton section={section} slot="secondary" label={secondary} url={secondaryUrl} role="secondary" />
+        <CtaButton section={section} slot="tertiary" label={tertiary} url={tertiaryUrl} role="secondary" />
       </div>
       <ContentElementsBlock section={section} />
     </section>

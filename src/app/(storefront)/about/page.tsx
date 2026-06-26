@@ -1,11 +1,15 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
-import Link from "next/link";
+import { CtaSection } from "@/components/site-builder/sections/cta-section";
 import { HeroSection } from "@/components/site-builder/sections/hero-section";
 import { MinistryPageShell } from "@/components/ministry-page-shell";
 import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
-import { aboutHeroIsVisible, aboutHeroSectionFromCopy } from "@/lib/site-builder/about-hero";
+import {
+  aboutClosingCtaSectionFromCopy,
+  aboutHeroIsVisible,
+  aboutHeroSectionFromCopy,
+} from "@/lib/site-builder/about-hero";
 import { getSiteCopy } from "@/lib/site-copy";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
 
@@ -13,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
   return {
     title: "About",
-    description: `Learn about ${copy.site.name} — who we are and how monthly partnership sustains the mission.`,
+    description: `Learn about ${copy.site.name} — who we are, our mission, and how monthly partnership sustains the work.`,
   };
 }
 
@@ -28,30 +32,18 @@ async function LegacyAboutPage() {
       <MinistryPageShell title={showHero ? "" : title} lede={showHero ? undefined : lede}>
         {sections
           .filter((s) => s.heading.trim() || s.body.trim())
-          .map((s) => (
-            <section key={s.heading}>
+          .map((s, index) => (
+            <section
+              key={s.heading}
+              id={index === 0 ? "story" : undefined}
+              className={index > 0 ? "mt-10" : undefined}
+            >
               {s.heading.trim() ? <h2>{s.heading}</h2> : null}
               {s.body.trim() ? <SiteBuilderFormattedContent text={s.body} /> : null}
             </section>
           ))}
-        <nav className="!mt-12 pt-8 border-t border-brand-primary/25 flex flex-wrap gap-4 not-prose">
-          <Link href="/partner" className="text-brand-primary font-medium hover:underline">
-            Become a partner →
-          </Link>
-          <Link href="/give" className="text-brand-primary font-medium hover:underline">
-            Give
-          </Link>
-          <Link href="/mission" className="text-brand-primary font-medium hover:underline">
-            Our mission →
-          </Link>
-          <Link href="/blog" className="text-brand-primary font-medium hover:underline">
-            Blog
-          </Link>
-          <Link href="/contact" className="text-brand-primary font-medium hover:underline">
-            Contact
-          </Link>
-        </nav>
       </MinistryPageShell>
+      <CtaSection section={aboutClosingCtaSectionFromCopy(copy)} />
     </>
   );
 }
