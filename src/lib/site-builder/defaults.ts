@@ -199,9 +199,11 @@ function defaultHomeSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
 
 function defaultAboutSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
   return [
-    sec("about", "header", "text_section", "Page header", {
-      headline: c.about.title,
-      body: c.about.lede,
+    sec("about", "hero", "hero", "About hero", {
+      eyebrow: c.about.heroEyebrow,
+      headline: c.about.heroHeadline,
+      subheadline: c.about.heroSubheadline,
+      body: c.about.heroBody,
     }),
     ...c.about.sections.map((s, i) =>
       sec(`about`, `section-${i}`, "text_section", s.heading, {

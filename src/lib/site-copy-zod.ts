@@ -62,6 +62,10 @@ export const siteCopySaveSchema = z.object({
   about: z.object({
     title: z.string().min(1).max(200),
     lede: z.string().min(1).max(4000),
+    heroEyebrow: z.string().max(200).optional().default(""),
+    heroHeadline: z.string().max(200).optional().default(""),
+    heroSubheadline: z.string().max(500).optional().default(""),
+    heroBody: z.string().max(4000).optional().default(""),
     sections: z.array(sectionSchema).min(1).max(12),
   }),
   mission: z.object({

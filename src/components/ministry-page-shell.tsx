@@ -11,19 +11,25 @@ export function MinistryPageShell({
   lede?: string;
   children: ReactNode;
 }) {
+  const showHeader = title.trim().length > 0 || Boolean(lede?.trim());
+
   return (
     <article className="max-w-3xl mx-auto px-4 py-12 sm:py-16">
-      <header className="mb-10">
-        <h1 className="font-serif text-3xl sm:text-4xl text-brand-primary tracking-wide">
-          {title}
-        </h1>
-        {lede ? (
-          <SiteBuilderFormattedContent
-            text={lede}
-            className="mt-4 text-lg text-brand-ink/85 max-w-2xl"
-          />
-        ) : null}
-      </header>
+      {showHeader ? (
+        <header className="mb-10">
+          {title.trim() ? (
+            <h1 className="font-serif text-3xl sm:text-4xl text-brand-primary tracking-wide">
+              {title}
+            </h1>
+          ) : null}
+          {lede ? (
+            <SiteBuilderFormattedContent
+              text={lede}
+              className="mt-4 text-lg text-brand-ink/85 max-w-2xl"
+            />
+          ) : null}
+        </header>
+      ) : null}
       <div className={MINISTRY_PROSE_CLASS}>
         {children}
       </div>

@@ -187,6 +187,23 @@ function mergeHomeHero(
   return merged;
 }
 
+function mergeAbout(
+  saved: Partial<SiteCopy["about"]> | undefined,
+  defaults: SiteCopy["about"],
+): SiteCopy["about"] {
+  if (!saved) return { ...defaults, sections: [...defaults.sections] };
+  const merged: SiteCopy["about"] = {
+    ...defaults,
+    ...saved,
+    sections: mergeAboutSections(saved.sections, defaults.sections),
+  };
+  if (!("heroEyebrow" in saved)) merged.heroEyebrow = "";
+  if (!("heroHeadline" in saved)) merged.heroHeadline = "";
+  if (!("heroSubheadline" in saved)) merged.heroSubheadline = "";
+  if (!("heroBody" in saved)) merged.heroBody = "";
+  return merged;
+}
+
 function mergeHomeGuided(saved: unknown, fallback: SiteCopy["homeGuided"]): SiteCopy["homeGuided"] {
   if (!saved || typeof saved !== "object") return fallback;
   const s = saved as Record<string, unknown>;
@@ -233,11 +250,7 @@ export function mergeSiteCopyPayload(dbPayload: unknown): SiteCopy {
     home: { ...d.home, ...patch.home },
     homeHero: mergeHomeHero(patch.homeHero, d.homeHero),
     homeGuided: mergeHomeGuided(patch.homeGuided, d.homeGuided),
-    about: {
-      ...d.about,
-      ...patch.about,
-      sections: mergeAboutSections(patch.about?.sections, d.about.sections),
-    },
+    about: mergeAbout(patch.about, d.about),
     mission: {
       ...d.mission,
       ...patch.mission,

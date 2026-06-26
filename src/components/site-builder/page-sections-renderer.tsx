@@ -10,6 +10,7 @@ import { TextSectionBlock } from "./sections/text-section";
 import { TimelineSection } from "./sections/timeline-section";
 import { FeaturedPostsSection } from "./sections/featured-posts-section";
 import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
+import { partitionMinistrySections } from "@/lib/site-builder/ministry-sections-layout";
 import { EditableSectionShell } from "./editable-element";
 import { MinistryPageHeader } from "./ministry-page-header";
 import { useBuilderPreview } from "./builder-preview-context";
@@ -137,23 +138,25 @@ function MinistrySectionsPage({
   inEditor: boolean;
   wrap: (section: PageSection, node: React.ReactNode) => React.ReactNode;
 }) {
-  const header = sections.find((s) => s.sectionKey === "header");
-  const footer = sections.find((s) => s.sectionKey === "footer-nav");
-  const middle = sections.filter(
-    (s) => s.sectionKey !== "header" && s.sectionKey !== "footer-nav",
-  );
+  const { heroes, header, middle, footer } = partitionMinistrySections(sections);
 
   return (
-    <article className="max-w-3xl mx-auto px-4 py-12 sm:py-16">
-      {header ? wrap(header, <MinistryPageHeader section={header} />) : null}
-      <div className={MINISTRY_PROSE_CLASS}>
-        {middle.map((section) => {
-          const inner = renderMinistrySection(section);
-          return inner ? wrap(section, inner) : null;
-        })}
-      </div>
-      {footer ? wrap(footer, <CtaSection section={footer} />) : null}
-    </article>
+    <>
+      {heroes.map((section) => {
+        const inner = <HeroSection section={section} />;
+        return inner ? wrap(section, inner) : null;
+      })}
+      <article className="max-w-3xl mx-auto px-4 py-12 sm:py-16">
+        {header ? wrap(header, <MinistryPageHeader section={header} />) : null}
+        <div className={MINISTRY_PROSE_CLASS}>
+          {middle.map((section) => {
+            const inner = renderMinistrySection(section);
+            return inner ? wrap(section, inner) : null;
+          })}
+        </div>
+        {footer ? wrap(footer, <CtaSection section={footer} />) : null}
+      </article>
+    </>
   );
 }
 

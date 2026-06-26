@@ -51,6 +51,10 @@ export type SiteCopy = {
   about: {
     title: string;
     lede: string;
+    heroEyebrow: string;
+    heroHeadline: string;
+    heroSubheadline: string;
+    heroBody: string;
     sections: { heading: string; body: string }[];
   };
   mission: {
@@ -128,6 +132,11 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
   about: {
     title: "About us",
     lede: `We're Jeremy and family—ordinary people who believe God calls every follower of Jesus into mission, whether across the street or around the world.`,
+    heroEyebrow: "Our Story",
+    heroHeadline: "About Us",
+    heroSubheadline: "Following Jesus into a calling greater than ourselves.",
+    heroBody:
+      "Jeremy and Lindsay’s journey has been shaped by obedience, discipleship, and a desire to help others discover God’s heart for the nations.",
     sections: [
       {
         heading: "Who we are",

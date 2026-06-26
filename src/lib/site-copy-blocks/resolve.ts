@@ -181,6 +181,10 @@ export function blocksToSiteCopy(blocks: ContentBlock[]): SiteCopy {
     about: {
       title: fieldValue(byKey, "about.title", d.about.title),
       lede: fieldValue(byKey, "about.lede", d.about.lede),
+      heroEyebrow: fieldValue(byKey, "about.heroEyebrow", ""),
+      heroHeadline: fieldValue(byKey, "about.heroHeadline", ""),
+      heroSubheadline: fieldValue(byKey, "about.heroSubheadline", ""),
+      heroBody: fieldValue(byKey, "about.heroBody", ""),
       sections: aboutSections,
     },
     mission: {

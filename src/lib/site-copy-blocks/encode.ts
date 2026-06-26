@@ -163,6 +163,18 @@ export function siteCopyToBlocks(copy: SiteCopy): ContentBlock[] {
   blocks.push(
     scalar(order, "about", "page", "about.title", "Page title", copy.about.title, "heading"),
     scalar(order, "about", "page", "about.lede", "Intro (lede)", copy.about.lede, "textarea"),
+    scalar(order, "about", "hero", "about.heroEyebrow", "Hero eyebrow", copy.about.heroEyebrow, "heading"),
+    scalar(order, "about", "hero", "about.heroHeadline", "Hero headline", copy.about.heroHeadline, "heading"),
+    scalar(
+      order,
+      "about",
+      "hero",
+      "about.heroSubheadline",
+      "Hero subheadline",
+      copy.about.heroSubheadline,
+      "heading",
+    ),
+    scalar(order, "about", "hero", "about.heroBody", "Hero body", copy.about.heroBody, "textarea"),
     block(order, {
       pageKey: "about",
       sectionKey: "sections",
