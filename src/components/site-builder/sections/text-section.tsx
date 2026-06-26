@@ -12,6 +12,7 @@ import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { isElementVisible } from "@/lib/site-builder/element-style-utils";
 import { TextSectionCtaButtons } from "./text-section-cta-buttons";
+import { sectionAnchorProps } from "@/lib/site-builder/section-anchor";
 
 export function TextSectionBlock({
   section,
@@ -157,14 +158,17 @@ export function TextSectionBlock({
     </>
   );
 
+  const anchor = sectionAnchorProps(section);
+
   return (
     <section
-      id={section.pageKey === "about" && section.sectionKey === "story" ? "story" : undefined}
+      id={anchor.id}
       className={cn(
         "mx-auto max-w-3xl px-4 py-12 sm:py-16",
         section.pageKey === "partner" && "py-16 sm:py-20",
         section.pageKey === "about" && "py-8 sm:py-10 px-0",
         section.pageKey === "give" && section.sectionKey !== "header" && "py-0 px-0",
+        anchor.className,
       )}
     >
       {inner}

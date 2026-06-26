@@ -11,7 +11,9 @@ import {
   aboutHeroSectionFromCopy,
 } from "@/lib/site-builder/about-hero";
 import { getSiteCopy } from "@/lib/site-copy";
+import { cn } from "@/lib/utils";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
+import { SECTION_ANCHOR_SCROLL_CLASS } from "@/lib/site-builder/section-anchor";
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getSiteCopy();
@@ -36,7 +38,7 @@ async function LegacyAboutPage() {
             <section
               key={s.heading}
               id={index === 0 ? "story" : undefined}
-              className={index > 0 ? "mt-10" : undefined}
+              className={cn(index > 0 && "mt-10", index === 0 && SECTION_ANCHOR_SCROLL_CLASS)}
             >
               {s.heading.trim() ? <h2>{s.heading}</h2> : null}
               {s.body.trim() ? <SiteBuilderFormattedContent text={s.body} /> : null}

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { EditableElement } from "../editable-element";
 import { ContentElementsBlock } from "../content-elements-block";
 import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
+import { sectionAnchorProps } from "@/lib/site-builder/section-anchor";
 
 function CtaButton({
   section,
@@ -106,8 +107,10 @@ export function CtaSection({
     );
   }
 
+  const anchor = sectionAnchorProps(section);
+
   return (
-    <section className="mx-auto max-w-3xl px-4 py-12 text-center">
+    <section id={anchor.id} className={cn("mx-auto max-w-3xl px-4 py-12 text-center", anchor.className)}>
       {headline.trim() && fieldVisible(c, "headline") ? (
         <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
           <SiteBuilderFormattedContent
