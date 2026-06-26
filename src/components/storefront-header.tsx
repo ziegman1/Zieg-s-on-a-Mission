@@ -32,7 +32,7 @@ const NAV_LINK_CLASS =
   "text-xs md:text-[13px] lg:text-sm text-white hover:text-white/90 transition-colors whitespace-nowrap";
 
 export function StorefrontHeader({
-  siteName,
+  siteName: _siteName,
   labelOverrides = {},
   giveNowLabel,
   getInvolvedItems,
@@ -193,10 +193,12 @@ export function StorefrontHeader({
   return (
     <header className="border-b border-white/30 sticky top-0 z-50 bg-brand-primary shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between min-h-[4.5rem] md:min-h-[4.75rem] lg:min-h-20 py-3 md:py-2 gap-2 md:gap-3">
-        <Link
-          href="/"
-          aria-label={`Home — ${siteName}`}
-          className="flex items-center shrink-0 py-1 min-w-0"
+        <a
+          href="https://www.teamexpansion.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Team Expansion (opens in a new tab)"
+          className="flex items-center shrink-0 py-1 min-w-0 cursor-pointer transition-opacity hover:opacity-90"
         >
           <Image
             src="/logo/team-expansion.png"
@@ -207,7 +209,7 @@ export function StorefrontHeader({
             priority
             unoptimized
           />
-        </Link>
+        </a>
 
         <nav
           className={cn(
