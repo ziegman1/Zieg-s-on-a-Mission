@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
+import { getSingleWebpageUrlInText } from "@/lib/community/post-urls";
 import { cn } from "@/lib/utils";
+import { CommunityLinkPreviewCard } from "./community-link-preview-card";
+import { CommunityLinkedText } from "./community-linked-text";
 
 const CLAMP_LINES = 4;
 const MIN_CHARS_FOR_CLAMP = 180;
@@ -17,6 +20,7 @@ export function CommunityPostBodyClamp({
   onToggleExpand: () => void;
   className?: string;
 }) {
+  const previewUrl = useMemo(() => getSingleWebpageUrlInText(fullBody), [fullBody]);
   const canExpand = useMemo(
     () => fullBody.length > MIN_CHARS_FOR_CLAMP || fullBody.split("\n").length > CLAMP_LINES,
     [fullBody],
@@ -24,12 +28,16 @@ export function CommunityPostBodyClamp({
 
   if (!fullBody) return null;
 
+  const bodyClassName =
+    "whitespace-pre-wrap break-words text-brand-ink/88 text-[15px] leading-[1.65]";
+
   if (expanded) {
     return (
       <div className={cn("space-y-1 min-w-0", className)}>
-        <p className="whitespace-pre-wrap break-words text-brand-ink/88 text-[15px] leading-[1.65]">
-          {fullBody}
+        <p className={bodyClassName}>
+          <CommunityLinkedText text={fullBody} />
         </p>
+        {previewUrl ? <CommunityLinkPreviewCard url={previewUrl} /> : null}
         {canExpand ? (
           <button
             type="button"
@@ -47,12 +55,13 @@ export function CommunityPostBodyClamp({
     <div className={cn("relative min-w-0", className)}>
       <p
         className={cn(
-          "whitespace-pre-wrap break-words text-brand-ink/88 text-[15px] leading-[1.65]",
+          bodyClassName,
           canExpand && "line-clamp-4",
         )}
       >
-        {fullBody}
+        <CommunityLinkedText text={fullBody} />
       </p>
+      {previewUrl ? <CommunityLinkPreviewCard url={previewUrl} /> : null}
       {canExpand ? (
         <>
           <div

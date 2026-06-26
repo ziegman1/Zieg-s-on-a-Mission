@@ -12,6 +12,7 @@ import {
 import { loadPublicSharePagePreview } from "@/lib/community/post-public-share-server";
 import { getMissionHubSiteOrigin } from "@/lib/mission-hub/site-url";
 import { getSiteCopy } from "@/lib/site-copy";
+import { CommunityLinkedText } from "@/components/community/community-linked-text";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +93,7 @@ export default async function CommunityPostSharePage({ params }: PageProps) {
             </div>
 
             <p className="text-sm sm:text-base text-brand-ink/75 leading-relaxed whitespace-pre-wrap">
-              {preview.excerpt}
+              <CommunityLinkedText text={preview.excerpt} />
             </p>
 
             <div className="flex flex-wrap gap-2 pt-2">

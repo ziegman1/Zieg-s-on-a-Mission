@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, ChevronDown, ChevronUp, Loader2, Trash2 } from "lucide-react";
 import {
   clearReadNotificationsAction,
@@ -25,6 +25,7 @@ import {
 } from "@/lib/community/mission-hub-refresh";
 import { cn } from "@/lib/utils";
 import { useMissionHubRefreshOptional } from "./mission-hub-refresh-context";
+import { CommunityLinkedText } from "./community-linked-text";
 
 function formatNotificationTime(iso: string): string {
   const d = new Date(iso);
@@ -43,14 +44,27 @@ function NotificationRow({
   item: CommunityNotificationItem;
   onClick: (item: CommunityNotificationItem) => void;
 }) {
+  const router = useRouter();
+
+  function navigate() {
+    onClick(item);
+    router.push(item.href);
+  }
+
   return (
     <li>
-      <Link
-        href={item.href}
-        prefetch
-        onClick={() => onClick(item)}
+      <div
+        role="link"
+        tabIndex={0}
+        onClick={navigate}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            navigate();
+          }
+        }}
         className={cn(
-          "block px-3 py-2.5 hover:bg-brand-surface/50",
+          "block px-3 py-2.5 hover:bg-brand-surface/50 cursor-pointer",
           "transition-[transform,background-color] duration-100 touch-manipulation",
           "active:scale-[0.99] active:bg-black/[0.03]",
           !item.readAt && "bg-brand-primary/[0.05]",
@@ -66,14 +80,17 @@ function NotificationRow({
           {item.title}
         </p>
         {item.body ? (
-          <p className="mt-0.5 text-[11px] text-brand-ink/55 line-clamp-2 pl-3.5">
-            {item.body}
+          <p className="mt-0.5 text-[11px] text-brand-ink/55 line-clamp-2 pl-3.5 whitespace-pre-wrap">
+            <CommunityLinkedText
+              text={item.body}
+              onLinkClick={(event) => event.stopPropagation()}
+            />
           </p>
         ) : null}
         <p className="mt-1 text-[10px] text-brand-ink/38 pl-3.5">
           {formatNotificationTime(item.createdAt)}
         </p>
-      </Link>
+      </div>
     </li>
   );
 }

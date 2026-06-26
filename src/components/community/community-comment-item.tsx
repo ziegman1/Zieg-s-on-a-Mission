@@ -13,6 +13,7 @@ import {
 } from "./community-comment-moderation-menu";
 import { CommunityReplyForm } from "./community-reply-form";
 import { CommunityVoicePrayerPlayer } from "./community-voice-prayer-player";
+import { CommunityLinkedText } from "./community-linked-text";
 import { cn } from "@/lib/utils";
 
 function CommentModerationHeader({
@@ -125,7 +126,9 @@ export function CommunityCommentItem({
           <p className="text-sm font-semibold text-brand-ink">{comment.displayName}</p>
         </CommentModerationHeader>
         <p className="text-[15px] leading-relaxed text-brand-ink/85 whitespace-pre-wrap">
-          &ldquo;{parsed.text}&rdquo;
+          &ldquo;
+          <CommunityLinkedText text={parsed.text} />
+          &rdquo;
         </p>
         <time dateTime={comment.createdAt} className="block text-xs text-brand-ink/45">
           {formatCommunityPostDate(comment.createdAt)}
@@ -186,12 +189,14 @@ export function CommunityCommentItem({
               hasVideo={parsed.hasVideo}
             />
             {parsed.caption ? (
-              <p className="mt-2 text-sm text-brand-ink/75 leading-relaxed">{parsed.caption}</p>
+              <p className="mt-2 text-sm text-brand-ink/75 leading-relaxed whitespace-pre-wrap">
+                <CommunityLinkedText text={parsed.caption} />
+              </p>
             ) : null}
           </div>
         ) : (
           <p className="mt-1.5 text-sm text-brand-ink/82 leading-relaxed whitespace-pre-wrap">
-            {parsed.kind === "written" ? parsed.text : ""}
+            {parsed.kind === "written" ? <CommunityLinkedText text={parsed.text} /> : ""}
           </p>
         )}
         {canReply && !isReply && onReply ? (

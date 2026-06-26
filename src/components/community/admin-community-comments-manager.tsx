@@ -7,6 +7,8 @@ import { moderateCommentAction } from "@/app/admin/community/comment-actions";
 import type { AdminCommunityCommentRow } from "@/lib/community/comments";
 import type { CommunityCommentStatus } from "@/lib/community/types";
 import { formatCommunityPostDate } from "@/lib/community/format-post-date";
+import { prayerResponseNotificationExcerpt } from "@/lib/community/prayer-response-body";
+import { CommunityLinkedText } from "@/components/community/community-linked-text";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +135,12 @@ export function AdminCommunityCommentsManager({
                   ) : null}
                 </div>
               </div>
-              <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{c.body}</p>
+              <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                <CommunityLinkedText
+                  text={prayerResponseNotificationExcerpt(c.body)}
+                  linkClassName="text-brand-primary hover:underline break-all"
+                />
+              </p>
             </li>
           );
         })}
