@@ -11,6 +11,7 @@ import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
 import { MinistryProgressTracker } from "@/components/mission/ministry-progress-tracker";
 import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
+import { usesWideImage } from "@/lib/site-builder/wide-image-section";
 import { cn } from "@/lib/utils";
 
 export function ImageTextSplitSection({
@@ -35,6 +36,7 @@ export function ImageTextSplitSection({
 
   const isTextLeft = index % 2 === 0;
   const sectionBg = index % 2 === 0 ? "bg-white" : "bg-neutral-50";
+  const wideImage = usesWideImage(section);
   const imgStyle = getFieldStyle(c, "image");
   const { className: imgCls, style: imgInline } = elementStyleProps(imgStyle);
   const btnStyle = getFieldStyle(c, "cta:primary");
@@ -81,15 +83,24 @@ export function ImageTextSplitSection({
       sectionId={section.id}
       elementId="image"
       style={imgStyle}
-      className="col-span-2 md:col-span-1 flex justify-center md:h-full md:min-h-0"
+      className={cn(
+        "col-span-2 md:col-span-1 flex justify-center",
+        // A wide graphic sits centred at its own height; the default photo treatment stretches to
+        // match the text column so the two sides line up.
+        wideImage ? "md:self-center" : "md:h-full md:min-h-0",
+      )}
     >
-      <div className="w-full max-w-md md:max-w-none h-full">
+      <div className={cn("w-full", wideImage ? null : "max-w-md md:max-w-none h-full")}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imgUrl}
           alt={contentStr(c, "imageAlt")}
           className={cn(
-            "w-full max-h-64 md:max-h-none md:h-full rounded-lg object-cover shadow-sm border border-gray-200/80",
+            wideImage
+              ? // h-auto keeps the natural landscape ratio, so nothing is cropped or stretched at
+                // any width. No border or shadow: the artwork carries its own white background.
+                "w-full h-auto rounded-lg object-contain"
+              : "w-full max-h-64 md:max-h-none md:h-full rounded-lg object-cover shadow-sm border border-gray-200/80",
             imgCls,
           )}
           style={imgInline}
