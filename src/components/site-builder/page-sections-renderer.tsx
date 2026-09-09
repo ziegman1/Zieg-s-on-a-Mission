@@ -11,6 +11,8 @@ import { TimelineSection } from "./sections/timeline-section";
 import { FeaturedPostsSection } from "./sections/featured-posts-section";
 import { MissionCounterSection } from "./sections/mission-counter-section";
 import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
+import { resolveMinistryProgressSectionKey } from "@/lib/site-builder/ministry-progress-section";
+import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
 import { partitionMinistrySections } from "@/lib/site-builder/ministry-sections-layout";
 import { EditableSectionShell } from "./editable-element";
 import { MinistryPageHeader } from "./ministry-page-header";
@@ -21,16 +23,23 @@ export function PageSectionsRenderer({
   sections,
   siteTagline = "",
   editMode = false,
+  recruitCounts = null,
 }: {
   pageKey: string;
   sections: PageSection[];
   siteTagline?: string;
   editMode?: boolean;
+  recruitCounts?: RecruitCounts | null;
 }) {
   const ctx = useBuilderPreview();
   const inEditor = Boolean(editMode || ctx?.editMode);
   const toRender = inEditor ? sections : sections.filter((s) => s.visible);
   let splitIndex = 0;
+
+  // Resolved by stable section key, never by position, so reordering cannot move the tracker.
+  const progressSectionKey = recruitCounts
+    ? resolveMinistryProgressSectionKey(toRender)
+    : null;
 
   const wrap = (section: PageSection, node: React.ReactNode) => {
     if (!inEditor) return node;
@@ -57,7 +66,15 @@ export function PageSectionsRenderer({
                 return <HeroSection section={section} useScriptTitle />;
               case "image_text_split": {
                 const idx = splitIndex++;
-                return <ImageTextSplitSection section={section} index={idx} />;
+                return (
+                  <ImageTextSplitSection
+                    section={section}
+                    index={idx}
+                    progressCounts={
+                      section.sectionKey === progressSectionKey ? recruitCounts : null
+                    }
+                  />
+                );
               }
               case "text_section":
                 return <TextSectionBlock section={section} />;

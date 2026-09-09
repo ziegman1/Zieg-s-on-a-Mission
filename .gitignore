@@ -22,6 +22,7 @@ out/
 
 # Debug
 npm-debug.log*
+*.log
 .pnp.*
 
 # Vercel CLI link metadata (relink per machine / project as needed)

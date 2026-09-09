@@ -743,3 +743,21 @@ model SupportCampaignPledgeIntentRecord {
   @@index([campaignId, createdAt(sort: Desc)])
   @@map("support_campaign_pledge_intents")
 }
+
+/// Recruit tracker records behind the "300 Missionaries Mobilized, Trained & Sent by
+/// August 31, 2031" goal. ADMIN-only; the public surface is aggregate integer counts.
+///
+/// Milestones are derived in src/lib/recruits/recruit-milestones.ts, never stored:
+///   Mobilized = every record   Trained = jonathanTrainingComplete
+///   Sent      = jonathanTrainingComplete AND fullyFunded
+model RecruitRecord {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String
+  jonathanTrainingComplete Boolean  @default(false) @map("jonathan_training_complete")
+  fullyFunded              Boolean  @default(false) @map("fully_funded")
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([jonathanTrainingComplete, fullyFunded], map: "recruits_milestones_idx")
+  @@map("recruits")
+}

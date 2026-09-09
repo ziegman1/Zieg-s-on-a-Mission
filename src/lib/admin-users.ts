@@ -34,6 +34,14 @@ export function isAdminRole(role: string | undefined | null): boolean {
   return role === "ADMIN" || role === "STAFF";
 }
 
+/**
+ * Strict ADMIN check for sensitive individual records (e.g. recruit tracker data).
+ * Unlike `isAdminRole`, STAFF is denied. Do not use this to gate general admin areas.
+ */
+export function isAdminOnlyRole(role: string | undefined | null): boolean {
+  return role === "ADMIN";
+}
+
 /** Admin emails (lowercase) for logging and future owner-only tooling. */
 export function getDefaultAdminEmails(): string[] {
   return DEFAULT_ADMIN_USERS.map((u) => u.email.toLowerCase());

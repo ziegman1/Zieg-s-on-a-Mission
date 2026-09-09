@@ -1,0 +1,63 @@
+import { existsSync, readdirSync, readFileSync } from "fs";
+import { resolve } from "path";
+import { describe, expect, it } from "vitest";
+
+/**
+ * Recruit records are ADMIN-only. The shared admin layout admits STAFF, so the page and every
+ * server action must enforce requireAdminOnlySession themselves.
+ */
+const actionsPath = resolve(process.cwd(), "src/app/admin/recruits/actions.ts");
+const pagePath = resolve(process.cwd(), "src/app/admin/recruits/page.tsx");
+
+const actions = readFileSync(actionsPath, "utf8");
+const page = readFileSync(pagePath, "utf8");
+
+describe("admin recruits guard", () => {
+  it("page enforces ADMIN-only access and redirects otherwise", () => {
+    expect(page).toContain("requireAdminOnlySession");
+    expect(page).toContain("redirect(");
+  });
+
+  it("admin recruits page is force-dynamic", () => {
+    expect(page).toContain('export const dynamic = "force-dynamic"');
+  });
+
+  it("every recruit server action requires an ADMIN-only session", () => {
+    const exportedActions = [
+      "createRecruitAction",
+      "renameRecruitAction",
+      "updateRecruitMilestonesAction",
+      "deleteRecruitAction",
+    ];
+
+    for (const action of exportedActions) {
+      expect(actions).toContain(action);
+      // The guard must appear inside each action body, before any database work.
+      const body = actions.slice(actions.indexOf(`export async function ${action}`));
+      const guardAt = body.indexOf("requireAdminOnlySession");
+      const nextExportAt = body.indexOf("export async function", 1);
+      expect(guardAt).toBeGreaterThan(-1);
+      if (nextExportAt > -1) expect(guardAt).toBeLessThan(nextExportAt);
+    }
+  });
+
+  it("does not fall back to the ADMIN/STAFF combined helper", () => {
+    expect(actions).not.toContain("requireAdminSession");
+    expect(page).not.toContain("requireAdminSession(");
+  });
+
+  it("keeps recruit queries in a server-only module", () => {
+    const dbPath = resolve(process.cwd(), "src/lib/recruits/recruits-db.ts");
+    const db = readFileSync(dbPath, "utf8");
+    expect(db).toContain('import "server-only"');
+  });
+
+  it("exposes no public API route for recruits", () => {
+    const apiDir = resolve(process.cwd(), "src/app/api");
+    const found =
+      existsSync(apiDir) &&
+      readdirSync(apiDir).some((entry) => entry.toLowerCase().includes("recruit"));
+
+    expect(found).toBe(false);
+  });
+});

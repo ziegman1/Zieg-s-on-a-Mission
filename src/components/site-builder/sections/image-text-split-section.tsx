@@ -9,14 +9,19 @@ import { ContentElementsBlock } from "../content-elements-block";
 import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
+import { MinistryProgressTracker } from "@/components/mission/ministry-progress-tracker";
+import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
 import { cn } from "@/lib/utils";
 
 export function ImageTextSplitSection({
   section,
   index,
+  progressCounts = null,
 }: {
   section: PageSection;
   index: number;
+  /** When set, the ministry progress tracker fills this section's otherwise-empty visual column. */
+  progressCounts?: RecruitCounts | null;
 }) {
   const ctx = useBuilderPreview();
   const c = section.content;
@@ -91,6 +96,12 @@ export function ImageTextSplitSection({
         />
       </div>
     </EditableElement>
+  ) : progressCounts ? (
+    // Fills the column that would otherwise be an empty spacer. Visible on mobile too, where the
+    // grid stacks it above the copy.
+    <div className="col-span-2 md:col-span-1 md:self-center">
+      <MinistryProgressTracker counts={progressCounts} />
+    </div>
   ) : (
     <div className="hidden md:block md:col-span-1 min-h-[5rem]" aria-hidden />
   );
