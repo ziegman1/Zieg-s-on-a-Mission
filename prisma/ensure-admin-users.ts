@@ -39,7 +39,7 @@ export async function ensureAdminUsers(prisma: PrismaClient): Promise<void> {
         );
       } else {
         console.warn(
-          `[seed] Skipped creating ${email}: set ${admin.passwordEnvKey} (or run setup-credentials).`,
+          `[seed] Skipped creating ${email}: set ${admin.passwordEnvKey}.`,
         );
       }
       continue;

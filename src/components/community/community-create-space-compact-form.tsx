@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import {
   createCommunitySpaceAction,
@@ -39,25 +39,10 @@ export function CommunityCreateSpaceCompactForm({
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [buildLabel, setBuildLabel] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const titleId = "mh-create-space-title";
-
-  useEffect(() => {
-    const envSha = process.env.NEXT_PUBLIC_MISSION_HUB_BUILD_SHA?.slice(0, 7);
-    if (envSha) {
-      setBuildLabel(`${CLIENT_MARKER}@${envSha}`);
-      return;
-    }
-    void fetch("/api/mission-hub/build-info", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((data: { label?: string; sha?: string }) => {
-        setBuildLabel(`${CLIENT_MARKER}@${data.sha ?? data.label ?? "?"}`);
-      })
-      .catch(() => {
-        setBuildLabel(CLIENT_MARKER);
-      });
-  }, []);
+  const envSha = process.env.NEXT_PUBLIC_MISSION_HUB_BUILD_SHA?.slice(0, 7);
+  const buildLabel = envSha ? `${CLIENT_MARKER}@${envSha}` : CLIENT_MARKER;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

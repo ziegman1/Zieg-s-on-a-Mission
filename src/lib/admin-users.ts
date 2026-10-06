@@ -1,6 +1,6 @@
 /**
  * Canonical Mission Hub / store admin owners (database-backed, role ADMIN).
- * Passwords are set only via env at seed time or setup-credentials — never stored here.
+ * Passwords are set only via env at seed time — never stored here.
  */
 
 export type AdminUserSeedConfig = {

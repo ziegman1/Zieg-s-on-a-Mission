@@ -61,7 +61,7 @@ npm run db:seed
 Seed creates:
 
 - Admin owners (see `src/lib/admin-users.ts`): **jziegenhorn@teamexpansion.org**, **lziegenhorn@teamexpansion.org** — set **ADMIN_PASSWORD** / **ADMIN_PASSWORD_LINDSAY** in env when running `db:seed` or `db:seed:admin` (never commit passwords)  
-- **Production / Vercel:** Deploy does **not** run seed. Run **`npm run db:seed:admin`** against production `DATABASE_URL` or use **`POST /api/admin/setup-credentials`** with `email` + `password` once.  
+- **Production / Vercel:** Deploy does **not** run seed. Run **`npm run db:seed:admin`** against production `DATABASE_URL`.  
 - Printify provider  
 - Featured & Apparel collections  
 - Sample products (self-fulfilled + dropship placeholders)  
