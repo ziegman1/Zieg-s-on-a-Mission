@@ -23,6 +23,26 @@ Use this list to get the site live. Order matters for some steps.
 
 You can also use the **Connect** button on the Supabase dashboard and switch between “Transaction” and “Direct” to get the right strings.
 
+### Database security baseline (required)
+
+How the app uses Supabase:
+
+- **Application auth is NextAuth** (Auth.js credentials, JWT sessions), not Supabase Auth.
+- **All application database access is server-side through Prisma**, connecting as `postgres` (owner of the public tables, `BYPASSRLS`).
+- **Browser/client database access is intentionally unsupported.** `anon` and `authenticated` have no privileges on any public table.
+- **Supabase Storage is separate.** Media uploads use the server-only service role key; buckets and Storage policies are managed by the SQL in `supabase/storage/` and are not part of this baseline.
+
+Database side (in source control): migration `20261007120000_security_lockdown_baseline` revokes `anon`/`authenticated` on all public tables, enables row level security on every public table (no `FORCE`, no new policies), and stops future `postgres`-created objects in `public` from auto-granting those roles. It must be applied as `postgres` and is a no-op on a database that is already locked down. Any new table must enable RLS in its own migration.
+
+Platform side (dashboard settings, not SQL — set these on every environment):
+
+| Setting | Required value | Where |
+|---------|----------------|-------|
+| Data API | **Disabled** | Integrations → Data API → *Enable Data API* off. Do not change per-table expose switches or the authenticator role. |
+| Auth new-user signup | **Disabled** | Authentication → Sign In / Providers → *Allow new users to sign up* off → Save. |
+
+If the Data API ever has to be re-enabled, the previous values were exposed schemas `public, graphql_public`, extra search path `public, extensions`, max rows `1000`; the table revokes above still keep `anon`/`authenticated` out.
+
 ---
 
 ## 2. Vercel (hosting)
@@ -125,7 +145,7 @@ In Vercel: **Project → Settings → Environment Variables**. Add these for **P
 
 | Step | Action |
 |------|--------|
-| 1 | Create Supabase project; get **Transaction pooler** (6543) and **Direct** (5432) URIs. |
+| 1 | Create Supabase project; get **Transaction pooler** (6543) and **Direct** (5432) URIs; disable the **Data API** and **Auth signup** (security baseline). |
 | 2 | Create Vercel project and connect repo. |
 | 3 | Set env vars on Vercel (use pooler + `?pgbouncer=true` for `DATABASE_URL`, direct for `DIRECT_URL`). |
 | 4 | Deploy; run `prisma migrate deploy` with `DIRECT_URL` (direct Supabase URI). |
