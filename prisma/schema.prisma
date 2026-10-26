@@ -744,12 +744,13 @@ model SupportCampaignPledgeIntentRecord {
   @@map("support_campaign_pledge_intents")
 }
 
-/// Recruit tracker records behind the "300 Missionaries Mobilized, Trained & Sent by
-/// August 31, 2031" goal. ADMIN-only; the public surface is aggregate integer counts.
+/// Recruit tracker records behind the legacy public counts. ADMIN-only.
 ///
 /// Milestones are derived in src/lib/recruits/recruit-milestones.ts, never stored:
 ///   Mobilized = every record   Trained = jonathanTrainingComplete
 ///   Sent      = jonathanTrainingComplete AND fullyFunded
+/// Those legacy rules stay in force for the public site. MinistryPerson is the
+/// separate record used by the Ministry Impact Tracker and does not replace this row.
 model RecruitRecord {
   id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                     String
@@ -758,6 +759,107 @@ model RecruitRecord {
   createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  ministryPeople MinistryPerson[]
+
   @@index([jonathanTrainingComplete, fullyFunded], map: "recruits_milestones_idx")
   @@map("recruits")
+}
+
+/// Primary ministry pathway. Null means the historical record has not been reviewed yet.
+enum MinistryPathway {
+  TEAM_EXPANSION_RECRUIT
+  NATIONAL_PARTNER
+  TRAINING_PARTICIPANT
+}
+
+/// Type of worker Sent. Describes the assignment, not the pathway the person entered through.
+enum MinistrySentDesignation {
+  OVERSEAS_MISSIONARY
+  INTERNATIONAL_SERVICES
+  D_COURSE
+  NATIONAL_WORKER
+  OTHER_DISCIPLE_MAKER
+}
+
+/// Jonathan Training and DMM Training are one program. Where it happened is MinistryActivity.location.
+enum MinistryActivityType {
+  JONATHAN_TRAINING
+  MEDICAL_TRAINING
+  SUPPORT_RAISING_COACHING
+  D_COURSE
+  ZUME
+  FOUR_FIELDS_ONLINE
+  FIDELIS
+  OTHER
+}
+
+/// Participation is not completion, and neither one confirms Sent.
+enum MinistryActivityStatus {
+  PARTICIPATED
+  COMPLETED
+}
+
+/// One person counted toward the ministry impact outcomes.
+///
+/// Mobilized, Trained & Equipped, and Sent are independent. Each is a boolean, so a milestone
+/// can be recorded when the historical day is unknown. The optional date is not what makes the
+/// person count. Sent requires a designation; that rule is enforced by
+/// ministry_people_sent_designation_check in the migration.
+///
+/// Two people who share a householdId, or the same legacyRecruitId, are linked without copying
+/// each other's milestones. The Sent total counts rows where sent is true, so one person counts
+/// once no matter how many activities they have.
+model MinistryPerson {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  displayName String  @map("display_name")
+
+  pathway         MinistryPathway? @map("pathway")
+  legacyRecruitId String?          @map("legacy_recruit_id") @db.Uuid
+  /// Shared opaque id. Not a foreign key; there is no household table.
+  householdId     String?          @map("household_id") @db.Uuid
+
+  mobilized          Boolean   @default(false)
+  mobilizedOn        DateTime? @map("mobilized_on") @db.Date
+  trainedEquipped    Boolean   @default(false) @map("trained_equipped")
+  trainedEquippedOn  DateTime? @map("trained_equipped_on") @db.Date
+  sent                 Boolean                  @default(false)
+  sentOn               DateTime?                @map("sent_on") @db.Date
+  sentDesignation      MinistrySentDesignation? @map("sent_designation")
+  sentVerifiedAt       DateTime?                @map("sent_verified_at") @db.Timestamptz(6)
+  sentVerifiedBy       String?                  @map("sent_verified_by")
+  sentVerificationNote String                   @default("") @map("sent_verification_note")
+
+  notes String @default("")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  legacyRecruit RecruitRecord?    @relation(fields: [legacyRecruitId], references: [id], onDelete: SetNull)
+  activities    MinistryActivity[]
+
+  @@index([legacyRecruitId], map: "ministry_people_legacy_recruit_id_idx")
+  @@index([householdId], map: "ministry_people_household_id_idx")
+  @@index([sent], map: "ministry_people_sent_idx")
+  @@map("ministry_people")
+}
+
+/// A training, coaching, or preparation activity for one person.
+/// Completing an activity does not set MinistryPerson.sent.
+model MinistryActivity {
+  id           String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  personId     String                 @map("person_id") @db.Uuid
+  activityType MinistryActivityType   @map("activity_type")
+  status       MinistryActivityStatus
+  activityOn   DateTime?              @map("activity_on") @db.Date
+  /// Venue, such as Emerald Hills, a church, or a country. Not a separate program.
+  location     String?                @map("location")
+  notes        String                 @default("")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  person MinistryPerson @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, activityType], map: "ministry_activities_person_id_activity_type_idx")
+  @@map("ministry_activities")
 }

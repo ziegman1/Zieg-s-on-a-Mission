@@ -1,8 +1,16 @@
 import { redirect } from "next/navigation";
 import type { RecruitRecord } from "@prisma/client";
 import { requireAdminOnlySession } from "@/lib/admin-auth";
+import {
+  getMinistryOutcomeCounts,
+  listMinistryPeople,
+  type MinistryPersonView,
+} from "@/lib/ministry/ministry-db";
+import type { MinistryOutcomeCounts } from "@/lib/ministry/ministry-milestones";
 import { getRecruitCounts, listRecruits } from "@/lib/recruits/recruits-db";
 import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
+import { MinistryManager } from "./ministry-manager";
+import { MinistrySummary } from "./ministry-summary";
 import { RecruitsManager } from "./recruits-manager";
 import { RecruitSummary } from "./recruit-summary";
 
@@ -16,6 +24,9 @@ export default async function AdminRecruitsPage() {
   let recruits: RecruitRecord[] = [];
   let counts: RecruitCounts = { mobilized: 0, trained: 0, sent: 0 };
   let dbError: string | null = null;
+  let people: MinistryPersonView[] = [];
+  let ministryCounts: MinistryOutcomeCounts = { mobilized: 0, trainedEquipped: 0, sent: 0 };
+  let ministryError: string | null = null;
 
   try {
     [recruits, counts] = await Promise.all([listRecruits(), getRecruitCounts()]);
@@ -25,26 +36,63 @@ export default async function AdminRecruitsPage() {
       "Could not load recruits. Run `npm run db:migrate:deploy` against your Supabase database.";
   }
 
+  if (!dbError) {
+    try {
+      [people, ministryCounts] = await Promise.all([
+        listMinistryPeople(),
+        getMinistryOutcomeCounts(),
+      ]);
+    } catch (e) {
+      console.error(e);
+      ministryError =
+        "The Ministry Impact preview is not on this database yet. The legacy tracker below is unchanged.";
+    }
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h1 className="font-serif text-3xl text-brand-primary tracking-wide">Recruit Tracker</h1>
+        <h1 className="font-serif text-3xl text-brand-primary tracking-wide">
+          Ministry Impact Tracker
+        </h1>
         <p className="text-zinc-400 text-sm mt-2 max-w-3xl leading-relaxed">
-          Every recruit added here counts as Mobilized. Check Jonathan Training and Fully Funded as
-          each person reaches those milestones — the public progress numbers are calculated from
-          these records automatically. Enter a couple as one record using &ldquo;and&rdquo; or &ldquo;&amp;&rdquo;
-          (for example &ldquo;Jeremy and Lindsay Ziegenhorn&rdquo;) and they will count as two
-          people.
+          Record each person, their pathway, their activities, and the milestones you have
+          confirmed. Mobilized, Trained &amp; Equipped, and Sent are separate. The public site
+          still shows the legacy totals until a later phase switches it over.
         </p>
       </div>
 
       {dbError ? (
         <p className="text-red-400 text-sm max-w-2xl leading-relaxed">{dbError}</p>
+      ) : ministryError ? (
+        <p className="text-amber-200/90 text-sm max-w-2xl leading-relaxed">{ministryError}</p>
       ) : (
         <>
+          <MinistrySummary counts={ministryCounts} />
+          <MinistryManager
+            people={people}
+            legacyRecruits={recruits.map((recruit) => ({ id: recruit.id, name: recruit.name }))}
+          />
+        </>
+      )}
+
+      {dbError ? null : (
+        <section className="space-y-6 border-t border-brand-primary/25 pt-8">
+          <div>
+            <h2 className="font-serif text-2xl text-brand-primary tracking-wide">
+              Legacy Recruit Tracker
+            </h2>
+            <p className="text-zinc-400 text-sm mt-2 max-w-3xl leading-relaxed">
+              These records still drive the public progress numbers. Mobilized means every person
+              named here, Trained means Jonathan Training, and Sent means trained and fully funded.
+              Enter a couple as one record using &ldquo;and&rdquo; or &ldquo;&amp;&rdquo;
+              (for example &ldquo;Jeremy and Lindsay Ziegenhorn&rdquo;) and they count as two
+              people. Nothing in the new tracker changes these figures.
+            </p>
+          </div>
           <RecruitSummary counts={counts} />
           <RecruitsManager initialRecruits={recruits} />
-        </>
+        </section>
       )}
     </div>
   );

@@ -7,9 +7,11 @@ import { describe, expect, it } from "vitest";
  * server action must enforce requireAdminOnlySession themselves.
  */
 const actionsPath = resolve(process.cwd(), "src/app/admin/recruits/actions.ts");
+const ministryActionsPath = resolve(process.cwd(), "src/app/admin/recruits/ministry-actions.ts");
 const pagePath = resolve(process.cwd(), "src/app/admin/recruits/page.tsx");
 
 const actions = readFileSync(actionsPath, "utf8");
+const ministryActions = readFileSync(ministryActionsPath, "utf8");
 const page = readFileSync(pagePath, "utf8");
 
 describe("admin recruits guard", () => {
@@ -43,7 +45,39 @@ describe("admin recruits guard", () => {
 
   it("does not fall back to the ADMIN/STAFF combined helper", () => {
     expect(actions).not.toContain("requireAdminSession");
+    expect(ministryActions).not.toContain("requireAdminSession");
     expect(page).not.toContain("requireAdminSession(");
+  });
+
+  it("every ministry server action requires an ADMIN-only session", () => {
+    const exportedActions = [
+      "createMinistryPersonAction",
+      "updateMinistryPersonAction",
+      "updateMinistryMilestonesAction",
+      "deleteMinistryPersonAction",
+      "createMinistryActivityAction",
+      "updateMinistryActivityAction",
+      "deleteMinistryActivityAction",
+    ];
+
+    for (const action of exportedActions) {
+      const body = ministryActions.slice(ministryActions.indexOf(`export async function ${action}`));
+      const guardAt = body.indexOf("requireAdminOnlySession");
+      const nextExportAt = body.indexOf("export async function", 1);
+      expect(guardAt).toBeGreaterThan(-1);
+      if (nextExportAt > -1) expect(guardAt).toBeLessThan(nextExportAt);
+    }
+  });
+
+  it("keeps the public homepage on the legacy recruit counts", () => {
+    const renderPage = readFileSync(
+      resolve(process.cwd(), "src/lib/site-builder/render-page.tsx"),
+      "utf8",
+    );
+    expect(renderPage).toContain("getRecruitCounts");
+    expect(renderPage).not.toContain("getMinistryOutcomeCounts");
+    expect(page).toContain("Legacy Recruit Tracker");
+    expect(page).toContain("RecruitsManager");
   });
 
   it("keeps recruit queries in a server-only module", () => {
