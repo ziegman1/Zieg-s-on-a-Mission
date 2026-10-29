@@ -106,6 +106,13 @@ export async function deleteRecruitAction(id: string): Promise<RecruitActionResu
     await deleteRecruit(id);
   } catch (e) {
     console.error("[admin/recruits] delete failed", e);
+    const code = typeof e === "object" && e && "code" in e ? String(e.code) : "";
+    if (code === "P2003") {
+      return {
+        ok: false,
+        error: "This legacy record is linked to reconciled people, so it was kept.",
+      };
+    }
     return { ok: false, error: "Could not delete that recruit." };
   }
 

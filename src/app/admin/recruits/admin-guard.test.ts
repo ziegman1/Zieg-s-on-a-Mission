@@ -8,10 +8,12 @@ import { describe, expect, it } from "vitest";
  */
 const actionsPath = resolve(process.cwd(), "src/app/admin/recruits/actions.ts");
 const ministryActionsPath = resolve(process.cwd(), "src/app/admin/recruits/ministry-actions.ts");
+const legacyActionsPath = resolve(process.cwd(), "src/app/admin/recruits/legacy-actions.ts");
 const pagePath = resolve(process.cwd(), "src/app/admin/recruits/page.tsx");
 
 const actions = readFileSync(actionsPath, "utf8");
 const ministryActions = readFileSync(ministryActionsPath, "utf8");
+const legacyActions = readFileSync(legacyActionsPath, "utf8");
 const page = readFileSync(pagePath, "utf8");
 
 describe("admin recruits guard", () => {
@@ -46,6 +48,7 @@ describe("admin recruits guard", () => {
   it("does not fall back to the ADMIN/STAFF combined helper", () => {
     expect(actions).not.toContain("requireAdminSession");
     expect(ministryActions).not.toContain("requireAdminSession");
+    expect(legacyActions).not.toContain("requireAdminSession");
     expect(page).not.toContain("requireAdminSession(");
   });
 
@@ -78,6 +81,13 @@ describe("admin recruits guard", () => {
     expect(renderPage).not.toContain("getMinistryOutcomeCounts");
     expect(page).toContain("Legacy Recruit Tracker");
     expect(page).toContain("RecruitsManager");
+    expect(page).toContain("LegacyReconciliation");
+    const reconciliation = readFileSync(
+      resolve(process.cwd(), "src/app/admin/recruits/legacy-reconciliation.tsx"),
+      "utf8",
+    );
+    expect(reconciliation).toContain("Legacy Reconciliation");
+    expect(renderPage).not.toContain("planLegacyImport");
   });
 
   it("keeps recruit queries in a server-only module", () => {

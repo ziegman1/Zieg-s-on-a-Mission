@@ -143,6 +143,13 @@ export async function deleteMinistryPersonAction(id: string): Promise<MinistryAc
   try {
     await deleteMinistryPerson(id);
   } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    if (code === "P2003") {
+      return {
+        ok: false,
+        error: "This person is part of the legacy reconciliation, so the record was kept.",
+      };
+    }
     return { ok: false, error: friendlyConstraint(error, "Could not delete that person.") };
   }
 

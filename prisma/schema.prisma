@@ -760,6 +760,7 @@ model RecruitRecord {
   updatedAt                DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   ministryPeople MinistryPerson[]
+  legacyLinks    MinistryLegacyLink[]
 
   @@index([jonathanTrainingComplete, fullyFunded], map: "recruits_milestones_idx")
   @@map("recruits")
@@ -799,6 +800,13 @@ enum MinistryActivityStatus {
   COMPLETED
 }
 
+/// Review of a historical person. Independent of Mobilized, Trained & Equipped, and Sent.
+enum MinistryLegacyReviewStatus {
+  PENDING_REVIEW
+  CONFIRMED
+  NEEDS_CLARIFICATION
+}
+
 /// One person counted toward the ministry impact outcomes.
 ///
 /// Mobilized, Trained & Equipped, and Sent are independent. Each is a boolean, so a milestone
@@ -834,8 +842,9 @@ model MinistryPerson {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  legacyRecruit RecruitRecord?    @relation(fields: [legacyRecruitId], references: [id], onDelete: SetNull)
+  legacyRecruit RecruitRecord?       @relation(fields: [legacyRecruitId], references: [id], onDelete: SetNull)
   activities    MinistryActivity[]
+  legacyLink    MinistryLegacyLink?
 
   @@index([legacyRecruitId], map: "ministry_people_legacy_recruit_id_idx")
   @@index([householdId], map: "ministry_people_household_id_idx")
@@ -862,4 +871,34 @@ model MinistryActivity {
 
   @@index([personId, activityType], map: "ministry_activities_person_id_activity_type_idx")
   @@map("ministry_activities")
+}
+
+/// Historical evidence for one individual who came from a legacy recruit row.
+///
+/// Checkboxes copied here are the roster as it was at import. They do not set
+/// MinistryPerson milestone flags. One legacy row may link to several people.
+/// Retrying the import uses (legacyRecruitId, individualKey) and does not create another person.
+model MinistryLegacyLink {
+  id                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  legacyRecruitId           String                     @map("legacy_recruit_id") @db.Uuid
+  individualKey             String                     @map("individual_key")
+  originalDisplayName       String                     @map("original_display_name")
+  originalJonathanTraining  Boolean                    @map("original_jonathan_training")
+  originalFullyFunded       Boolean                    @map("original_fully_funded")
+  personId                  String                     @unique @map("person_id") @db.Uuid
+  reviewStatus              MinistryLegacyReviewStatus @default(PENDING_REVIEW) @map("review_status")
+  reviewedAt                DateTime?                  @map("reviewed_at") @db.Timestamptz(6)
+  reviewedBy                String?                    @map("reviewed_by")
+  notes                     String                     @default("")
+  evidence                  String                     @default("")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  legacyRecruit RecruitRecord  @relation(fields: [legacyRecruitId], references: [id], onDelete: Restrict)
+  person        MinistryPerson @relation(fields: [personId], references: [id], onDelete: Restrict)
+
+  @@unique([legacyRecruitId, individualKey], map: "ministry_legacy_links_recruit_individual_key")
+  @@index([reviewStatus], map: "ministry_legacy_links_review_status_idx")
+  @@map("ministry_legacy_links")
 }

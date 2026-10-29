@@ -9,6 +9,10 @@ import {
 import type { MinistryOutcomeCounts } from "@/lib/ministry/ministry-milestones";
 import { getRecruitCounts, listRecruits } from "@/lib/recruits/recruits-db";
 import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
+import { planLegacyImport } from "@/lib/ministry/legacy-import";
+import { listLegacyLinks } from "@/lib/ministry/legacy-import-db";
+import type { LegacyLinkView } from "@/lib/ministry/legacy-link";
+import { LegacyReconciliation } from "./legacy-reconciliation";
 import { MinistryManager } from "./ministry-manager";
 import { MinistrySummary } from "./ministry-summary";
 import { RecruitsManager } from "./recruits-manager";
@@ -27,6 +31,8 @@ export default async function AdminRecruitsPage() {
   let people: MinistryPersonView[] = [];
   let ministryCounts: MinistryOutcomeCounts = { mobilized: 0, trainedEquipped: 0, sent: 0 };
   let ministryError: string | null = null;
+  let links: LegacyLinkView[] | null = null;
+  let linkError: string | null = null;
 
   try {
     [recruits, counts] = await Promise.all([listRecruits(), getRecruitCounts()]);
@@ -48,6 +54,25 @@ export default async function AdminRecruitsPage() {
         "The Ministry Impact preview is not on this database yet. The legacy tracker below is unchanged.";
     }
   }
+
+  if (!dbError && !ministryError) {
+    try {
+      links = await listLegacyLinks();
+    } catch (e) {
+      console.error(e);
+      linkError =
+        "Legacy reconciliation is not on this database yet. No historical rows were imported.";
+    }
+  }
+
+  const plan = planLegacyImport(
+    recruits.map((recruit) => ({
+      id: recruit.id,
+      name: recruit.name,
+      jonathanTrainingComplete: recruit.jonathanTrainingComplete,
+      fullyFunded: recruit.fullyFunded,
+    })),
+  );
 
   return (
     <div className="space-y-10">
@@ -72,6 +97,18 @@ export default async function AdminRecruitsPage() {
           <MinistryManager
             people={people}
             legacyRecruits={recruits.map((recruit) => ({ id: recruit.id, name: recruit.name }))}
+          />
+          <LegacyReconciliation
+            plan={plan}
+            links={links}
+            linkError={linkError}
+            people={people.map((person) => ({
+              id: person.id,
+              displayName: person.displayName,
+              mobilized: person.mobilized,
+              trainedEquipped: person.trainedEquipped,
+              sent: person.sent,
+            }))}
           />
         </>
       )}
