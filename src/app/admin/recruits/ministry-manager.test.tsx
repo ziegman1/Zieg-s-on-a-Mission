@@ -33,7 +33,13 @@ const cleanEditor = {
 describe("ministry admin preview", () => {
   it("renders the new totals separately from a legacy zero state", () => {
     const html = renderToStaticMarkup(
-      <MinistrySummary counts={{ mobilized: 1, trainedEquipped: 0, sent: 2 }} />,
+      <MinistrySummary
+        counts={{
+          individuals: { mobilized: 1, trainedEquipped: 0, sent: 2 },
+          nationalPartnerInitiatives: { mobilized: 0, trainedEquipped: 0, sent: 0 },
+          unified: { mobilized: 1, trainedEquipped: 0, sent: 2 },
+        }}
+      />,
     );
     expect(html).toContain("New definitions");
     expect(html).toContain("not on the public site");

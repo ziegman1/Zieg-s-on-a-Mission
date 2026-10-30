@@ -32,9 +32,9 @@ describeIf("ministry database behavior on an isolated database", () => {
       notes: "",
     });
     expect(await getMinistryOutcomeCounts()).toEqual({
-      mobilized: 0,
-      trainedEquipped: 0,
-      sent: 0,
+      individuals: { mobilized: 0, trainedEquipped: 0, sent: 0 },
+      nationalPartnerInitiatives: { mobilized: 0, trainedEquipped: 0, sent: 0 },
+      unified: { mobilized: 0, trainedEquipped: 0, sent: 0 },
     });
 
     await updateMinistryMilestones(first.id, {
@@ -75,9 +75,9 @@ describeIf("ministry database behavior on an isolated database", () => {
     });
 
     expect(await getMinistryOutcomeCounts()).toEqual({
-      mobilized: 1,
-      trainedEquipped: 0,
-      sent: 1,
+      individuals: { mobilized: 1, trainedEquipped: 0, sent: 1 },
+      nationalPartnerInitiatives: { mobilized: 0, trainedEquipped: 0, sent: 0 },
+      unified: { mobilized: 1, trainedEquipped: 0, sent: 1 },
     });
 
     const stored = await prisma.ministryPerson.findMany({

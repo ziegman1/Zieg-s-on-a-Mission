@@ -801,6 +801,19 @@ enum MinistryActivityStatus {
   COMPLETED
 }
 
+/// Training a national partner gathered. Four Fields is not Four Fields Online.
+enum MinistryNationalPartnerTrainingType {
+  JONATHAN_TRAINING
+  FOUR_FIELDS
+  MEDICAL_TRAINING
+}
+
+enum MinistryNationalPartnerInitiativeAuditAction {
+  CREATED
+  UPDATED
+  DELETED
+}
+
 /// Review of a historical person. Independent of Mobilized, Trained & Equipped, and Sent.
 enum MinistryLegacyReviewStatus {
   PENDING_REVIEW
@@ -917,4 +930,44 @@ model MinistryLegacyLink {
   @@unique([legacyRecruitId, individualKey], map: "ministry_legacy_links_recruit_individual_key")
   @@index([reviewStatus], map: "ministry_legacy_links_review_status_idx")
   @@map("ministry_legacy_links")
+}
+
+/// One completed and commissioned training gathered by a national partner.
+/// Participants are a count. This row does not create ministry people, and the
+/// same count is added to Mobilized, Trained & Equipped, and Sent.
+/// submissionKey makes a repeated submit of the same form return the first row.
+model MinistryNationalPartnerInitiative {
+  id             String                               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submissionKey  String                               @unique(map: "ministry_np_initiatives_submission_key_key") @map("submission_key") @db.Uuid
+  nation         String
+  area           String
+  trainingType   MinistryNationalPartnerTrainingType  @map("training_type")
+  completedCount Int                                  @map("completed_count")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([trainingType], map: "ministry_np_initiatives_training_type_idx")
+  @@map("ministry_national_partner_initiatives")
+}
+
+/// Append-only history of initiative count changes and removals.
+/// Kept after the initiative row is deleted. Not a participant list.
+model MinistryNationalPartnerInitiativeAudit {
+  id                     String                                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  initiativeId           String                                      @map("initiative_id") @db.Uuid
+  action                 MinistryNationalPartnerInitiativeAuditAction
+  nation                 String
+  area                   String
+  trainingType           MinistryNationalPartnerTrainingType         @map("training_type")
+  completedCount         Int                                         @map("completed_count")
+  previousNation         String?                                     @map("previous_nation")
+  previousArea           String?                                     @map("previous_area")
+  previousTrainingType   MinistryNationalPartnerTrainingType?        @map("previous_training_type")
+  previousCompletedCount Int?                                        @map("previous_completed_count")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([initiativeId], map: "ministry_np_initiative_audits_initiative_id_idx")
+  @@map("ministry_national_partner_initiative_audits")
 }

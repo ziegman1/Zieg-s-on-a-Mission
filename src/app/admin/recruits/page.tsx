@@ -6,7 +6,20 @@ import {
   listMinistryPeople,
   type MinistryPersonView,
 } from "@/lib/ministry/ministry-db";
-import type { MinistryOutcomeCounts } from "@/lib/ministry/ministry-milestones";
+import {
+  combineMinistryOutcomes,
+  countMinistryOutcomes,
+  type MinistryOutcomeBreakdown,
+} from "@/lib/ministry/ministry-milestones";
+import {
+  isMissingNationalPartnerInitiativeTable,
+  listNationalPartnerInitiativeAudits,
+  listNationalPartnerInitiatives,
+} from "@/lib/ministry/national-partner-initiatives-db";
+import type {
+  NationalPartnerInitiativeAuditView,
+  NationalPartnerInitiativeView,
+} from "@/lib/ministry/national-partner-initiatives";
 import { getRecruitCounts, listRecruits } from "@/lib/recruits/recruits-db";
 import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
 import { planLegacyImport } from "@/lib/ministry/legacy-import";
@@ -15,6 +28,7 @@ import type { LegacyLinkView } from "@/lib/ministry/legacy-link";
 import { LegacyReconciliation } from "./legacy-reconciliation";
 import { MinistryManager } from "./ministry-manager";
 import { MinistrySummary } from "./ministry-summary";
+import { NationalPartnerInitiatives } from "./national-partner-initiatives";
 import { RecruitsManager } from "./recruits-manager";
 import { RecruitSummary } from "./recruit-summary";
 
@@ -29,7 +43,14 @@ export default async function AdminRecruitsPage() {
   let counts: RecruitCounts = { mobilized: 0, trained: 0, sent: 0 };
   let dbError: string | null = null;
   let people: MinistryPersonView[] = [];
-  let ministryCounts: MinistryOutcomeCounts = { mobilized: 0, trainedEquipped: 0, sent: 0 };
+  let ministryCounts: MinistryOutcomeBreakdown = {
+    individuals: { mobilized: 0, trainedEquipped: 0, sent: 0 },
+    nationalPartnerInitiatives: { mobilized: 0, trainedEquipped: 0, sent: 0 },
+    unified: { mobilized: 0, trainedEquipped: 0, sent: 0 },
+  };
+  let initiatives: NationalPartnerInitiativeView[] = [];
+  let initiativeAudits: NationalPartnerInitiativeAuditView[] = [];
+  let initiativeError: string | null = null;
   let ministryError: string | null = null;
   let links: LegacyLinkView[] | null = null;
   let linkError: string | null = null;
@@ -44,14 +65,35 @@ export default async function AdminRecruitsPage() {
 
   if (!dbError) {
     try {
-      [people, ministryCounts] = await Promise.all([
-        listMinistryPeople(),
-        getMinistryOutcomeCounts(),
-      ]);
+      people = await listMinistryPeople();
     } catch (e) {
       console.error(e);
       ministryError =
         "The Ministry Impact preview is not on this database yet. The legacy tracker below is unchanged.";
+    }
+  }
+
+  if (!dbError && !ministryError) {
+    try {
+      [ministryCounts, initiatives, initiativeAudits] = await Promise.all([
+        getMinistryOutcomeCounts(),
+        listNationalPartnerInitiatives(),
+        listNationalPartnerInitiativeAudits(),
+      ]);
+    } catch (e) {
+      if (isMissingNationalPartnerInitiativeTable(e)) {
+        ministryCounts = combineMinistryOutcomes(countMinistryOutcomes(people), {
+          mobilized: 0,
+          trainedEquipped: 0,
+          sent: 0,
+        });
+        initiativeError =
+          "National partner training initiatives are not on this database yet. The totals above are verified individuals only.";
+      } else {
+        console.error(e);
+        ministryError =
+          "The Ministry Impact preview is not on this database yet. The legacy tracker below is unchanged.";
+      }
     }
   }
 
@@ -85,8 +127,9 @@ export default async function AdminRecruitsPage() {
           confirmed. National Partners and Training Participants keep separate milestone
           checkboxes. A Team Expansion Recruit is Mobilized when that pathway is saved, Trained
           &amp; Equipped when Jonathan Training is complete, and Sent when that training and full
-          funding are both confirmed. The public site still shows the legacy totals until a later
-          phase switches it over.
+          funding are both confirmed. Completed national partner trainings are recorded as
+          anonymous participant counts, not as named people. The public site still shows the
+          legacy totals until a later phase switches it over.
         </p>
       </div>
 
@@ -101,6 +144,15 @@ export default async function AdminRecruitsPage() {
             people={people}
             legacyRecruits={recruits.map((recruit) => ({ id: recruit.id, name: recruit.name }))}
           />
+          {initiativeError ? (
+            <p className="text-amber-200/90 text-sm max-w-2xl leading-relaxed">{initiativeError}</p>
+          ) : (
+            <NationalPartnerInitiatives
+              initiatives={initiatives}
+              audits={initiativeAudits}
+              counts={ministryCounts.nationalPartnerInitiatives}
+            />
+          )}
           <LegacyReconciliation
             plan={plan}
             links={links}

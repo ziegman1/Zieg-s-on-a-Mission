@@ -9,7 +9,12 @@ import type {
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { fromCalendarDay, toCalendarDay } from "@/lib/ministry/ministry-form";
-import { countMinistryOutcomes, type MinistryOutcomeCounts } from "@/lib/ministry/ministry-milestones";
+import {
+  combineMinistryOutcomes,
+  countMinistryOutcomes,
+  countNationalPartnerInitiativeOutcomes,
+  type MinistryOutcomeBreakdown,
+} from "@/lib/ministry/ministry-milestones";
 import {
   initialMilestonesForPathway,
   MinistrySaveRejected,
@@ -96,11 +101,19 @@ export async function listMinistryPeople(): Promise<MinistryPersonView[]> {
   return rows.map(toView);
 }
 
-export async function getMinistryOutcomeCounts(): Promise<MinistryOutcomeCounts> {
-  const rows = await prisma.ministryPerson.findMany({
-    select: { mobilized: true, trainedEquipped: true, sent: true },
-  });
-  return countMinistryOutcomes(rows);
+export async function getMinistryOutcomeCounts(): Promise<MinistryOutcomeBreakdown> {
+  const [people, initiatives] = await Promise.all([
+    prisma.ministryPerson.findMany({
+      select: { mobilized: true, trainedEquipped: true, sent: true },
+    }),
+    prisma.ministryNationalPartnerInitiative.findMany({
+      select: { completedCount: true },
+    }),
+  ]);
+  return combineMinistryOutcomes(
+    countMinistryOutcomes(people),
+    countNationalPartnerInitiativeOutcomes(initiatives),
+  );
 }
 
 /**

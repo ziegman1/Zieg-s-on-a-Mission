@@ -9,11 +9,13 @@ import { describe, expect, it } from "vitest";
 const actionsPath = resolve(process.cwd(), "src/app/admin/recruits/actions.ts");
 const ministryActionsPath = resolve(process.cwd(), "src/app/admin/recruits/ministry-actions.ts");
 const legacyActionsPath = resolve(process.cwd(), "src/app/admin/recruits/legacy-actions.ts");
+const initiativeActionsPath = resolve(process.cwd(), "src/app/admin/recruits/initiative-actions.ts");
 const pagePath = resolve(process.cwd(), "src/app/admin/recruits/page.tsx");
 
 const actions = readFileSync(actionsPath, "utf8");
 const ministryActions = readFileSync(ministryActionsPath, "utf8");
 const legacyActions = readFileSync(legacyActionsPath, "utf8");
+const initiativeActions = readFileSync(initiativeActionsPath, "utf8");
 const page = readFileSync(pagePath, "utf8");
 
 describe("admin recruits guard", () => {
@@ -49,6 +51,7 @@ describe("admin recruits guard", () => {
     expect(actions).not.toContain("requireAdminSession");
     expect(ministryActions).not.toContain("requireAdminSession");
     expect(legacyActions).not.toContain("requireAdminSession");
+    expect(initiativeActions).not.toContain("requireAdminSession");
     expect(page).not.toContain("requireAdminSession(");
   });
 
@@ -63,6 +66,20 @@ describe("admin recruits guard", () => {
       "updateMinistryActivityAction",
       "deleteMinistryActivityAction",
     ];
+
+    const initiativeExportedActions = [
+      "createNationalPartnerInitiativeAction",
+      "updateNationalPartnerInitiativeAction",
+      "deleteNationalPartnerInitiativeAction",
+    ];
+
+    for (const action of initiativeExportedActions) {
+      const body = initiativeActions.slice(initiativeActions.indexOf(`export async function ${action}`));
+      const guardAt = body.indexOf("requireAdminOnlySession");
+      const nextExportAt = body.indexOf("export async function", 1);
+      expect(guardAt).toBeGreaterThan(-1);
+      if (nextExportAt > -1) expect(guardAt).toBeLessThan(nextExportAt);
+    }
 
     for (const action of exportedActions) {
       const body = ministryActions.slice(ministryActions.indexOf(`export async function ${action}`));
@@ -80,6 +97,8 @@ describe("admin recruits guard", () => {
     );
     expect(renderPage).toContain("getRecruitCounts");
     expect(renderPage).not.toContain("getMinistryOutcomeCounts");
+    expect(renderPage).not.toContain("NationalPartnerInitiatives");
+    expect(renderPage).not.toContain("ministry_national_partner_initiatives");
     expect(page).toContain("Legacy Recruit Tracker");
     expect(page).toContain("RecruitsManager");
     expect(page).toContain("LegacyReconciliation");

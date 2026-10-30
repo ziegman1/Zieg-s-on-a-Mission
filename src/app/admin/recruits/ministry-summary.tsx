@@ -2,7 +2,11 @@ import {
   RECRUIT_SENT_GOAL,
   sentGoalPercent,
 } from "@/lib/recruits/recruit-milestones";
-import type { MinistryOutcomeCounts } from "@/lib/ministry/ministry-milestones";
+import type { MinistryOutcomeBreakdown } from "@/lib/ministry/ministry-milestones";
+
+function countLabel(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
 
 function PreviewCard({ label, value, hint }: { label: string; value: number; hint: string }) {
   return (
@@ -17,9 +21,10 @@ function PreviewCard({ label, value, hint }: { label: string; value: number; hin
 }
 
 /** Preview only. The public site still uses the legacy Recruit Tracker totals. */
-export function MinistrySummary({ counts }: { counts: MinistryOutcomeCounts }) {
-  const percent = sentGoalPercent(counts.sent);
-  const remaining = Math.max(0, RECRUIT_SENT_GOAL - counts.sent);
+export function MinistrySummary({ counts }: { counts: MinistryOutcomeBreakdown }) {
+  const percent = sentGoalPercent(counts.unified.sent);
+  const remaining = Math.max(0, RECRUIT_SENT_GOAL - counts.unified.sent);
+  const hint = `${countLabel(counts.individuals.mobilized, "verified individual", "verified individuals")} and ${countLabel(counts.nationalPartnerInitiatives.mobilized, "national partner participant", "national partner participants")}.`;
 
   return (
     <section className="space-y-4">
@@ -28,26 +33,24 @@ export function MinistrySummary({ counts }: { counts: MinistryOutcomeCounts }) {
           New definitions — preview
         </p>
         <p className="mt-1 text-xs text-zinc-500 max-w-3xl leading-relaxed">
-          These numbers count only confirmed milestones on individual people. They are not on the
-          public site. The public totals below are still the legacy Recruit Tracker figures.
+          These totals add verified individual milestones to anonymous national partner participants.
+          They are not on the public site. The public totals below are still the legacy Recruit
+          Tracker figures. National partner participants are not named, so the same person cannot
+          be removed from the total if they attend more than one initiative.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <PreviewCard
-          label="Mobilized"
-          value={counts.mobilized}
-          hint="Confirmed next step. Adding a name does not count."
-        />
+        <PreviewCard label="Mobilized" value={counts.unified.mobilized} hint={hint} />
         <PreviewCard
           label="Trained & Equipped"
-          value={counts.trainedEquipped}
-          hint="Confirmed training or coaching. One count per person."
+          value={counts.unified.trainedEquipped}
+          hint={`${countLabel(counts.individuals.trainedEquipped, "verified individual", "verified individuals")} and ${countLabel(counts.nationalPartnerInitiatives.trainedEquipped, "national partner participant", "national partner participants")}.`}
         />
         <PreviewCard
           label="Sent"
-          value={counts.sent}
-          hint="Confirmed sending milestone with a designation."
+          value={counts.unified.sent}
+          hint={`${countLabel(counts.individuals.sent, "verified individual", "verified individuals")} and ${countLabel(counts.nationalPartnerInitiatives.sent, "national partner participant", "national partner participants")}.`}
         />
       </div>
 
@@ -57,7 +60,7 @@ export function MinistrySummary({ counts }: { counts: MinistryOutcomeCounts }) {
             300 more workers Sent by August 31, 2031
           </p>
           <p className="text-sm text-zinc-400">
-            <span className="font-semibold text-cream tabular-nums">{counts.sent}</span> of{" "}
+            <span className="font-semibold text-cream tabular-nums">{counts.unified.sent}</span> of{" "}
             {RECRUIT_SENT_GOAL} Sent
           </p>
         </div>
@@ -66,8 +69,8 @@ export function MinistrySummary({ counts }: { counts: MinistryOutcomeCounts }) {
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={RECRUIT_SENT_GOAL}
-          aria-valuenow={counts.sent}
-          aria-label={`Preview progress: ${counts.sent} of ${RECRUIT_SENT_GOAL} sent under the new definitions`}
+          aria-valuenow={counts.unified.sent}
+          aria-label={`Preview progress: ${counts.unified.sent} of ${RECRUIT_SENT_GOAL} sent under the new definitions`}
         >
           <div
             className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-accent"
@@ -76,8 +79,8 @@ export function MinistrySummary({ counts }: { counts: MinistryOutcomeCounts }) {
         </div>
         <p className="mt-3 text-sm text-zinc-400">
           {remaining > 0
-            ? `${remaining} more confirmed Sent workers to reach 300.`
-            : "300 confirmed Sent workers."}{" "}
+            ? `${remaining} more Sent in this preview to reach 300.`
+            : "300 Sent in this preview."}{" "}
           <span className="text-zinc-500">{percent}% in this preview.</span>
         </p>
       </div>
