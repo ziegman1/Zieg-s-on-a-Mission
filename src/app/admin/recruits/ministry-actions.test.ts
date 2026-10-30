@@ -215,6 +215,44 @@ describe("saveMinistryPersonAction", () => {
     expect(submission.mobilized).toBe(false);
   });
 
+  it("rejects an incomplete activity before writing and keeps the pathway save independent of Fidelis", async () => {
+    const invalid = await saveMinistryPersonAction("person-1", {
+      ...saveInput,
+      activityCreate: {
+        activityType: "JONATHAN_TRAINING",
+        status: "PARTICIPATED",
+        activityOn: "not-a-date",
+        location: "Hall",
+        notes: "",
+      },
+    });
+    expect(invalid.ok).toBe(false);
+    if (!invalid.ok) expect(invalid.error).toContain("Date, if known");
+    expect(saveMinistryPersonChanges).not.toHaveBeenCalled();
+
+    const result = await saveMinistryPersonAction("person-1", {
+      ...saveInput,
+      pathway: "NATIONAL_PARTNER",
+      mobilized: false,
+      trainedEquipped: false,
+      sent: false,
+      sentDesignation: "",
+      activityCreate: {
+        activityType: "FIDELIS",
+        status: "COMPLETED",
+        activityOn: "",
+        location: "Hall",
+        notes: "",
+      },
+    });
+    expect(result.ok).toBe(true);
+    const saved = vi.mocked(saveMinistryPersonChanges).mock.calls[0][1];
+    expect(saved.pathway).toBe("NATIONAL_PARTNER");
+    expect(saved.submission.sent).toBe(false);
+    expect(saved.submission.mobilized).toBe(false);
+    expect(saved.activities?.create?.activityType).toBe("FIDELIS");
+  });
+
   it("reports a database failure without refreshing the list", async () => {
     vi.mocked(saveMinistryPersonChanges).mockRejectedValue(new Error("db down"));
     const result = await saveMinistryPersonAction("person-1", saveInput);

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ministryPersonMatchesQuery } from "./ministry-labels";
-import { ministryActivitySchema, ministryMilestoneSchema, ministryPersonSchema } from "./ministry-form";
+import {
+  activityDraftStarted,
+  ministryActivitySchema,
+  ministryMilestoneSchema,
+  ministryPersonSchema,
+  planActivityChanges,
+} from "./ministry-form";
 
 describe("ministryPersonSchema", () => {
   it("allows a person with no pathway", () => {
@@ -92,6 +98,49 @@ describe("ministryActivitySchema", () => {
     expect(ministryPersonMatchesQuery(person, "national")).toBe(true);
     expect(ministryPersonMatchesQuery(person, "emerald")).toBe(true);
     expect(ministryPersonMatchesQuery(person, "zume")).toBe(false);
+  });
+
+  const blank = {
+    activityType: "JONATHAN_TRAINING",
+    status: "PARTICIPATED",
+    activityOn: "",
+    location: "",
+    notes: "",
+  };
+
+  it("leaves an untouched activity form out of the save", () => {
+    expect(activityDraftStarted(blank, blank)).toBe(false);
+    const plan = planActivityChanges({ create: null, update: null, deleteIds: [] });
+    expect(plan.ok).toBe(true);
+    if (!plan.ok) return;
+    expect(plan.create).toBeNull();
+    expect(plan.update).toBeNull();
+  });
+
+  it("includes one valid activity and names the invalid field", () => {
+    const started = { ...blank, location: "Emerald Hills" };
+    const plan = planActivityChanges({ create: started, update: null, deleteIds: [] });
+    expect(plan.ok).toBe(true);
+    if (!plan.ok) return;
+    expect(plan.create).toEqual(started);
+
+    const invalid = planActivityChanges({
+      create: { ...blank, activityOn: "not-a-date", location: "Hall" },
+      update: null,
+      deleteIds: [],
+    });
+    expect(invalid.ok).toBe(false);
+    if (invalid.ok) return;
+    expect(invalid.error).toContain("Date, if known");
+  });
+
+  it("does not plan a second copy when the same new activity is described once", () => {
+    const started = { ...blank, status: "COMPLETED", location: "Emerald Hills" };
+    const plan = planActivityChanges({ create: started, update: null, deleteIds: [] });
+    expect(plan.ok).toBe(true);
+    if (!plan.ok) return;
+    expect(plan.create).toEqual(started);
+    expect(Array.isArray(plan.create)).toBe(false);
   });
 
   it("does not offer a separate DMM program", () => {

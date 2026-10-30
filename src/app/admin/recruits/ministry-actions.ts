@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdminOnlySession } from "@/lib/admin-auth";
 import {
+  formatActivityInputErrors,
   formatMinistryInputErrors,
   ministryActivitySchema,
   ministryMilestoneSchema,
@@ -161,6 +162,22 @@ export async function saveMinistryPersonAction(
     sentDesignation: string;
     sentVerifiedBy: string;
     sentVerificationNote: string;
+    activityCreate?: {
+      activityType: string;
+      status: string;
+      activityOn: string;
+      location: string;
+      notes: string;
+    } | null;
+    activityUpdate?: {
+      id: string;
+      activityType: string;
+      status: string;
+      activityOn: string;
+      location: string;
+      notes: string;
+    } | null;
+    activityDeleteIds?: string[];
   },
 ): Promise<MinistryActionResult> {
   const admin = await requireAdminOnlySession();
@@ -172,6 +189,37 @@ export async function saveMinistryPersonAction(
   if (parsed.data.householdWithPersonId === id) {
     return { ok: false, error: "A person cannot be their own household." };
   }
+
+  let activityCreate: {
+    activityType: "JONATHAN_TRAINING" | "MEDICAL_TRAINING" | "SUPPORT_RAISING_COACHING" | "D_COURSE" | "ZUME" | "FOUR_FIELDS_ONLINE" | "FIDELIS" | "OTHER";
+    status: "PARTICIPATED" | "COMPLETED";
+    activityOn: string | null;
+    location: string;
+    notes: string;
+  } | null = null;
+  if (input.activityCreate) {
+    const parsedActivity = ministryActivitySchema.safeParse(input.activityCreate);
+    if (!parsedActivity.success) {
+      return { ok: false, error: formatActivityInputErrors(parsedActivity.error) };
+    }
+    activityCreate = parsedActivity.data;
+  }
+  let activityUpdate: {
+    id: string;
+    activityType: "JONATHAN_TRAINING" | "MEDICAL_TRAINING" | "SUPPORT_RAISING_COACHING" | "D_COURSE" | "ZUME" | "FOUR_FIELDS_ONLINE" | "FIDELIS" | "OTHER";
+    status: "PARTICIPATED" | "COMPLETED";
+    activityOn: string | null;
+    location: string;
+    notes: string;
+  } | null = null;
+  if (input.activityUpdate) {
+    const parsedActivity = ministryActivitySchema.safeParse(input.activityUpdate);
+    if (!parsedActivity.success) {
+      return { ok: false, error: formatActivityInputErrors(parsedActivity.error) };
+    }
+    activityUpdate = { id: input.activityUpdate.id, ...parsedActivity.data };
+  }
+  const activityDeleteIds = input.activityDeleteIds ?? [];
 
   const existing = await getMinistryPerson(id);
   if (!existing) return { ok: false, error: "That person no longer exists." };
@@ -222,6 +270,11 @@ export async function saveMinistryPersonAction(
       householdWithPersonId: parsed.data.householdWithPersonId,
       submission,
       recordedOn,
+      activities: {
+        create: activityCreate,
+        update: activityUpdate,
+        deleteIds: activityDeleteIds,
+      },
     });
   } catch (error) {
     if (error instanceof MinistrySaveRejected) {

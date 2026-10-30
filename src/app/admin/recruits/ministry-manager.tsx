@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MinistryActivityStatus, MinistryActivityType, MinistryPathway, MinistrySentDesignation } from "@prisma/client";
 import { XIcon } from "lucide-react";
@@ -17,14 +17,12 @@ import {
   ministryPersonMatchesQuery,
 } from "@/lib/ministry/ministry-labels";
 import type { MinistryActivityView, MinistryPersonView } from "@/lib/ministry/ministry-db";
+import { activityDraftStarted, planActivityChanges, type ActivityDraft } from "@/lib/ministry/ministry-form";
 import { teamExpansionProgressDiscrepancy } from "@/lib/ministry/ministry-save";
 import {
-  createMinistryActivityAction,
   createMinistryPersonAction,
-  deleteMinistryActivityAction,
   deleteMinistryPersonAction,
   saveMinistryPersonAction,
-  updateMinistryActivityAction,
 } from "./ministry-actions";
 
 type LegacyOption = { id: string; name: string };
@@ -36,6 +34,14 @@ const ACTIVITY_STATUSES = Object.keys(ACTIVITY_STATUS_LABELS) as MinistryActivit
 
 const selectClass =
   "mt-1 w-full rounded-md border border-zinc-700 bg-black/40 px-3 py-2 text-sm text-cream";
+
+const blankActivity: ActivityDraft = {
+  activityType: "JONATHAN_TRAINING",
+  status: "PARTICIPATED",
+  activityOn: "",
+  location: "",
+  notes: "",
+};
 
 type EditorSnapshot = {
   displayName: string;
@@ -363,11 +369,28 @@ function PersonEditor({
   );
   const [fullyFunded, setFullyFunded] = useState(person.fullyFunded);
   const [saving, setSaving] = useState<string | null>(null);
-  const [activityDirty, setActivityDirty] = useState(false);
-  const [activityBusy, setActivityBusy] = useState(false);
-  const onActivityDirty = useCallback((value: boolean) => setActivityDirty(value), []);
-  const onActivityBusy = useCallback((value: boolean) => setActivityBusy(value), []);
+  const [newActivity, setNewActivity] = useState<ActivityDraft>(blankActivity);
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [activityEdit, setActivityEdit] = useState<ActivityDraft>(blankActivity);
+  const [removedActivityIds, setRemovedActivityIds] = useState<string[]>([]);
+  const saveLock = useRef(false);
   const editorFormId = `editor-${person.id}`;
+  const editingActivity = person.activities.find((activity) => activity.id === editingActivityId) ?? null;
+  const activityEditBaseline: ActivityDraft | null = editingActivity
+    ? {
+        activityType: editingActivity.activityType,
+        status: editingActivity.status,
+        activityOn: editingActivity.activityOn ?? "",
+        location: editingActivity.location,
+        notes: editingActivity.notes,
+      }
+    : null;
+  const newActivityStarted = activityDraftStarted(newActivity, blankActivity);
+  const activityEditStarted = activityEditBaseline
+    ? activityDraftStarted(activityEdit, activityEditBaseline)
+    : false;
+  const activityDirty =
+    newActivityStarted || activityEditStarted || removedActivityIds.length > 0;
   const recruitPathway = pathway === "TEAM_EXPANSION_RECRUIT";
   const recruitTrained = jonathanTrainingComplete;
   const recruitSent = jonathanTrainingComplete && fullyFunded;
@@ -417,7 +440,7 @@ function PersonEditor({
     activityDirty,
   };
   const dirty = ministryPersonEditorIsDirty(baseline, draft);
-  const busy = saving !== null || activityBusy || pending;
+  const busy = saving !== null || pending;
 
   function requestClose() {
     if (busy) return;
@@ -435,36 +458,56 @@ function PersonEditor({
 
   async function saveChanges(event: React.FormEvent | null, confirmHistoryChange = false) {
     event?.preventDefault();
-    if (activityDirty) {
-      onError("Save or clear the activity form before saving this person.");
+    if (saveLock.current) return;
+    const activityPlan = planActivityChanges({
+      create: newActivityStarted ? newActivity : null,
+      update:
+        activityEditStarted && editingActivity
+          ? { id: editingActivity.id, draft: activityEdit }
+          : null,
+      deleteIds: removedActivityIds,
+    });
+    if (!activityPlan.ok) {
+      onError(activityPlan.error);
       return;
     }
     if (recruitPathway && recruitSent && !sentDesignation) {
       onError("Choose a Sent designation");
       return;
     }
+    saveLock.current = true;
     setSaving("save");
     onError(null);
-    const result = await saveMinistryPersonAction(person.id, {
-      displayName,
-      pathway,
-      notes,
-      householdWithPersonId,
-      legacyRecruitId,
-      jonathanTrainingComplete,
-      fullyFunded,
-      confirmHistoryChange,
-      mobilized: recruitPathway ? true : mobilized,
-      mobilizedOn,
-      trainedEquipped: recruitPathway ? recruitTrained : trainedEquipped,
-      trainedEquippedOn,
-      sent: recruitPathway ? recruitSent : sent,
-      sentOn,
-      sentDesignation,
-      sentVerifiedBy,
-      sentVerificationNote,
-    });
-    setSaving(null);
+    let result: Awaited<ReturnType<typeof saveMinistryPersonAction>>;
+    try {
+      result = await saveMinistryPersonAction(person.id, {
+        displayName,
+        pathway,
+        notes,
+        householdWithPersonId,
+        legacyRecruitId,
+        jonathanTrainingComplete,
+        fullyFunded,
+        confirmHistoryChange,
+        mobilized: recruitPathway ? true : mobilized,
+        mobilizedOn,
+        trainedEquipped: recruitPathway ? recruitTrained : trainedEquipped,
+        trainedEquippedOn,
+        sent: recruitPathway ? recruitSent : sent,
+        sentOn,
+        sentDesignation,
+        sentVerifiedBy,
+        sentVerificationNote,
+        activityCreate: activityPlan.create,
+        activityUpdate: activityPlan.update
+          ? { id: activityPlan.update.id, ...activityPlan.update.draft }
+          : null,
+        activityDeleteIds: activityPlan.deleteIds,
+      });
+    } finally {
+      saveLock.current = false;
+      setSaving(null);
+    }
     if (!result.ok) {
       if (result.needsConfirmation && !confirmHistoryChange) {
         const accepted = window.confirm(`${result.error}\n\nSave this change?`);
@@ -764,12 +807,32 @@ function PersonEditor({
       </form>
 
       <ActivityEditor
-        personId={person.id}
         activities={person.activities}
-        onError={onError}
-        onSaved={onSaved}
-        onDirtyChange={onActivityDirty}
-        onBusyChange={onActivityBusy}
+        removedActivityIds={removedActivityIds}
+        newActivity={newActivity}
+        onNewActivity={setNewActivity}
+        editingActivityId={editingActivityId}
+        activityEdit={activityEdit}
+        onActivityEdit={setActivityEdit}
+        onEdit={(activity) => {
+          setEditingActivityId(activity.id);
+          setActivityEdit({
+            activityType: activity.activityType,
+            status: activity.status,
+            activityOn: activity.activityOn ?? "",
+            location: activity.location,
+            notes: activity.notes,
+          });
+        }}
+        onCancelEdit={() => setEditingActivityId(null)}
+        onRemove={(activityId) => {
+          if (!window.confirm("Remove this activity when you save? This does not change milestones.")) return;
+          setRemovedActivityIds((ids) => (ids.includes(activityId) ? ids : [...ids, activityId]));
+          if (editingActivityId === activityId) setEditingActivityId(null);
+        }}
+        onUndoRemove={(activityId) => {
+          setRemovedActivityIds((ids) => ids.filter((id) => id !== activityId));
+        }}
       />
         </div>
 
@@ -995,96 +1058,30 @@ function MilestoneRow({
 }
 
 function ActivityEditor({
-  personId,
   activities,
-  onError,
-  onSaved,
-  onDirtyChange,
-  onBusyChange,
+  removedActivityIds,
+  newActivity,
+  onNewActivity,
+  editingActivityId,
+  activityEdit,
+  onActivityEdit,
+  onEdit,
+  onCancelEdit,
+  onRemove,
+  onUndoRemove,
 }: {
-  personId: string;
   activities: MinistryActivityView[];
-  onError: (message: string | null) => void;
-  onSaved: () => void;
-  onDirtyChange: (dirty: boolean) => void;
-  onBusyChange: (busy: boolean) => void;
+  removedActivityIds: string[];
+  newActivity: ActivityDraft;
+  onNewActivity: (value: ActivityDraft) => void;
+  editingActivityId: string | null;
+  activityEdit: ActivityDraft;
+  onActivityEdit: (value: ActivityDraft) => void;
+  onEdit: (activity: MinistryActivityView) => void;
+  onCancelEdit: () => void;
+  onRemove: (activityId: string) => void;
+  onUndoRemove: (activityId: string) => void;
 }) {
-  const blank = {
-    activityType: "JONATHAN_TRAINING" as MinistryActivityType,
-    status: "PARTICIPATED" as MinistryActivityStatus,
-    activityOn: "",
-    location: "",
-    notes: "",
-  };
-  const [draft, setDraft] = useState(blank);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [edit, setEdit] = useState(blank);
-  const [saving, setSaving] = useState(false);
-  const editing = activities.find((activity) => activity.id === editingId) ?? null;
-  const draftDirty =
-    draft.activityType !== blank.activityType ||
-    draft.status !== blank.status ||
-    draft.activityOn !== "" ||
-    draft.location !== "" ||
-    draft.notes !== "";
-  const editDirty = editing
-    ? edit.activityType !== editing.activityType ||
-      edit.status !== editing.status ||
-      edit.activityOn !== (editing.activityOn ?? "") ||
-      edit.location !== editing.location ||
-      edit.notes !== editing.notes
-    : false;
-
-  useEffect(() => {
-    onDirtyChange(draftDirty || editDirty);
-  }, [draftDirty, editDirty, onDirtyChange]);
-
-  useEffect(() => {
-    onBusyChange(saving);
-  }, [saving, onBusyChange]);
-
-  async function addActivity(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving(true);
-    onError(null);
-    const result = await createMinistryActivityAction(personId, draft);
-    setSaving(false);
-    if (!result.ok) {
-      onError(result.error);
-      return;
-    }
-    setDraft(blank);
-    onSaved();
-  }
-
-  async function saveActivity(event: React.FormEvent) {
-    event.preventDefault();
-    if (!editingId) return;
-    setSaving(true);
-    onError(null);
-    const result = await updateMinistryActivityAction(editingId, edit);
-    setSaving(false);
-    if (!result.ok) {
-      onError(result.error);
-      return;
-    }
-    setEditingId(null);
-    onSaved();
-  }
-
-  async function removeActivity(activity: MinistryActivityView) {
-    if (!confirm("Remove this activity? This does not change milestones.")) return;
-    setSaving(true);
-    onError(null);
-    const result = await deleteMinistryActivityAction(activity.id);
-    setSaving(false);
-    if (!result.ok) {
-      onError(result.error);
-      return;
-    }
-    onSaved();
-  }
-
   return (
     <div className="space-y-4 border-t border-white/10 pt-5">
       <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-zinc-300">
@@ -1093,7 +1090,8 @@ function ActivityEditor({
       <p className="text-xs text-zinc-500 leading-relaxed">
         Jonathan Training and DMM Training are one program. Put the venue, such as Emerald Hills,
         a church, or another country, in the location field. Completing an activity does not mark
-        someone Sent.
+        someone Sent, and choosing an activity does not change the pathway. Save Changes stores
+        an activity only after you edit this form.
       </p>
 
       {activities.length === 0 ? (
@@ -1101,16 +1099,25 @@ function ActivityEditor({
       ) : (
         <ul className="space-y-3">
           {activities.map((activity) =>
-            editingId === activity.id ? (
+            removedActivityIds.includes(activity.id) ? (
+              <li
+                key={activity.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 px-4 py-3"
+              >
+                <p className="text-sm text-zinc-500">
+                  {ACTIVITY_LABELS[activity.activityType]} will be removed when you save.
+                </p>
+                <Button type="button" size="sm" variant="outline" onClick={() => onUndoRemove(activity.id)}>
+                  Undo
+                </Button>
+              </li>
+            ) : editingActivityId === activity.id ? (
               <li key={activity.id}>
                 <ActivityFields
                   idPrefix={activity.id}
-                  value={edit}
-                  onChange={setEdit}
-                  onSubmit={saveActivity}
-                  submitLabel={saving ? "Saving…" : "Save activity"}
-                  disabled={saving}
-                  onCancel={() => setEditingId(null)}
+                  value={activityEdit}
+                  onChange={onActivityEdit}
+                  onCancel={onCancelEdit}
                 />
               </li>
             ) : (
@@ -1135,16 +1142,7 @@ function ActivityEditor({
                     size="sm"
                     variant="outline"
                     className="border-zinc-700"
-                    onClick={() => {
-                      setEditingId(activity.id);
-                      setEdit({
-                        activityType: activity.activityType,
-                        status: activity.status,
-                        activityOn: activity.activityOn ?? "",
-                        location: activity.location,
-                        notes: activity.notes,
-                      });
-                    }}
+                    onClick={() => onEdit(activity)}
                   >
                     Edit
                   </Button>
@@ -1153,8 +1151,7 @@ function ActivityEditor({
                     size="sm"
                     variant="ghost"
                     className="text-red-400"
-                    disabled={saving}
-                    onClick={() => removeActivity(activity)}
+                    onClick={() => onRemove(activity.id)}
                   >
                     Remove
                   </Button>
@@ -1165,14 +1162,10 @@ function ActivityEditor({
         </ul>
       )}
 
-      <ActivityFields
-        idPrefix={`new-${personId}`}
-        value={draft}
-        onChange={setDraft}
-        onSubmit={addActivity}
-        submitLabel={saving ? "Adding…" : "Add activity"}
-        disabled={saving}
-      />
+      <div className="space-y-2">
+        <h4 className="text-sm text-zinc-300">New activity</h4>
+        <ActivityFields idPrefix="new-activity" value={newActivity} onChange={onNewActivity} />
+      </div>
     </div>
   );
 }
@@ -1181,33 +1174,15 @@ function ActivityFields({
   idPrefix,
   value,
   onChange,
-  onSubmit,
-  submitLabel,
-  disabled,
   onCancel,
 }: {
   idPrefix: string;
-  value: {
-    activityType: MinistryActivityType;
-    status: MinistryActivityStatus;
-    activityOn: string;
-    location: string;
-    notes: string;
-  };
-  onChange: (value: {
-    activityType: MinistryActivityType;
-    status: MinistryActivityStatus;
-    activityOn: string;
-    location: string;
-    notes: string;
-  }) => void;
-  onSubmit: (event: React.FormEvent) => void;
-  submitLabel: string;
-  disabled: boolean;
+  value: ActivityDraft;
+  onChange: (value: ActivityDraft) => void;
   onCancel?: () => void;
 }) {
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 rounded-xl border border-white/10 px-4 py-4 md:grid-cols-2">
+    <div className="grid gap-3 rounded-xl border border-white/10 px-4 py-4 md:grid-cols-2">
       <div>
         <label className="text-xs text-zinc-500" htmlFor={`${idPrefix}-type`}>
           Program
@@ -1284,16 +1259,13 @@ function ActivityFields({
           className={selectClass}
         />
       </div>
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={disabled}>
-          {submitLabel}
-        </Button>
-        {onCancel ? (
+      {onCancel ? (
+        <div className="md:col-span-2">
           <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-            Cancel
+            Cancel edit
           </Button>
-        ) : null}
-      </div>
-    </form>
+        </div>
+      ) : null}
+    </div>
   );
 }

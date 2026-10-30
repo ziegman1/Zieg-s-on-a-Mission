@@ -154,8 +154,9 @@ function storedMilestones(person: MinistryPerson): MinistrySaveStored {
 }
 
 /**
- * Profile, household, and milestones in one transaction.
- * Does not create activities, write recruits, or update legacy reconciliation links.
+ * Profile, household, milestones, and pending activity edits in one transaction.
+ * Does not write recruits or legacy reconciliation links.
+ * Recording an activity does not change the pathway or the milestone rules.
  */
 export async function saveMinistryPersonChanges(
   id: string,
@@ -167,6 +168,24 @@ export async function saveMinistryPersonChanges(
     householdWithPersonId: string | null;
     submission: MinistrySaveSubmission;
     recordedOn: string;
+    activities?: {
+      create: {
+        activityType: MinistryActivity["activityType"];
+        status: MinistryActivity["status"];
+        activityOn: string | null;
+        location: string;
+        notes: string;
+      } | null;
+      update: {
+        id: string;
+        activityType: MinistryActivity["activityType"];
+        status: MinistryActivity["status"];
+        activityOn: string | null;
+        location: string;
+        notes: string;
+      } | null;
+      deleteIds: string[];
+    };
   },
 ): Promise<MinistryPersonView> {
   return prisma.$transaction(
@@ -184,6 +203,27 @@ export async function saveMinistryPersonChanges(
       );
       if (!resolved.ok) {
         throw new MinistrySaveRejected(resolved.error, resolved.needsConfirmation);
+      }
+
+      const pending = input.activities;
+      const deleteIds = [...new Set(pending?.deleteIds ?? [])];
+      const activityUpdate =
+        pending?.update && !deleteIds.includes(pending.update.id) ? pending.update : null;
+      const activityCreate = pending?.create ?? null;
+      const hasActivityWrite = Boolean(activityCreate || activityUpdate || deleteIds.length > 0);
+      if (hasActivityWrite) {
+        const owned = await tx.ministryActivity.findMany({
+          where: { personId: id },
+          select: { id: true },
+        });
+        const ownedIds = new Set(owned.map((activity) => activity.id));
+        const referenced = [
+          ...deleteIds,
+          ...(activityUpdate ? [activityUpdate.id] : []),
+        ];
+        if (referenced.some((activityId) => !ownedIds.has(activityId))) {
+          throw new Error("That activity no longer exists.");
+        }
       }
 
       let householdId: string | null = null;
@@ -234,6 +274,39 @@ export async function saveMinistryPersonChanges(
         },
         include: personInclude,
       });
+
+      for (const activityId of deleteIds) {
+        const deleted = await tx.ministryActivity.deleteMany({
+          where: { id: activityId, personId: id },
+        });
+        if (deleted.count !== 1) throw new Error("That activity no longer exists.");
+      }
+      if (activityUpdate) {
+        const updated = await tx.ministryActivity.updateMany({
+          where: { id: activityUpdate.id, personId: id },
+          data: {
+            activityType: activityUpdate.activityType,
+            status: activityUpdate.status,
+            activityOn: fromCalendarDay(activityUpdate.activityOn),
+            location: activityUpdate.location.trim() || null,
+            notes: activityUpdate.notes,
+          },
+        });
+        if (updated.count !== 1) throw new Error("That activity no longer exists.");
+      }
+      if (activityCreate) {
+        await tx.ministryActivity.create({
+          data: {
+            personId: id,
+            activityType: activityCreate.activityType,
+            status: activityCreate.status,
+            activityOn: fromCalendarDay(activityCreate.activityOn),
+            location: activityCreate.location.trim() || null,
+            notes: activityCreate.notes,
+          },
+        });
+      }
+
       return toView(row);
     },
     { maxWait: 15_000, timeout: 60_000 },

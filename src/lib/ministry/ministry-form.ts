@@ -104,6 +104,63 @@ export const ministryActivitySchema = z.object({
 
 export type MinistryActivityInput = z.infer<typeof ministryActivitySchema>;
 
+export type ActivityDraft = {
+  activityType: string;
+  status: string;
+  activityOn: string;
+  location: string;
+  notes: string;
+};
+
+const ACTIVITY_FIELD_LABELS: Record<string, string> = {
+  activityType: "Program",
+  status: "Status",
+  activityOn: "Date, if known",
+  location: "Venue or location",
+  notes: "Notes",
+};
+
+export function activityDraftStarted(draft: ActivityDraft, baseline: ActivityDraft): boolean {
+  return (Object.keys(baseline) as (keyof ActivityDraft)[]).some((key) => draft[key] !== baseline[key]);
+}
+
+export function formatActivityInputErrors(error: z.ZodError): string {
+  const flat = error.flatten();
+  const parts = [...flat.formErrors];
+  for (const [field, messages] of Object.entries(flat.fieldErrors)) {
+    if (!messages?.length) continue;
+    parts.push(`${ACTIVITY_FIELD_LABELS[field] ?? field}: ${messages.join(", ")}`);
+  }
+  return parts.filter(Boolean).join(" · ") || "Invalid activity";
+}
+
+/** A null create or update means that part of the form was not changed. */
+export function planActivityChanges(input: {
+  create: ActivityDraft | null;
+  update: { id: string; draft: ActivityDraft } | null;
+  deleteIds: string[];
+}):
+  | {
+      ok: true;
+      create: ActivityDraft | null;
+      update: { id: string; draft: ActivityDraft } | null;
+      deleteIds: string[];
+    }
+  | { ok: false; error: string } {
+  const deleteIds = [...new Set(input.deleteIds)];
+  if (input.create) {
+    const parsed = ministryActivitySchema.safeParse(input.create);
+    if (!parsed.success) return { ok: false, error: formatActivityInputErrors(parsed.error) };
+  }
+  const update =
+    input.update && !deleteIds.includes(input.update.id) ? input.update : null;
+  if (update) {
+    const parsed = ministryActivitySchema.safeParse(update.draft);
+    if (!parsed.success) return { ok: false, error: formatActivityInputErrors(parsed.error) };
+  }
+  return { ok: true, create: input.create, update, deleteIds };
+}
+
 export function formatMinistryInputErrors(error: z.ZodError): string {
   return formatRecruitInputErrors(error);
 }

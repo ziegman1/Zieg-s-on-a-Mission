@@ -303,9 +303,9 @@ describe("ministry save boundaries", () => {
     const next = db.indexOf("export async function", start + 1);
     const body = db.slice(start, next === -1 ? undefined : next);
     expect(body).toContain("$transaction");
+    expect(body).toContain("ministryActivity");
     expect(body).not.toContain("ministryLegacyLink");
     expect(body).not.toContain("recruitRecord");
-    expect(body).not.toContain("ministryActivity");
     expect(db).toContain("initialMilestonesForPathway");
   });
 
@@ -331,5 +331,8 @@ describe("ministry save boundaries", () => {
     expect(manager).toContain("refreshKeepingPlace");
     expect(manager).toContain("listScroll");
     expect(manager).toContain("saveMinistryPersonAction");
+    expect(manager).not.toContain("Save or clear the activity form");
+    expect(manager).not.toContain("Add activity");
+    expect(manager).not.toContain("Save activity");
   });
 });
