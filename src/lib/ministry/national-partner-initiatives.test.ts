@@ -144,8 +144,8 @@ describe("national partner initiative boundaries", () => {
       resolve(process.cwd(), "src/lib/site-builder/render-page.tsx"),
       "utf8",
     );
-    expect(homepage).toContain("getRecruitCounts");
-    expect(homepage).not.toContain("getMinistryOutcomeCounts");
+    expect(homepage).toContain("getMinistryOutcomeCounts");
+    expect(homepage).not.toContain("getRecruitCounts");
     expect(nationalPartnerInitiativeCreateSchema.safeParse({ ...valid, submissionKey: "not-a-uuid" }).success).toBe(false);
   });
 });

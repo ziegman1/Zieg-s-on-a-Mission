@@ -65,6 +65,24 @@ export function countNationalPartnerInitiativeOutcomes(
   return { mobilized: total, trainedEquipped: total, sent: total };
 }
 
+export type PublicProgressCounts = {
+  mobilized: number;
+  trained: number;
+  sent: number;
+};
+
+/**
+ * Homepage Mobilized, Trained, and Sent.
+ * Trained is the canonical Trained & Equipped total. The numbers are not clamped.
+ */
+export function publicProgressCounts(breakdown: MinistryOutcomeBreakdown): PublicProgressCounts {
+  return {
+    mobilized: breakdown.unified.mobilized,
+    trained: breakdown.unified.trainedEquipped,
+    sent: breakdown.unified.sent,
+  };
+}
+
 /** Verified individuals plus anonymous initiative participants. Does not mutate either input. */
 export function combineMinistryOutcomes(
   individuals: MinistryOutcomeCounts,

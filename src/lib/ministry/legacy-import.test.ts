@@ -214,12 +214,12 @@ describe("legacy reconciliation safety", () => {
     expect(migration).toContain("does not remove ministry_people");
   });
 
-  it("does not write recruit rows and leaves the homepage on the legacy count", () => {
+  it("does not write recruit rows and does not count legacy checkboxes on the homepage", () => {
     expect(importer).not.toContain("recruitRecord.update");
     expect(importer).not.toContain("recruitRecord.delete");
     expect(importer).toContain("pg_advisory_xact_lock");
-    expect(homepage).toContain("getRecruitCounts");
-    expect(homepage).not.toContain("getMinistryOutcomeCounts");
+    expect(homepage).toContain("getMinistryOutcomeCounts");
+    expect(homepage).not.toContain("getRecruitCounts");
     expect(homepage).not.toContain("planLegacyImport");
     for (const name of [
       "importLegacyRosterAction",

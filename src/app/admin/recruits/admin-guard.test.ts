@@ -90,13 +90,16 @@ describe("admin recruits guard", () => {
     }
   });
 
-  it("keeps the public homepage on the legacy recruit counts", () => {
+  it("keeps the public homepage on the canonical ministry totals", () => {
     const renderPage = readFileSync(
       resolve(process.cwd(), "src/lib/site-builder/render-page.tsx"),
       "utf8",
     );
-    expect(renderPage).toContain("getRecruitCounts");
-    expect(renderPage).not.toContain("getMinistryOutcomeCounts");
+    const homePage = readFileSync(resolve(process.cwd(), "src/app/(storefront)/page.tsx"), "utf8");
+    expect(renderPage).toContain("getMinistryOutcomeCounts");
+    expect(renderPage).not.toContain("getRecruitCounts");
+    expect(renderPage).toContain("noStore");
+    expect(homePage).toContain('export const dynamic = "force-dynamic"');
     expect(renderPage).not.toContain("NationalPartnerInitiatives");
     expect(renderPage).not.toContain("ministry_national_partner_initiatives");
     expect(page).toContain("Legacy Recruit Tracker");

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { sentGoalPercent } from "@/lib/recruits/recruit-milestones";
 import {
   combineMinistryOutcomes,
   countMinistryOutcomes,
   countNationalPartnerInitiativeOutcomes,
+  publicProgressCounts,
 } from "./ministry-milestones";
 
 describe("countMinistryOutcomes", () => {
@@ -98,5 +100,25 @@ describe("national partner initiative totals", () => {
       sent: 40,
     });
     expect(totals.unified).toEqual({ mobilized: 48, trainedEquipped: 46, sent: 46 });
+  });
+
+  it("maps unified totals to the homepage without clamping or hardcoded counts", () => {
+    const counts = publicProgressCounts(
+      combineMinistryOutcomes(
+        { mobilized: 39, trainedEquipped: 22, sent: 12 },
+        countNationalPartnerInitiativeOutcomes([{ completedCount: 60 }]),
+      ),
+    );
+    expect(counts).toEqual({ mobilized: 99, trained: 82, sent: 72 });
+    expect(sentGoalPercent(counts.sent)).toBe(24);
+    expect(300 - counts.sent).toBe(228);
+
+    const unclamped = publicProgressCounts(
+      combineMinistryOutcomes(
+        { mobilized: 0, trainedEquipped: 0, sent: 1 },
+        { mobilized: 0, trainedEquipped: 0, sent: 0 },
+      ),
+    );
+    expect(unclamped).toEqual({ mobilized: 0, trained: 0, sent: 1 });
   });
 });

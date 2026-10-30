@@ -327,13 +327,16 @@ describe("ministry save boundaries", () => {
     expect(db).toContain("initialMilestonesForPathway");
   });
 
-  it("keeps the public homepage on the legacy recruit counts", () => {
+  it("sends the canonical ministry totals to the homepage tracker", () => {
     const renderPage = readFileSync(
       resolve(process.cwd(), "src/lib/site-builder/render-page.tsx"),
       "utf8",
     );
-    expect(renderPage).toContain("getRecruitCounts");
-    expect(renderPage).not.toContain("getMinistryOutcomeCounts");
+    expect(renderPage).toContain("getMinistryOutcomeCounts");
+    expect(renderPage).toContain("publicProgressCounts");
+    expect(renderPage).toContain("noStore");
+    expect(renderPage).not.toContain("getRecruitCounts");
+    expect(renderPage).not.toContain("mobilized: 0");
     expect(renderPage).not.toContain("resolveMinistryPersonSave");
   });
 

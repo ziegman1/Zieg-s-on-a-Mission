@@ -41,8 +41,8 @@ describe("ministry admin preview", () => {
         }}
       />,
     );
-    expect(html).toContain("New definitions");
-    expect(html).toContain("not on the public site");
+    expect(html).toContain("Public totals");
+    expect(html).toContain("The homepage uses these same totals");
     expect(html).toContain(">1<");
     expect(html).toContain(">2<");
     expect(html).toContain("300 more workers Sent");

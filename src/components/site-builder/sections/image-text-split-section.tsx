@@ -10,7 +10,7 @@ import { SiteBuilderFormattedContent } from "../site-builder-formatted-content";
 import { useBuilderPreview } from "../builder-preview-context";
 import { buttonClassesFromStyle, elementStyleProps } from "@/lib/site-builder/element-style-utils";
 import { MinistryProgressTracker } from "@/components/mission/ministry-progress-tracker";
-import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
+import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import { usesWideImage } from "@/lib/site-builder/wide-image-section";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +22,7 @@ export function ImageTextSplitSection({
   section: PageSection;
   index: number;
   /** When set, the ministry progress tracker fills this section's otherwise-empty visual column. */
-  progressCounts?: RecruitCounts | null;
+  progressCounts?: PublicProgressCounts | null;
 }) {
   const ctx = useBuilderPreview();
   const c = section.content;

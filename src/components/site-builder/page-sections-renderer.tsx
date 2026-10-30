@@ -12,7 +12,7 @@ import { FeaturedPostsSection } from "./sections/featured-posts-section";
 import { MissionCounterSection } from "./sections/mission-counter-section";
 import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
 import { resolveMinistryProgressSectionKey } from "@/lib/site-builder/ministry-progress-section";
-import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
+import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import { partitionMinistrySections } from "@/lib/site-builder/ministry-sections-layout";
 import { EditableSectionShell } from "./editable-element";
 import { MinistryPageHeader } from "./ministry-page-header";
@@ -23,13 +23,13 @@ export function PageSectionsRenderer({
   sections,
   siteTagline = "",
   editMode = false,
-  recruitCounts = null,
+  progressCounts = null,
 }: {
   pageKey: string;
   sections: PageSection[];
   siteTagline?: string;
   editMode?: boolean;
-  recruitCounts?: RecruitCounts | null;
+  progressCounts?: PublicProgressCounts | null;
 }) {
   const ctx = useBuilderPreview();
   const inEditor = Boolean(editMode || ctx?.editMode);
@@ -37,7 +37,7 @@ export function PageSectionsRenderer({
   let splitIndex = 0;
 
   // Resolved by stable section key, never by position, so reordering cannot move the tracker.
-  const progressSectionKey = recruitCounts
+  const progressSectionKey = progressCounts
     ? resolveMinistryProgressSectionKey(toRender)
     : null;
 
@@ -71,7 +71,7 @@ export function PageSectionsRenderer({
                     section={section}
                     index={idx}
                     progressCounts={
-                      section.sectionKey === progressSectionKey ? recruitCounts : null
+                      section.sectionKey === progressSectionKey ? progressCounts : null
                     }
                   />
                 );

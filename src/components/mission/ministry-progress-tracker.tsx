@@ -1,10 +1,7 @@
-import {
-  RECRUIT_SENT_GOAL,
-  sentGoalPercent,
-  type RecruitCounts,
-} from "@/lib/recruits/recruit-milestones";
+import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
+import { RECRUIT_SENT_GOAL, sentGoalPercent } from "@/lib/recruits/recruit-milestones";
 
-function MilestoneStep({ label, value, note }: { label: string; value: number; note: string }) {
+function MilestoneStep({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex-1 min-w-0 text-center sm:text-left">
       <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary/85">
@@ -13,7 +10,6 @@ function MilestoneStep({ label, value, note }: { label: string; value: number; n
       <p className="mt-1 font-serif text-3xl sm:text-4xl text-brand-ink tabular-nums tracking-tight">
         {value}
       </p>
-      <p className="mt-0.5 text-[11px] text-brand-ink/55 leading-snug">{note}</p>
     </div>
   );
 }
@@ -35,7 +31,7 @@ function StepArrow() {
  *
  * Receives aggregate integers only — no recruit record ever reaches this component.
  */
-export function MinistryProgressTracker({ counts }: { counts: RecruitCounts }) {
+export function MinistryProgressTracker({ counts }: { counts: PublicProgressCounts }) {
   const { mobilized, trained, sent } = counts;
   const percent = sentGoalPercent(sent);
   const remaining = Math.max(0, RECRUIT_SENT_GOAL - sent);
@@ -53,11 +49,11 @@ export function MinistryProgressTracker({ counts }: { counts: RecruitCounts }) {
       </p>
 
       <div className="mt-5 flex items-start gap-3 sm:gap-4">
-        <MilestoneStep label="Mobilized" value={mobilized} note="Answered the call" />
+        <MilestoneStep label="Mobilized" value={mobilized} />
         <StepArrow />
-        <MilestoneStep label="Trained" value={trained} note="Training complete" />
+        <MilestoneStep label="Trained" value={trained} />
         <StepArrow />
-        <MilestoneStep label="Sent" value={sent} note="Fully funded" />
+        <MilestoneStep label="Sent" value={sent} />
       </div>
 
       <div className="mt-7 border-t border-brand-primary/15 pt-6">
@@ -75,7 +71,7 @@ export function MinistryProgressTracker({ counts }: { counts: RecruitCounts }) {
           aria-valuemin={0}
           aria-valuemax={RECRUIT_SENT_GOAL}
           aria-valuenow={sent}
-          aria-label={`Progress toward the goal: ${sent} of ${RECRUIT_SENT_GOAL} missionaries sent`}
+          aria-label={`Progress toward the goal: ${sent} of ${RECRUIT_SENT_GOAL} workers sent`}
         >
           <div
             className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-accent transition-all duration-700 ease-out"
@@ -86,12 +82,12 @@ export function MinistryProgressTracker({ counts }: { counts: RecruitCounts }) {
         <p className="mt-3 text-xs text-brand-ink/60 leading-relaxed">
           {remaining > 0 ? (
             <>
-              <span className="font-medium text-brand-ink">{remaining}</span> more to reach 300
-              missionaries sent to the unreached by August 31, 2031.
+              <span className="font-medium text-brand-ink">{remaining}</span> more workers to reach
+              the unreached by August 31, 2031.
             </>
           ) : (
             <span className="font-medium text-brand-primary">
-              300 sent — goal reached. To God be the glory.
+              300 workers sent — goal reached. To God be the glory.
             </span>
           )}
         </p>

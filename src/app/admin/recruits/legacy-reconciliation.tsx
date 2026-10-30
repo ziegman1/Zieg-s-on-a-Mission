@@ -117,7 +117,7 @@ export function LegacyReconciliation({
         <p className="text-zinc-400 text-sm mt-2 max-w-3xl leading-relaxed">
           Historical roster rows stay as evidence. Mobilized, Trained &amp; Equipped, and Sent
           stay off until you confirm each one. Fully Funded is not Sent, and a Jonathan Training
-          checkbox is not a confirmed milestone. The public site still uses the legacy totals.
+          checkbox is not a confirmed milestone. The homepage uses the ministry totals above.
         </p>
       </div>
 

@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { describe, expect, it } from "vitest";
 import {
@@ -170,7 +170,22 @@ describe("public tracker accessibility and privacy", () => {
   });
 
   it("receives aggregate counts only", () => {
-    expect(tracker).toContain("counts }: { counts: RecruitCounts }");
+    expect(tracker).toContain("counts }: { counts: PublicProgressCounts }");
     expect(tracker).not.toMatch(/\bname\b/);
+  });
+
+  it("keeps the milestone counts unlabeled and speaks of workers", () => {
+    expect(tracker).not.toContain("Answered the call");
+    expect(tracker).not.toContain("Training complete");
+    expect(tracker).not.toContain("Fully funded");
+    expect(tracker).toContain("more workers");
+    expect(tracker).not.toContain("missionaries");
+  });
+
+  it("does not link to the impact page until that page exists", () => {
+    const pageExists = existsSync(resolve(process.cwd(), "src/app/our-impact/page.tsx"));
+    expect(pageExists).toBe(false);
+    expect(tracker).not.toContain('href="/our-impact"');
+    expect(tracker).not.toContain("How We Track Our Impact");
   });
 });

@@ -56,7 +56,7 @@ describe("national partner initiative admin section", () => {
     expect(html).toContain(">46<");
     expect(html).toContain("8 verified individuals");
     expect(html).toContain("40 national partner participants");
-    expect(html).toContain("not on the public site");
+    expect(html).toContain("The homepage uses these same totals");
   });
 
   it("uses one save action inside the initiative modal", () => {

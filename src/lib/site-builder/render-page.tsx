@@ -2,23 +2,26 @@ import { unstable_noStore as noStore } from "next/cache";
 import { ReactNode } from "react";
 import { PageSectionsRenderer } from "@/components/site-builder/page-sections-renderer";
 import { getSiteCopy } from "@/lib/site-copy";
-import type { RecruitCounts } from "@/lib/recruits/recruit-milestones";
-import { getRecruitCounts } from "@/lib/recruits/recruits-db";
+import { getMinistryOutcomeCounts } from "@/lib/ministry/ministry-db";
+import {
+  publicProgressCounts,
+  type PublicProgressCounts,
+} from "@/lib/ministry/ministry-milestones";
 import { getPublishedPageSections, pageHasCustomSections } from "./sections-db";
 
 /**
  * Aggregate integers for the homepage ministry progress tracker.
  *
- * Only the home page needs them, and a failure here must never take the page down — the tracker
- * simply falls back to its zero state.
+ * Only the home page needs them. A failure leaves the tracker out of the page rather than
+ * showing zeros that were never counted.
  */
-async function loadRecruitCounts(pageKey: string): Promise<RecruitCounts | null> {
+async function loadPublicProgressCounts(pageKey: string): Promise<PublicProgressCounts | null> {
   if (pageKey !== "home") return null;
   try {
-    return await getRecruitCounts();
+    return publicProgressCounts(await getMinistryOutcomeCounts());
   } catch (error) {
-    console.error("[render-page] recruit counts unavailable", error);
-    return { mobilized: 0, trained: 0, sent: 0 };
+    console.error("[render-page] ministry progress counts unavailable", error);
+    return null;
   }
 }
 
@@ -31,17 +34,17 @@ export async function renderStorefrontPage(
   if (!hasCustom) {
     return legacy();
   }
-  const [sections, copy, recruitCounts] = await Promise.all([
+  const [sections, copy, progressCounts] = await Promise.all([
     getPublishedPageSections(pageKey),
     getSiteCopy(),
-    loadRecruitCounts(pageKey),
+    loadPublicProgressCounts(pageKey),
   ]);
   return (
     <PageSectionsRenderer
       pageKey={pageKey}
       sections={sections}
       siteTagline={copy.site.tagline}
-      recruitCounts={recruitCounts}
+      progressCounts={progressCounts}
     />
   );
 }

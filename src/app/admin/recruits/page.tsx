@@ -128,8 +128,7 @@ export default async function AdminRecruitsPage() {
           checkboxes. A Team Expansion Recruit is Mobilized when that pathway is saved, Trained
           &amp; Equipped when Jonathan Training is complete, and Sent when that training and full
           funding are both confirmed. Completed national partner trainings are recorded as
-          anonymous participant counts, not as named people. The public site still shows the
-          legacy totals until a later phase switches it over.
+          anonymous participant counts, not as named people. The homepage uses these same totals.
         </p>
       </div>
 
@@ -175,7 +174,7 @@ export default async function AdminRecruitsPage() {
               Legacy Recruit Tracker
             </h2>
             <p className="text-zinc-400 text-sm mt-2 max-w-3xl leading-relaxed">
-              These records still drive the public progress numbers. Mobilized means every person
+              These records no longer drive the homepage. Mobilized means every person
               named here, Trained means Jonathan Training, and Sent means trained and fully funded.
               Enter a couple as one record using &ldquo;and&rdquo; or &ldquo;&amp;&rdquo;
               (for example &ldquo;Jeremy and Lindsay Ziegenhorn&rdquo;) and they count as two

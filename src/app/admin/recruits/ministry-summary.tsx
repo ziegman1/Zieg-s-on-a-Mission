@@ -20,7 +20,7 @@ function PreviewCard({ label, value, hint }: { label: string; value: number; hin
   );
 }
 
-/** Preview only. The public site still uses the legacy Recruit Tracker totals. */
+/** The same totals shown on the public homepage. */
 export function MinistrySummary({ counts }: { counts: MinistryOutcomeBreakdown }) {
   const percent = sentGoalPercent(counts.unified.sent);
   const remaining = Math.max(0, RECRUIT_SENT_GOAL - counts.unified.sent);
@@ -30,13 +30,12 @@ export function MinistrySummary({ counts }: { counts: MinistryOutcomeBreakdown }
     <section className="space-y-4">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent">
-          New definitions — preview
+          Public totals
         </p>
         <p className="mt-1 text-xs text-zinc-500 max-w-3xl leading-relaxed">
           These totals add verified individual milestones to anonymous national partner participants.
-          They are not on the public site. The public totals below are still the legacy Recruit
-          Tracker figures. National partner participants are not named, so the same person cannot
-          be removed from the total if they attend more than one initiative.
+          The homepage uses these same totals. National partner participants are not named, so the
+          same person cannot be removed from the total if they attend more than one initiative.
         </p>
       </div>
 
