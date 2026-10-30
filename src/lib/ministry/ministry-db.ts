@@ -10,6 +10,13 @@ import type {
 import { prisma } from "@/lib/db";
 import { fromCalendarDay, toCalendarDay } from "@/lib/ministry/ministry-form";
 import { countMinistryOutcomes, type MinistryOutcomeCounts } from "@/lib/ministry/ministry-milestones";
+import {
+  initialMilestonesForPathway,
+  MinistrySaveRejected,
+  resolveMinistryPersonSave,
+  type MinistrySaveStored,
+  type MinistrySaveSubmission,
+} from "@/lib/ministry/ministry-save";
 
 export type MinistryActivityView = {
   id: string;
@@ -37,6 +44,9 @@ export type MinistryPersonView = {
   sentVerifiedBy: string;
   sentVerificationNote: string;
   notes: string;
+  jonathanTrainingComplete: boolean;
+  fullyFunded: boolean;
+  milestoneAudit: string;
   activities: MinistryActivityView[];
 };
 
@@ -60,6 +70,9 @@ function toView(person: PersonWithActivities): MinistryPersonView {
     sentVerifiedBy: person.sentVerifiedBy ?? "",
     sentVerificationNote: person.sentVerificationNote,
     notes: person.notes,
+    jonathanTrainingComplete: person.jonathanTrainingComplete,
+    fullyFunded: person.fullyFunded,
+    milestoneAudit: person.milestoneAudit,
     activities: person.activities.map((activity) => ({
       id: activity.id,
       activityType: activity.activityType,
@@ -90,21 +103,141 @@ export async function getMinistryOutcomeCounts(): Promise<MinistryOutcomeCounts>
   return countMinistryOutcomes(rows);
 }
 
-/** A new person starts with every milestone unset. Presence in the list is not Mobilized. */
+/**
+ * A new person starts with every milestone unset, except a new Team Expansion Recruit,
+ * who is Mobilized. Training, funding, and Sent stay off until an admin confirms them.
+ */
 export async function createMinistryPerson(input: {
   displayName: string;
   pathway: MinistryPathway | null;
   notes: string;
 }): Promise<MinistryPersonView> {
+  const milestones = initialMilestonesForPathway(input.pathway);
   const row = await prisma.ministryPerson.create({
     data: {
       displayName: input.displayName,
       pathway: input.pathway,
       notes: input.notes,
+      mobilized: milestones.mobilized,
+      trainedEquipped: milestones.trainedEquipped,
+      sent: milestones.sent,
+      jonathanTrainingComplete: milestones.jonathanTrainingComplete,
+      fullyFunded: milestones.fullyFunded,
     },
     include: personInclude,
   });
   return toView(row);
+}
+
+export async function getMinistryPerson(id: string): Promise<MinistryPersonView | null> {
+  const row = await prisma.ministryPerson.findUnique({
+    where: { id },
+    include: personInclude,
+  });
+  return row ? toView(row) : null;
+}
+
+function storedMilestones(person: MinistryPerson): MinistrySaveStored {
+  return {
+    mobilized: person.mobilized,
+    mobilizedOn: toCalendarDay(person.mobilizedOn),
+    trainedEquipped: person.trainedEquipped,
+    trainedEquippedOn: toCalendarDay(person.trainedEquippedOn),
+    sent: person.sent,
+    sentOn: toCalendarDay(person.sentOn),
+    sentDesignation: person.sentDesignation,
+    sentVerifiedAt: person.sentVerifiedAt ? person.sentVerifiedAt.toISOString() : null,
+    sentVerifiedBy: person.sentVerifiedBy ?? "",
+    sentVerificationNote: person.sentVerificationNote,
+    milestoneAudit: person.milestoneAudit,
+  };
+}
+
+/**
+ * Profile, household, and milestones in one transaction.
+ * Does not create activities, write recruits, or update legacy reconciliation links.
+ */
+export async function saveMinistryPersonChanges(
+  id: string,
+  input: {
+    displayName: string;
+    pathway: MinistryPathway | null;
+    notes: string;
+    legacyRecruitId: string | null;
+    householdWithPersonId: string | null;
+    submission: MinistrySaveSubmission;
+    recordedOn: string;
+  },
+): Promise<MinistryPersonView> {
+  return prisma.$transaction(
+    async (tx) => {
+      const existing = await tx.ministryPerson.findUnique({ where: { id } });
+      if (!existing) throw new Error("That person no longer exists.");
+      if (input.householdWithPersonId === id) {
+        throw new Error("A person cannot be their own household.");
+      }
+
+      const resolved = resolveMinistryPersonSave(
+        storedMilestones(existing),
+        input.submission,
+        input.recordedOn,
+      );
+      if (!resolved.ok) {
+        throw new MinistrySaveRejected(resolved.error, resolved.needsConfirmation);
+      }
+
+      let householdId: string | null = null;
+      if (input.householdWithPersonId) {
+        const other = await tx.ministryPerson.findUnique({
+          where: { id: input.householdWithPersonId },
+          select: { id: true, householdId: true },
+        });
+        if (!other) throw new Error("The selected household person no longer exists.");
+        householdId = other.householdId ?? randomUUID();
+        if (!other.householdId) {
+          await tx.ministryPerson.update({
+            where: { id: other.id },
+            data: { householdId },
+          });
+        }
+      }
+
+      const write = resolved.write;
+      let sentVerifiedAt = existing.sentVerifiedAt;
+      if (write.clearSentVerifiedAt) {
+        sentVerifiedAt = null;
+      } else if (write.touchSentVerifiedAt && !existing.sentVerifiedAt) {
+        sentVerifiedAt = new Date();
+      }
+
+      const row = await tx.ministryPerson.update({
+        where: { id },
+        data: {
+          displayName: input.displayName,
+          pathway: input.pathway,
+          notes: input.notes,
+          legacyRecruitId: input.legacyRecruitId,
+          householdId,
+          jonathanTrainingComplete: write.jonathanTrainingComplete,
+          fullyFunded: write.fullyFunded,
+          mobilized: write.mobilized,
+          mobilizedOn: fromCalendarDay(write.mobilizedOn),
+          trainedEquipped: write.trainedEquipped,
+          trainedEquippedOn: fromCalendarDay(write.trainedEquippedOn),
+          sent: write.sent,
+          sentOn: fromCalendarDay(write.sentOn),
+          sentDesignation: write.sentDesignation,
+          sentVerifiedBy: write.sentVerifiedBy.trim() || null,
+          sentVerificationNote: write.sentVerificationNote,
+          sentVerifiedAt,
+          milestoneAudit: write.milestoneAudit,
+        },
+        include: personInclude,
+      });
+      return toView(row);
+    },
+    { maxWait: 15_000, timeout: 60_000 },
+  );
 }
 
 export async function updateMinistryPerson(

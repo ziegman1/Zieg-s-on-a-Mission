@@ -57,6 +57,7 @@ describe("admin recruits guard", () => {
       "createMinistryPersonAction",
       "updateMinistryPersonAction",
       "updateMinistryMilestonesAction",
+      "saveMinistryPersonAction",
       "deleteMinistryPersonAction",
       "createMinistryActivityAction",
       "updateMinistryActivityAction",

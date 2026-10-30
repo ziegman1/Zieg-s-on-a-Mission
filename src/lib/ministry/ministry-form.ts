@@ -83,6 +83,17 @@ export const ministryMilestoneSchema = z
 
 export type MinistryMilestoneInput = z.infer<typeof ministryMilestoneSchema>;
 
+/** Profile and milestones submitted together from Manage Person. */
+export const ministryPersonSaveSchema = ministryPersonSchema
+  .extend({
+    jonathanTrainingComplete: z.boolean(),
+    fullyFunded: z.boolean(),
+    confirmHistoryChange: z.boolean(),
+  })
+  .and(ministryMilestoneSchema);
+
+export type MinistryPersonSaveInput = z.infer<typeof ministryPersonSaveSchema>;
+
 export const ministryActivitySchema = z.object({
   activityType: activityTypeSchema,
   status: activityStatusSchema,

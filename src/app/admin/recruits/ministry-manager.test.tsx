@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
-import { MinistryManager, ministryPersonEditorIsDirty } from "./ministry-manager";
+import { MinistryManager, RecruitProgression, ministryPersonEditorIsDirty } from "./ministry-manager";
 import { MinistrySummary } from "./ministry-summary";
 
 const cleanEditor = {
@@ -25,6 +25,8 @@ const cleanEditor = {
   sentDesignation: "",
   sentVerifiedBy: "",
   sentVerificationNote: "",
+  jonathanTrainingComplete: false,
+  fullyFunded: false,
   activityDirty: false,
 };
 
@@ -69,6 +71,9 @@ describe("ministry admin preview", () => {
             sentVerifiedBy: "",
             sentVerificationNote: "",
             notes: "",
+            jonathanTrainingComplete: false,
+            fullyFunded: false,
+            milestoneAudit: "",
             activities: [],
           },
         ]}
@@ -79,6 +84,46 @@ describe("ministry admin preview", () => {
     expect(html).toContain("Manage");
     expect(html).toContain("Team Expansion Recruits");
     expect(html).not.toContain("Onboard, then raise support");
+    expect(html).not.toContain("Save profile");
+    expect(html).not.toContain("Save milestones");
+    expect(html).not.toContain("Save Changes");
+  });
+
+  it("shows Team Expansion Recruit progression without independent milestone checkboxes", () => {
+    const html = renderToStaticMarkup(
+      <RecruitProgression
+        personId="person-1"
+        mobilizedOn=""
+        onMobilizedOn={() => undefined}
+        jonathanTrainingComplete={false}
+        onJonathanTrainingComplete={() => undefined}
+        fullyFunded={true}
+        onFullyFunded={() => undefined}
+        trainedEquippedOn="2019-04-04"
+        onTrainedEquippedOn={() => undefined}
+        sentOn=""
+        onSentOn={() => undefined}
+        trained={false}
+        sent={false}
+        trainingEvidence={[
+          {
+            id: "activity-1",
+            activityType: "JONATHAN_TRAINING",
+            status: "COMPLETED",
+            activityOn: "2018-01-01",
+            location: "Emerald Hills",
+            notes: "",
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain("Jonathan Training Complete");
+    expect(html).toContain("Fully Funded");
+    expect(html).toContain("Mobilized");
+    expect(html).toContain("Trained &amp; Equipped");
+    expect(html).toContain("Sent");
+    expect(html).toContain("Historical Jonathan Training activities");
+    expect(html).toContain("Emerald Hills");
     expect(html).not.toContain("Save profile");
     expect(html).not.toContain("Save milestones");
   });

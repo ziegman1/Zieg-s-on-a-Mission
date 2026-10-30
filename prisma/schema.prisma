@@ -809,10 +809,18 @@ enum MinistryLegacyReviewStatus {
 
 /// One person counted toward the ministry impact outcomes.
 ///
-/// Mobilized, Trained & Equipped, and Sent are independent. Each is a boolean, so a milestone
-/// can be recorded when the historical day is unknown. The optional date is not what makes the
-/// person count. Sent requires a designation; that rule is enforced by
-/// ministry_people_sent_designation_check in the migration.
+/// Stored milestone booleans stay independent so a migration cannot recalculate them.
+/// National Partner and Training Participant edits write those booleans directly.
+/// Team Expansion Recruit derives them only when an admin saves that pathway:
+/// Mobilized is recorded, Trained & Equipped follows jonathanTrainingComplete, and
+/// Sent follows jonathanTrainingComplete AND fullyFunded. Those two inputs are not
+/// copied from legacy recruits and are not inferred from Sent.
+///
+/// Each milestone is a boolean, so it can be recorded when the historical day is unknown.
+/// The optional date is not what makes the person count. Sent requires a designation; that
+/// rule is enforced by ministry_people_sent_designation_check in the migration. When Sent
+/// is turned off, the designation column must be cleared, and the previous value is appended
+/// to milestoneAudit.
 ///
 /// Two people who share a householdId, or the same legacyRecruitId, are linked without copying
 /// each other's milestones. The Sent total counts rows where sent is true, so one person counts
@@ -826,6 +834,11 @@ model MinistryPerson {
   /// Shared opaque id. Not a foreign key; there is no household table.
   householdId     String?          @map("household_id") @db.Uuid
 
+  /// Admin confirmation for Team Expansion Recruit. Default false does not backfill anyone.
+  jonathanTrainingComplete Boolean @default(false) @map("jonathan_training_complete")
+  /// Admin confirmation. Independent of Sent. Default false does not infer funding.
+  fullyFunded              Boolean @default(false) @map("fully_funded")
+
   mobilized          Boolean   @default(false)
   mobilizedOn        DateTime? @map("mobilized_on") @db.Date
   trainedEquipped    Boolean   @default(false) @map("trained_equipped")
@@ -838,6 +851,8 @@ model MinistryPerson {
   sentVerificationNote String                   @default("") @map("sent_verification_note")
 
   notes String @default("")
+  /// Append-only record of a Team Expansion save that had to clear a Sent designation.
+  milestoneAudit String @default("") @map("milestone_audit")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

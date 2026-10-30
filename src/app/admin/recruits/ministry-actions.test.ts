@@ -11,11 +11,24 @@ vi.mock("@/lib/ministry/ministry-db", () => ({
   updateMinistryActivity: vi.fn(),
   deleteMinistryActivity: vi.fn(),
   setMinistryHousehold: vi.fn(),
+  getMinistryPerson: vi.fn(),
+  saveMinistryPersonChanges: vi.fn(),
 }));
 
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { createMinistryActivity, createMinistryPerson } from "@/lib/ministry/ministry-db";
-import { createMinistryActivityAction, createMinistryPersonAction, updateMinistryMilestonesAction } from "./ministry-actions";
+import {
+  createMinistryActivity,
+  createMinistryPerson,
+  getMinistryPerson,
+  saveMinistryPersonChanges,
+} from "@/lib/ministry/ministry-db";
+import {
+  createMinistryActivityAction,
+  createMinistryPersonAction,
+  saveMinistryPersonAction,
+  updateMinistryMilestonesAction,
+} from "./ministry-actions";
 
 type SessionLike = { user?: { id?: string; role?: string } } | null;
 const mockedAuth = vi.mocked(auth as unknown as () => Promise<SessionLike>);
@@ -39,7 +52,7 @@ describe("ministry action authorization", () => {
     expect(createMinistryPerson).not.toHaveBeenCalled();
   });
 
-  it("creates a person without confirming any milestone", async () => {
+  it("creates a Team Expansion Recruit through the person record, which records Mobilized", async () => {
     const result = await createMinistryPersonAction({
       displayName: "Ada Lovelace",
       pathway: "TEAM_EXPANSION_RECRUIT",
@@ -78,5 +91,134 @@ describe("ministry action authorization", () => {
     });
     expect(result.ok).toBe(true);
     expect(createMinistryActivity).toHaveBeenCalledOnce();
+  });
+});
+
+const savedPerson = {
+  id: "person-1",
+  displayName: "Ada Lovelace",
+  pathway: "TEAM_EXPANSION_RECRUIT" as const,
+  legacyRecruitId: null,
+  householdId: null,
+  mobilized: false,
+  mobilizedOn: null,
+  trainedEquipped: false,
+  trainedEquippedOn: null,
+  sent: false,
+  sentOn: null,
+  sentDesignation: null,
+  sentVerifiedAt: null,
+  sentVerifiedBy: "",
+  sentVerificationNote: "",
+  notes: "",
+  jonathanTrainingComplete: false,
+  fullyFunded: false,
+  milestoneAudit: "",
+  activities: [],
+};
+
+const saveInput = {
+  displayName: "Ada Lovelace",
+  pathway: "TEAM_EXPANSION_RECRUIT",
+  notes: "notes",
+  householdWithPersonId: "",
+  legacyRecruitId: "",
+  jonathanTrainingComplete: true,
+  fullyFunded: true,
+  confirmHistoryChange: false,
+  mobilized: true,
+  mobilizedOn: "",
+  trainedEquipped: true,
+  trainedEquippedOn: "",
+  sent: true,
+  sentOn: "",
+  sentDesignation: "NATIONAL_WORKER",
+  sentVerifiedBy: "",
+  sentVerificationNote: "",
+};
+
+describe("saveMinistryPersonAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedAuth.mockResolvedValue({ user: { id: "admin-1", role: "ADMIN" } });
+    vi.mocked(getMinistryPerson).mockResolvedValue(savedPerson);
+    vi.mocked(saveMinistryPersonChanges).mockResolvedValue(savedPerson);
+  });
+
+  it("rejects an invalid person before writing", async () => {
+    const result = await saveMinistryPersonAction("person-1", { ...saveInput, displayName: " " });
+    expect(result.ok).toBe(false);
+    expect(saveMinistryPersonChanges).not.toHaveBeenCalled();
+    expect(getMinistryPerson).not.toHaveBeenCalled();
+  });
+
+  it("does not write when Team Expansion Recruit Sent has no designation", async () => {
+    const result = await saveMinistryPersonAction("person-1", {
+      ...saveInput,
+      sentDesignation: "",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.needsConfirmation).not.toBe(true);
+    expect(saveMinistryPersonChanges).not.toHaveBeenCalled();
+  });
+
+  it("does not write when turning Sent off still needs confirmation", async () => {
+    vi.mocked(getMinistryPerson).mockResolvedValue({
+      ...savedPerson,
+      mobilized: true,
+      sent: true,
+      sentDesignation: "D_COURSE",
+      sentOn: "2020-01-02",
+      jonathanTrainingComplete: true,
+      fullyFunded: true,
+    });
+    const result = await saveMinistryPersonAction("person-1", {
+      ...saveInput,
+      jonathanTrainingComplete: false,
+      fullyFunded: false,
+      sent: false,
+      sentDesignation: "D_COURSE",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.needsConfirmation).toBe(true);
+    expect(saveMinistryPersonChanges).not.toHaveBeenCalled();
+  });
+
+  it("writes profile and milestones through one save", async () => {
+    const result = await saveMinistryPersonAction("person-1", saveInput);
+    expect(result.ok).toBe(true);
+    expect(saveMinistryPersonChanges).toHaveBeenCalledOnce();
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/recruits");
+  });
+
+  it("keeps a National Partner Sent flag independent of training and funding", async () => {
+    vi.mocked(getMinistryPerson).mockResolvedValue({
+      ...savedPerson,
+      pathway: "NATIONAL_PARTNER",
+    });
+    const result = await saveMinistryPersonAction("person-1", {
+      ...saveInput,
+      pathway: "NATIONAL_PARTNER",
+      jonathanTrainingComplete: true,
+      fullyFunded: true,
+      mobilized: false,
+      trainedEquipped: false,
+      sent: true,
+      sentDesignation: "OTHER_DISCIPLE_MAKER",
+    });
+    expect(result.ok).toBe(true);
+    expect(saveMinistryPersonChanges).toHaveBeenCalledOnce();
+    const submission = vi.mocked(saveMinistryPersonChanges).mock.calls[0][1].submission;
+    expect(submission.pathway).toBe("NATIONAL_PARTNER");
+    expect(submission.sent).toBe(true);
+    expect(submission.trainedEquipped).toBe(false);
+    expect(submission.mobilized).toBe(false);
+  });
+
+  it("reports a database failure without refreshing the list", async () => {
+    vi.mocked(saveMinistryPersonChanges).mockRejectedValue(new Error("db down"));
+    const result = await saveMinistryPersonAction("person-1", saveInput);
+    expect(result.ok).toBe(false);
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import {
   formatMinistryInputErrors,
   ministryActivitySchema,
   ministryMilestoneSchema,
+  ministryPersonSaveSchema,
   ministryPersonSchema,
 } from "@/lib/ministry/ministry-form";
 import {
@@ -13,13 +14,18 @@ import {
   createMinistryPerson,
   deleteMinistryActivity,
   deleteMinistryPerson,
+  getMinistryPerson,
+  saveMinistryPersonChanges,
   setMinistryHousehold,
   updateMinistryActivity,
   updateMinistryMilestones,
   updateMinistryPerson,
 } from "@/lib/ministry/ministry-db";
+import { MinistrySaveRejected, resolveMinistryPersonSave } from "@/lib/ministry/ministry-save";
 
-export type MinistryActionResult = { ok: true } | { ok: false; error: string };
+export type MinistryActionResult =
+  | { ok: true }
+  | { ok: false; error: string; needsConfirmation?: boolean };
 
 const UNAUTHORIZED = "Unauthorized — ministry records are ADMIN-only.";
 
@@ -129,6 +135,103 @@ export async function updateMinistryMilestonesAction(
     const message = error instanceof Error ? error.message : "";
     if (message.includes("no longer exists")) return { ok: false, error: message };
     return { ok: false, error: friendlyConstraint(error, "Could not save those milestones.") };
+  }
+
+  revalidateMinistry();
+  return { ok: true };
+}
+
+export async function saveMinistryPersonAction(
+  id: string,
+  input: {
+    displayName: string;
+    pathway: string;
+    notes: string;
+    householdWithPersonId: string;
+    legacyRecruitId: string;
+    jonathanTrainingComplete: boolean;
+    fullyFunded: boolean;
+    confirmHistoryChange: boolean;
+    mobilized: boolean;
+    mobilizedOn: string;
+    trainedEquipped: boolean;
+    trainedEquippedOn: string;
+    sent: boolean;
+    sentOn: string;
+    sentDesignation: string;
+    sentVerifiedBy: string;
+    sentVerificationNote: string;
+  },
+): Promise<MinistryActionResult> {
+  const admin = await requireAdminOnlySession();
+  if (!admin) return { ok: false, error: UNAUTHORIZED };
+  if (!id) return { ok: false, error: "Missing person id." };
+
+  const parsed = ministryPersonSaveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: formatMinistryInputErrors(parsed.error) };
+  if (parsed.data.householdWithPersonId === id) {
+    return { ok: false, error: "A person cannot be their own household." };
+  }
+
+  const existing = await getMinistryPerson(id);
+  if (!existing) return { ok: false, error: "That person no longer exists." };
+
+  const recordedOn = new Date().toISOString().slice(0, 10);
+  const submission = {
+    pathway: parsed.data.pathway,
+    jonathanTrainingComplete: parsed.data.jonathanTrainingComplete,
+    fullyFunded: parsed.data.fullyFunded,
+    mobilized: parsed.data.mobilized,
+    mobilizedOn: parsed.data.mobilizedOn,
+    trainedEquipped: parsed.data.trainedEquipped,
+    trainedEquippedOn: parsed.data.trainedEquippedOn,
+    sent: parsed.data.sent,
+    sentOn: parsed.data.sentOn,
+    sentDesignation: parsed.data.sentDesignation,
+    sentVerifiedBy: parsed.data.sentVerifiedBy,
+    sentVerificationNote: parsed.data.sentVerificationNote,
+    confirmHistoryChange: parsed.data.confirmHistoryChange,
+  };
+  const resolved = resolveMinistryPersonSave(
+    {
+      mobilized: existing.mobilized,
+      mobilizedOn: existing.mobilizedOn,
+      trainedEquipped: existing.trainedEquipped,
+      trainedEquippedOn: existing.trainedEquippedOn,
+      sent: existing.sent,
+      sentOn: existing.sentOn,
+      sentDesignation: existing.sentDesignation,
+      sentVerifiedAt: existing.sentVerifiedAt,
+      sentVerifiedBy: existing.sentVerifiedBy,
+      sentVerificationNote: existing.sentVerificationNote,
+      milestoneAudit: existing.milestoneAudit,
+    },
+    submission,
+    recordedOn,
+  );
+  if (!resolved.ok) {
+    return { ok: false, error: resolved.error, needsConfirmation: resolved.needsConfirmation };
+  }
+
+  try {
+    await saveMinistryPersonChanges(id, {
+      displayName: parsed.data.displayName,
+      pathway: parsed.data.pathway,
+      notes: parsed.data.notes,
+      legacyRecruitId: parsed.data.legacyRecruitId,
+      householdWithPersonId: parsed.data.householdWithPersonId,
+      submission,
+      recordedOn,
+    });
+  } catch (error) {
+    if (error instanceof MinistrySaveRejected) {
+      return { ok: false, error: error.message, needsConfirmation: error.needsConfirmation };
+    }
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("no longer exists") || message.includes("own household")) {
+      return { ok: false, error: message };
+    }
+    return { ok: false, error: friendlyConstraint(error, "Could not save that person.") };
   }
 
   revalidateMinistry();

@@ -17,14 +17,14 @@ import {
   ministryPersonMatchesQuery,
 } from "@/lib/ministry/ministry-labels";
 import type { MinistryActivityView, MinistryPersonView } from "@/lib/ministry/ministry-db";
+import { teamExpansionProgressDiscrepancy } from "@/lib/ministry/ministry-save";
 import {
   createMinistryActivityAction,
   createMinistryPersonAction,
   deleteMinistryActivityAction,
   deleteMinistryPersonAction,
+  saveMinistryPersonAction,
   updateMinistryActivityAction,
-  updateMinistryMilestonesAction,
-  updateMinistryPersonAction,
 } from "./ministry-actions";
 
 type LegacyOption = { id: string; name: string };
@@ -52,6 +52,8 @@ type EditorSnapshot = {
   sentDesignation: string;
   sentVerifiedBy: string;
   sentVerificationNote: string;
+  jonathanTrainingComplete: boolean;
+  fullyFunded: boolean;
   activityDirty: boolean;
 };
 
@@ -163,7 +165,9 @@ export function MinistryManager({
         <div className="md:col-span-2">
           <h2 className="font-serif text-xl text-cream">Add a person</h2>
           <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
-            Adding someone does not count them as Mobilized, Trained & Equipped, or Sent.
+            {pathway === "TEAM_EXPANSION_RECRUIT"
+              ? "A new Team Expansion Recruit is recorded as Mobilized. Jonathan Training, funding, and Sent stay off until you confirm them."
+              : "Adding someone does not count them as Mobilized, Trained & Equipped, or Sent."}
           </p>
         </div>
         <div>
@@ -354,13 +358,25 @@ function PersonEditor({
   const [sentDesignation, setSentDesignation] = useState(person.sentDesignation ?? "");
   const [sentVerifiedBy, setSentVerifiedBy] = useState(person.sentVerifiedBy);
   const [sentVerificationNote, setSentVerificationNote] = useState(person.sentVerificationNote);
+  const [jonathanTrainingComplete, setJonathanTrainingComplete] = useState(
+    person.jonathanTrainingComplete,
+  );
+  const [fullyFunded, setFullyFunded] = useState(person.fullyFunded);
   const [saving, setSaving] = useState<string | null>(null);
   const [activityDirty, setActivityDirty] = useState(false);
   const [activityBusy, setActivityBusy] = useState(false);
   const onActivityDirty = useCallback((value: boolean) => setActivityDirty(value), []);
   const onActivityBusy = useCallback((value: boolean) => setActivityBusy(value), []);
-  const profileFormId = `profile-${person.id}`;
-  const milestoneFormId = `milestones-${person.id}`;
+  const editorFormId = `editor-${person.id}`;
+  const recruitPathway = pathway === "TEAM_EXPANSION_RECRUIT";
+  const recruitTrained = jonathanTrainingComplete;
+  const recruitSent = jonathanTrainingComplete && fullyFunded;
+  const discrepancy = recruitPathway
+    ? teamExpansionProgressDiscrepancy(person, { jonathanTrainingComplete, fullyFunded })
+    : null;
+  const trainingEvidence = person.activities.filter(
+    (activity) => activity.activityType === "JONATHAN_TRAINING",
+  );
 
   const baseline: EditorSnapshot = {
     displayName: person.displayName,
@@ -377,6 +393,8 @@ function PersonEditor({
     sentDesignation: person.sentDesignation ?? "",
     sentVerifiedBy: person.sentVerifiedBy,
     sentVerificationNote: person.sentVerificationNote,
+    jonathanTrainingComplete: person.jonathanTrainingComplete,
+    fullyFunded: person.fullyFunded,
     activityDirty: false,
   };
   const draft: EditorSnapshot = {
@@ -394,6 +412,8 @@ function PersonEditor({
     sentDesignation,
     sentVerifiedBy,
     sentVerificationNote,
+    jonathanTrainingComplete,
+    fullyFunded,
     activityDirty,
   };
   const dirty = ministryPersonEditorIsDirty(baseline, draft);
@@ -413,35 +433,32 @@ function PersonEditor({
     (other) => other.id !== person.id && person.householdId && other.householdId === person.householdId,
   );
 
-  async function saveProfile(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving("profile");
+  async function saveChanges(event: React.FormEvent | null, confirmHistoryChange = false) {
+    event?.preventDefault();
+    if (activityDirty) {
+      onError("Save or clear the activity form before saving this person.");
+      return;
+    }
+    if (recruitPathway && recruitSent && !sentDesignation) {
+      onError("Choose a Sent designation");
+      return;
+    }
+    setSaving("save");
     onError(null);
-    const result = await updateMinistryPersonAction(person.id, {
+    const result = await saveMinistryPersonAction(person.id, {
       displayName,
       pathway,
       notes,
       householdWithPersonId,
       legacyRecruitId,
-    });
-    setSaving(null);
-    if (!result.ok) {
-      onError(result.error);
-      return;
-    }
-    onSaved();
-  }
-
-  async function saveMilestones(event: React.FormEvent) {
-    event.preventDefault();
-    setSaving("milestones");
-    onError(null);
-    const result = await updateMinistryMilestonesAction(person.id, {
-      mobilized,
+      jonathanTrainingComplete,
+      fullyFunded,
+      confirmHistoryChange,
+      mobilized: recruitPathway ? true : mobilized,
       mobilizedOn,
-      trainedEquipped,
+      trainedEquipped: recruitPathway ? recruitTrained : trainedEquipped,
       trainedEquippedOn,
-      sent,
+      sent: recruitPathway ? recruitSent : sent,
       sentOn,
       sentDesignation,
       sentVerifiedBy,
@@ -449,6 +466,13 @@ function PersonEditor({
     });
     setSaving(null);
     if (!result.ok) {
+      if (result.needsConfirmation && !confirmHistoryChange) {
+        const accepted = window.confirm(`${result.error}\n\nSave this change?`);
+        if (accepted) {
+          await saveChanges(null, true);
+          return;
+        }
+      }
       onError(result.error);
       return;
     }
@@ -497,7 +521,11 @@ function PersonEditor({
         <div className="min-h-0 space-y-6 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
 
-      <form id={profileFormId} onSubmit={saveProfile} className="grid gap-4 md:grid-cols-2">
+      <form id={editorFormId} onSubmit={(event) => void saveChanges(event)} className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2">
+        <h3 className="md:col-span-2 text-sm font-semibold uppercase tracking-[0.14em] text-zinc-300">
+          Profile
+        </h3>
         <div>
           <label className="text-sm text-zinc-300" htmlFor={`name-${person.id}`}>
             Name
@@ -588,91 +616,151 @@ function PersonEditor({
             className={selectClass}
           />
         </div>
-      </form>
+      </div>
 
-      <form id={milestoneFormId} onSubmit={saveMilestones} className="space-y-4 border-t border-white/10 pt-5">
+      <div className="space-y-4 border-t border-white/10 pt-5">
         <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-zinc-300">
-          Milestones
+          {recruitPathway ? "Progression" : "Milestones"}
         </h3>
         <p className="text-xs text-zinc-500 leading-relaxed">{guidance}</p>
-        <MilestoneRow
-          id={`mobilized-${person.id}`}
-          label="Mobilized"
-          hint="Confirmed that we helped them take a meaningful next step."
-          checked={mobilized}
-          onChecked={setMobilized}
-          day={mobilizedOn}
-          onDay={setMobilizedOn}
-        />
-        <MilestoneRow
-          id={`trained-${person.id}`}
-          label="Trained & Equipped"
-          hint="Confirmed training, coaching, or preparation. Several activities still count once."
-          checked={trainedEquipped}
-          onChecked={setTrainedEquipped}
-          day={trainedEquippedOn}
-          onDay={setTrainedEquippedOn}
-        />
-        <MilestoneRow
-          id={`sent-${person.id}`}
-          label="Sent"
-          hint="Confirmed sending milestone. A designation is required. Funding and activity completion do not do this."
-          checked={sent}
-          onChecked={setSent}
-          day={sentOn}
-          onDay={setSentOn}
-        />
-        {sent ? (
+        {discrepancy ? (
+          <p className="rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100" role="status">
+            {discrepancy}
+          </p>
+        ) : null}
+        {recruitPathway && (mobilized !== true || trainedEquipped !== recruitTrained || sent !== recruitSent) ? (
+          <p className="text-xs text-zinc-400">
+            Milestone choices from another pathway stay in this form. Saving uses the Team Expansion Recruit rules below.
+          </p>
+        ) : null}
+        {recruitPathway ? (
+          <RecruitProgression
+            personId={person.id}
+            mobilizedOn={mobilizedOn}
+            onMobilizedOn={setMobilizedOn}
+            jonathanTrainingComplete={jonathanTrainingComplete}
+            onJonathanTrainingComplete={setJonathanTrainingComplete}
+            fullyFunded={fullyFunded}
+            onFullyFunded={setFullyFunded}
+            trainedEquippedOn={trainedEquippedOn}
+            onTrainedEquippedOn={setTrainedEquippedOn}
+            sentOn={sentOn}
+            onSentOn={setSentOn}
+            trained={recruitTrained}
+            sent={recruitSent}
+            trainingEvidence={trainingEvidence}
+          />
+        ) : (
+          <>
+            <MilestoneRow
+              id={`mobilized-${person.id}`}
+              label="Mobilized"
+              hint="Confirmed that we helped them take a meaningful next step."
+              checked={mobilized}
+              onChecked={setMobilized}
+              day={mobilizedOn}
+              onDay={setMobilizedOn}
+            />
+            <MilestoneRow
+              id={`trained-${person.id}`}
+              label="Trained & Equipped"
+              hint="Confirmed training, coaching, or preparation. Several activities still count once."
+              checked={trainedEquipped}
+              onChecked={setTrainedEquipped}
+              day={trainedEquippedOn}
+              onDay={setTrainedEquippedOn}
+            />
+            <MilestoneRow
+              id={`sent-${person.id}`}
+              label="Sent"
+              hint="Confirmed sending milestone. A designation is required. Funding and activity completion do not do this."
+              checked={sent}
+              onChecked={setSent}
+              day={sentOn}
+              onDay={setSentOn}
+            />
+          </>
+        )}
+        {(
+          recruitPathway
+            ? recruitSent || Boolean(sentDesignation || person.sentVerifiedBy || person.sentVerificationNote || person.sentOn)
+            : sent
+        ) ? (
           <div className="grid gap-4 md:grid-cols-2 rounded-xl border border-brand-accent/20 px-4 py-4">
-            <div>
-              <label className="text-sm text-zinc-300" htmlFor={`designation-${person.id}`}>
-                Sent designation
-              </label>
-              <select
-                id={`designation-${person.id}`}
-                value={sentDesignation}
-                onChange={(event) => setSentDesignation(event.target.value)}
-                className={selectClass}
-                required
-              >
-                <option value="">Choose the kind of worker</option>
-                {DESIGNATIONS.map((value) => (
-                  <option key={value} value={value}>
-                    {DESIGNATION_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-zinc-500">
-                This is the assignment they were sent into, not the pathway they came through.
+            {recruitPathway && !recruitSent && sentDesignation && sentDesignation in DESIGNATION_LABELS ? (
+              <p className="md:col-span-2 text-sm text-zinc-300">
+                Saved designation: {DESIGNATION_LABELS[sentDesignation as MinistrySentDesignation]}. It stays selected in this form. Turning Sent off records it in the milestone history.
               </p>
-            </div>
-            <div>
-              <label className="text-sm text-zinc-300" htmlFor={`verifier-${person.id}`}>
-                Verification source or person
-              </label>
-              <Input
-                id={`verifier-${person.id}`}
-                value={sentVerifiedBy}
-                onChange={(event) => setSentVerifiedBy(event.target.value)}
-                maxLength={120}
-                className="mt-1 border-zinc-700 bg-black/40"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm text-zinc-300" htmlFor={`verification-note-${person.id}`}>
-                Verification notes
-              </label>
-              <textarea
-                id={`verification-note-${person.id}`}
-                value={sentVerificationNote}
-                onChange={(event) => setSentVerificationNote(event.target.value)}
-                rows={2}
-                maxLength={4000}
-                className={selectClass}
-              />
-            </div>
+            ) : null}
+            {recruitPathway && !recruitSent && (person.sentOn || person.sentVerifiedBy || person.sentVerificationNote) ? (
+              <div className="md:col-span-2 space-y-1 text-sm text-zinc-400">
+                {person.sentOn ? <p>Recorded Sent date: {person.sentOn}</p> : null}
+                {person.sentVerifiedBy ? <p>Verification: {person.sentVerifiedBy}</p> : null}
+                {person.sentVerificationNote ? <p>{person.sentVerificationNote}</p> : null}
+              </div>
+            ) : null}
+            {(!recruitPathway && sent) || recruitSent ? (
+              <div>
+                <label className="text-sm text-zinc-300" htmlFor={`designation-${person.id}`}>
+                  Sent designation
+                </label>
+                <select
+                  id={`designation-${person.id}`}
+                  value={sentDesignation}
+                  onChange={(event) => setSentDesignation(event.target.value)}
+                  className={selectClass}
+                  required
+                >
+                  <option value="">Choose the kind of worker</option>
+                  {DESIGNATIONS.map((value) => (
+                    <option key={value} value={value}>
+                      {DESIGNATION_LABELS[value]}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-zinc-500">
+                  This is the assignment they were sent into, not the pathway they came through.
+                </p>
+              </div>
+            ) : null}
+            {(!recruitPathway && sent) || recruitSent ? (
+              <>
+                <div>
+                  <label className="text-sm text-zinc-300" htmlFor={`verifier-${person.id}`}>
+                    Verification source or person
+                  </label>
+                  <Input
+                    id={`verifier-${person.id}`}
+                    value={sentVerifiedBy}
+                    onChange={(event) => setSentVerifiedBy(event.target.value)}
+                    maxLength={120}
+                    className="mt-1 border-zinc-700 bg-black/40"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm text-zinc-300" htmlFor={`verification-note-${person.id}`}>
+                    Verification notes
+                  </label>
+                  <textarea
+                    id={`verification-note-${person.id}`}
+                    value={sentVerificationNote}
+                    onChange={(event) => setSentVerificationNote(event.target.value)}
+                    rows={2}
+                    maxLength={4000}
+                    className={selectClass}
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
         ) : null}
+        {person.milestoneAudit ? (
+          <div>
+            <h4 className="text-sm text-zinc-300">Milestone history</h4>
+            <pre className="mt-1 whitespace-pre-wrap font-sans text-xs text-zinc-500">{person.milestoneAudit}</pre>
+          </div>
+        ) : null}
+      </div>
       </form>
 
       <ActivityEditor
@@ -688,19 +776,11 @@ function PersonEditor({
         <div className="flex shrink-0 flex-col gap-2 border-t border-white/10 bg-zinc-950 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
           <Button
             type="submit"
-            form={profileFormId}
+            form={editorFormId}
             disabled={busy || !displayName.trim()}
             className="h-11 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 sm:h-9"
           >
-            {saving === "profile" ? "Saving…" : "Save profile"}
-          </Button>
-          <Button
-            type="submit"
-            form={milestoneFormId}
-            disabled={busy}
-            className="h-11 sm:h-9"
-          >
-            {saving === "milestones" ? "Saving…" : "Save milestones"}
+            {saving === "save" ? "Saving…" : "Save Changes"}
           </Button>
           <Button
             type="button"
@@ -714,6 +794,154 @@ function PersonEditor({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function RecruitProgression({
+  personId,
+  mobilizedOn,
+  onMobilizedOn,
+  jonathanTrainingComplete,
+  onJonathanTrainingComplete,
+  fullyFunded,
+  onFullyFunded,
+  trainedEquippedOn,
+  onTrainedEquippedOn,
+  sentOn,
+  onSentOn,
+  trained,
+  sent,
+  trainingEvidence,
+}: {
+  personId: string;
+  mobilizedOn: string;
+  onMobilizedOn: (value: string) => void;
+  jonathanTrainingComplete: boolean;
+  onJonathanTrainingComplete: (value: boolean) => void;
+  fullyFunded: boolean;
+  onFullyFunded: (value: boolean) => void;
+  trainedEquippedOn: string;
+  onTrainedEquippedOn: (value: string) => void;
+  sentOn: string;
+  onSentOn: (value: string) => void;
+  trained: boolean;
+  sent: boolean;
+  trainingEvidence: MinistryActivityView[];
+}) {
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-zinc-500">
+        Leave a date blank to keep a day already on the record. Saving does not invent a Mobilized or Sent date.
+      </p>
+      <CalculatedMilestone
+        label="Mobilized"
+        on
+        detail="Automatic for a Team Expansion Recruit."
+        day={mobilizedOn}
+        onDay={onMobilizedOn}
+        dayId={`mobilized-${personId}-date`}
+      />
+      <label className="flex items-start gap-2 text-sm text-zinc-200" htmlFor={`jonathan-${personId}`}>
+        <input
+          id={`jonathan-${personId}`}
+          type="checkbox"
+          checked={jonathanTrainingComplete}
+          onChange={(event) => onJonathanTrainingComplete(event.target.checked)}
+          className="mt-0.5 size-4 accent-brand-accent"
+        />
+        <span>
+          Jonathan Training Complete
+          <span className="mt-0.5 block text-xs font-normal text-zinc-500">
+            Checking this records Trained & Equipped. It does not add or remove a Jonathan Training activity.
+          </span>
+        </span>
+      </label>
+      <label className="flex items-start gap-2 text-sm text-zinc-200" htmlFor={`funded-${personId}`}>
+        <input
+          id={`funded-${personId}`}
+          type="checkbox"
+          checked={fullyFunded}
+          onChange={(event) => onFullyFunded(event.target.checked)}
+          className="mt-0.5 size-4 accent-brand-accent"
+        />
+        <span>
+          Fully Funded
+          <span className="mt-0.5 block text-xs font-normal text-zinc-500">
+            Funding can be recorded before Jonathan Training. It does not mark Sent by itself.
+          </span>
+        </span>
+      </label>
+      <CalculatedMilestone
+        label="Trained & Equipped"
+        on={trained}
+        detail="Follows Jonathan Training Complete."
+        day={trainedEquippedOn}
+        onDay={onTrainedEquippedOn}
+        dayId={`trained-${personId}-date`}
+      />
+      <CalculatedMilestone
+        label="Sent"
+        on={sent}
+        detail="Follows Jonathan Training Complete and Fully Funded."
+        day={sentOn}
+        onDay={onSentOn}
+        dayId={`sent-${personId}-date`}
+      />
+      {trainingEvidence.length > 0 ? (
+        <div>
+          <p className="text-sm text-zinc-300">Historical Jonathan Training activities</p>
+          <ul className="mt-1 space-y-1 text-xs text-zinc-500">
+            {trainingEvidence.map((activity) => (
+              <li key={activity.id}>
+                {ACTIVITY_LABELS[activity.activityType]} · {ACTIVITY_STATUS_LABELS[activity.status]}
+                {activity.activityOn ? ` · ${activity.activityOn}` : ""}
+                {activity.location ? ` · ${activity.location}` : ""}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-zinc-500">
+            These activities stay as recorded. They do not check Jonathan Training Complete.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CalculatedMilestone({
+  label,
+  on,
+  detail,
+  day,
+  onDay,
+  dayId,
+}: {
+  label: string;
+  on: boolean;
+  detail: string;
+  day: string;
+  onDay: (value: string) => void;
+  dayId: string;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-[1fr_11rem] md:items-end">
+      <p className="text-sm text-zinc-200">
+        {label}: <span className={on ? "text-brand-accent" : "text-zinc-400"}>{on ? "Yes" : "No"}</span>
+        <span className="mt-0.5 block text-xs font-normal text-zinc-500">{detail}</span>
+      </p>
+      <div>
+        <label className="text-xs text-zinc-500" htmlFor={dayId}>
+          Date, if known
+        </label>
+        <Input
+          id={dayId}
+          type="date"
+          value={day}
+          onChange={(event) => onDay(event.target.value)}
+          className="mt-1 border-zinc-700 bg-black/40"
+        />
+      </div>
+    </div>
   );
 }
 

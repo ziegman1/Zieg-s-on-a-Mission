@@ -13,7 +13,7 @@ export const PATHWAY_LABELS: Record<MinistryPathway, string> = {
 
 export const PATHWAY_GUIDANCE: Record<MinistryPathway, string> = {
   TEAM_EXPANSION_RECRUIT:
-    "Onboard, then raise support, then launch. Launch is Sent. This includes overseas missionaries, International Services workers, and D-Course participants. Beginning D-Course is launch, because the program itself is cross-cultural missional work.",
+    "Mobilized is recorded when this pathway is saved. Trained & Equipped follows Jonathan Training Complete. Sent follows Jonathan Training Complete and Fully Funded together, and then requires a designation. Fully Funded can be recorded before training. The pathway does not assume Overseas Missionary.",
   NATIONAL_PARTNER:
     "Sent means they finished the applicable medical training or Jonathan Training (DMM) and were released to use it among the unreached.",
   TRAINING_PARTICIPANT:

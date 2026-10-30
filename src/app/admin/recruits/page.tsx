@@ -82,8 +82,11 @@ export default async function AdminRecruitsPage() {
         </h1>
         <p className="text-zinc-400 text-sm mt-2 max-w-3xl leading-relaxed">
           Record each person, their pathway, their activities, and the milestones you have
-          confirmed. Mobilized, Trained &amp; Equipped, and Sent are separate. The public site
-          still shows the legacy totals until a later phase switches it over.
+          confirmed. National Partners and Training Participants keep separate milestone
+          checkboxes. A Team Expansion Recruit is Mobilized when that pathway is saved, Trained
+          &amp; Equipped when Jonathan Training is complete, and Sent when that training and full
+          funding are both confirmed. The public site still shows the legacy totals until a later
+          phase switches it over.
         </p>
       </div>
 
