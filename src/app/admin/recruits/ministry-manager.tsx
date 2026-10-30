@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { MinistryActivityStatus, MinistryActivityType, MinistryPathway, MinistrySentDesignation } from "@prisma/client";
+import { XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   ACTIVITY_LABELS,
@@ -35,6 +37,28 @@ const ACTIVITY_STATUSES = Object.keys(ACTIVITY_STATUS_LABELS) as MinistryActivit
 const selectClass =
   "mt-1 w-full rounded-md border border-zinc-700 bg-black/40 px-3 py-2 text-sm text-cream";
 
+type EditorSnapshot = {
+  displayName: string;
+  pathway: string;
+  notes: string;
+  householdWithPersonId: string;
+  legacyRecruitId: string;
+  mobilized: boolean;
+  mobilizedOn: string;
+  trainedEquipped: boolean;
+  trainedEquippedOn: string;
+  sent: boolean;
+  sentOn: string;
+  sentDesignation: string;
+  sentVerifiedBy: string;
+  sentVerificationNote: string;
+  activityDirty: boolean;
+};
+
+export function ministryPersonEditorIsDirty(baseline: EditorSnapshot, draft: EditorSnapshot): boolean {
+  return (Object.keys(baseline) as (keyof EditorSnapshot)[]).some((key) => baseline[key] !== draft[key]);
+}
+
 function householdPartnerId(person: MinistryPersonView, people: MinistryPersonView[]): string {
   if (!person.householdId) return "";
   const partner = people.find((other) => other.id !== person.id && other.householdId === person.householdId);
@@ -65,9 +89,33 @@ export function MinistryManager({
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const listScroll = useRef(0);
+  const pendingScroll = useRef<number | null>(null);
 
   const selected = people.find((person) => person.id === selectedId) ?? null;
   const visiblePeople = people.filter((person) => ministryPersonMatchesQuery(person, query));
+
+  useEffect(() => {
+    if (pendingScroll.current == null) return;
+    const y = pendingScroll.current;
+    pendingScroll.current = null;
+    const restore = () => window.scrollTo(0, y);
+    restore();
+    const id = window.setTimeout(restore, 0);
+    return () => window.clearTimeout(id);
+  }, [people]);
+
+  function refreshKeepingPlace(scrollY = window.scrollY) {
+    pendingScroll.current = scrollY;
+    router.refresh();
+  }
+
+  function closeEditor() {
+    setSelectedId(null);
+    const target = returnFocus.current;
+    window.requestAnimationFrame(() => target?.focus());
+  }
 
   async function handleAdd(event: React.FormEvent) {
     event.preventDefault();
@@ -82,7 +130,7 @@ export function MinistryManager({
     setName("");
     setPathway("");
     setNotes("");
-    router.refresh();
+    refreshKeepingPlace();
   }
 
   async function handleDeletePerson(person: MinistryPersonView) {
@@ -97,8 +145,13 @@ export function MinistryManager({
       setError(result.error);
       return;
     }
-    if (selectedId === person.id) setSelectedId(null);
-    router.refresh();
+    if (selectedId === person.id) {
+      const scrollY = listScroll.current;
+      closeEditor();
+      refreshKeepingPlace(scrollY);
+      return;
+    }
+    refreshKeepingPlace();
   }
 
   return (
@@ -223,8 +276,10 @@ export function MinistryManager({
                       size="sm"
                       variant="outline"
                       className="border-brand-accent/40"
-                      onClick={() => {
+                      onClick={(event) => {
                         setError(null);
+                        listScroll.current = window.scrollY;
+                        returnFocus.current = event.currentTarget;
                         setSelectedId(person.id);
                       }}
                     >
@@ -242,14 +297,20 @@ export function MinistryManager({
 
       {selected ? (
         <PersonEditor
-          key={selected.id + selected.activities.map((activity) => activity.id).join(",")}
+          key={selected.id}
           person={selected}
           people={people}
           legacyRecruits={legacyRecruits}
           pending={pending}
+          error={error}
           onError={setError}
+          onClose={closeEditor}
           onDelete={() => handleDeletePerson(selected)}
-          onSaved={() => router.refresh()}
+          onSaved={() => {
+            const scrollY = listScroll.current;
+            closeEditor();
+            refreshKeepingPlace(scrollY);
+          }}
         />
       ) : null}
     </section>
@@ -261,7 +322,9 @@ function PersonEditor({
   people,
   legacyRecruits,
   pending,
+  error,
   onError,
+  onClose,
   onDelete,
   onSaved,
 }: {
@@ -269,7 +332,9 @@ function PersonEditor({
   people: MinistryPersonView[];
   legacyRecruits: LegacyOption[];
   pending: boolean;
+  error: string | null;
   onError: (message: string | null) => void;
+  onClose: () => void;
   onDelete: () => void;
   onSaved: () => void;
 }) {
@@ -290,6 +355,55 @@ function PersonEditor({
   const [sentVerifiedBy, setSentVerifiedBy] = useState(person.sentVerifiedBy);
   const [sentVerificationNote, setSentVerificationNote] = useState(person.sentVerificationNote);
   const [saving, setSaving] = useState<string | null>(null);
+  const [activityDirty, setActivityDirty] = useState(false);
+  const [activityBusy, setActivityBusy] = useState(false);
+  const onActivityDirty = useCallback((value: boolean) => setActivityDirty(value), []);
+  const onActivityBusy = useCallback((value: boolean) => setActivityBusy(value), []);
+  const profileFormId = `profile-${person.id}`;
+  const milestoneFormId = `milestones-${person.id}`;
+
+  const baseline: EditorSnapshot = {
+    displayName: person.displayName,
+    pathway: person.pathway ?? "",
+    notes: person.notes,
+    householdWithPersonId: householdPartnerId(person, people),
+    legacyRecruitId: person.legacyRecruitId ?? "",
+    mobilized: person.mobilized,
+    mobilizedOn: person.mobilizedOn ?? "",
+    trainedEquipped: person.trainedEquipped,
+    trainedEquippedOn: person.trainedEquippedOn ?? "",
+    sent: person.sent,
+    sentOn: person.sentOn ?? "",
+    sentDesignation: person.sentDesignation ?? "",
+    sentVerifiedBy: person.sentVerifiedBy,
+    sentVerificationNote: person.sentVerificationNote,
+    activityDirty: false,
+  };
+  const draft: EditorSnapshot = {
+    displayName,
+    pathway,
+    notes,
+    householdWithPersonId,
+    legacyRecruitId,
+    mobilized,
+    mobilizedOn,
+    trainedEquipped,
+    trainedEquippedOn,
+    sent,
+    sentOn,
+    sentDesignation,
+    sentVerifiedBy,
+    sentVerificationNote,
+    activityDirty,
+  };
+  const dirty = ministryPersonEditorIsDirty(baseline, draft);
+  const busy = saving !== null || activityBusy || pending;
+
+  function requestClose() {
+    if (busy) return;
+    if (dirty && !window.confirm("Discard unsaved changes to this person?")) return;
+    onClose();
+  }
 
   const guidance =
     pathway && pathway in PATHWAY_GUIDANCE
@@ -342,22 +456,48 @@ function PersonEditor({
   }
 
   return (
-    <div className="space-y-6 rounded-2xl border border-brand-accent/30 bg-zinc-950/40 px-5 py-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <h2 className="font-serif text-xl text-cream">{person.displayName}</h2>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={pending}
-          onClick={onDelete}
-          className="text-red-400 hover:text-red-300"
-        >
-          Remove person
-        </Button>
-      </div>
+    <Dialog open onOpenChange={(next) => { if (!next) requestClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          document.getElementById(`name-${person.id}`)?.focus();
+        }}
+        className="grid h-dvh max-h-dvh w-full max-w-none translate-x-0 translate-y-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-none border-brand-accent/30 bg-zinc-950 p-0 text-cream top-0 left-0 sm:top-1/2 sm:left-1/2 sm:h-auto sm:max-h-[min(92dvh,52rem)] sm:w-[min(44rem,calc(100%-2rem))] sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl"
+      >
+        <div className="flex shrink-0 items-start gap-2 border-b border-white/10 px-4 py-3 sm:px-5">
+          <div className="min-w-0 flex-1">
+            <DialogTitle className="truncate font-serif text-xl text-cream">
+              {person.displayName}
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-xs text-zinc-500">
+              Profile, milestones, and activities for this person.
+            </DialogDescription>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={onDelete}
+            className="h-11 shrink-0 text-red-400 hover:text-red-300 sm:h-9"
+          >
+            Remove person
+          </Button>
+          <button
+            type="button"
+            onClick={requestClose}
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-cream hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:outline-none sm:size-9"
+          >
+            <XIcon aria-hidden />
+            <span className="sr-only">Close</span>
+          </button>
+        </div>
 
-      <form onSubmit={saveProfile} className="grid gap-4 md:grid-cols-2">
+        <div className="min-h-0 space-y-6 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+          {error ? <p className="text-sm text-red-400">{error}</p> : null}
+
+      <form id={profileFormId} onSubmit={saveProfile} className="grid gap-4 md:grid-cols-2">
         <div>
           <label className="text-sm text-zinc-300" htmlFor={`name-${person.id}`}>
             Name
@@ -448,14 +588,9 @@ function PersonEditor({
             className={selectClass}
           />
         </div>
-        <div>
-          <Button type="submit" size="sm" disabled={saving !== null || !displayName.trim()}>
-            {saving === "profile" ? "Saving…" : "Save profile"}
-          </Button>
-        </div>
       </form>
 
-      <form onSubmit={saveMilestones} className="space-y-4 border-t border-white/10 pt-5">
+      <form id={milestoneFormId} onSubmit={saveMilestones} className="space-y-4 border-t border-white/10 pt-5">
         <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-zinc-300">
           Milestones
         </h3>
@@ -538,9 +673,6 @@ function PersonEditor({
             </div>
           </div>
         ) : null}
-        <Button type="submit" size="sm" disabled={saving !== null}>
-          {saving === "milestones" ? "Saving…" : "Save milestones"}
-        </Button>
       </form>
 
       <ActivityEditor
@@ -548,8 +680,40 @@ function PersonEditor({
         activities={person.activities}
         onError={onError}
         onSaved={onSaved}
+        onDirtyChange={onActivityDirty}
+        onBusyChange={onActivityBusy}
       />
-    </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-2 border-t border-white/10 bg-zinc-950 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
+          <Button
+            type="submit"
+            form={profileFormId}
+            disabled={busy || !displayName.trim()}
+            className="h-11 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 sm:h-9"
+          >
+            {saving === "profile" ? "Saving…" : "Save profile"}
+          </Button>
+          <Button
+            type="submit"
+            form={milestoneFormId}
+            disabled={busy}
+            className="h-11 sm:h-9"
+          >
+            {saving === "milestones" ? "Saving…" : "Save milestones"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={requestClose}
+            className="h-11 border-zinc-700 sm:h-9"
+          >
+            Cancel
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -607,11 +771,15 @@ function ActivityEditor({
   activities,
   onError,
   onSaved,
+  onDirtyChange,
+  onBusyChange,
 }: {
   personId: string;
   activities: MinistryActivityView[];
   onError: (message: string | null) => void;
   onSaved: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onBusyChange: (busy: boolean) => void;
 }) {
   const blank = {
     activityType: "JONATHAN_TRAINING" as MinistryActivityType,
@@ -624,6 +792,28 @@ function ActivityEditor({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edit, setEdit] = useState(blank);
   const [saving, setSaving] = useState(false);
+  const editing = activities.find((activity) => activity.id === editingId) ?? null;
+  const draftDirty =
+    draft.activityType !== blank.activityType ||
+    draft.status !== blank.status ||
+    draft.activityOn !== "" ||
+    draft.location !== "" ||
+    draft.notes !== "";
+  const editDirty = editing
+    ? edit.activityType !== editing.activityType ||
+      edit.status !== editing.status ||
+      edit.activityOn !== (editing.activityOn ?? "") ||
+      edit.location !== editing.location ||
+      edit.notes !== editing.notes
+    : false;
+
+  useEffect(() => {
+    onDirtyChange(draftDirty || editDirty);
+  }, [draftDirty, editDirty, onDirtyChange]);
+
+  useEffect(() => {
+    onBusyChange(saving);
+  }, [saving, onBusyChange]);
 
   async function addActivity(event: React.FormEvent) {
     event.preventDefault();

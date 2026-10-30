@@ -7,8 +7,26 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
-import { MinistryManager } from "./ministry-manager";
+import { MinistryManager, ministryPersonEditorIsDirty } from "./ministry-manager";
 import { MinistrySummary } from "./ministry-summary";
+
+const cleanEditor = {
+  displayName: "Ada Lovelace",
+  pathway: "",
+  notes: "",
+  householdWithPersonId: "",
+  legacyRecruitId: "",
+  mobilized: false,
+  mobilizedOn: "",
+  trainedEquipped: false,
+  trainedEquippedOn: "",
+  sent: false,
+  sentOn: "",
+  sentDesignation: "",
+  sentVerifiedBy: "",
+  sentVerificationNote: "",
+  activityDirty: false,
+};
 
 describe("ministry admin preview", () => {
   it("renders the new totals separately from a legacy zero state", () => {
@@ -58,7 +76,21 @@ describe("ministry admin preview", () => {
     );
     expect(html).toContain("Search people");
     expect(html).toContain("Ada Lovelace");
+    expect(html).toContain("Manage");
     expect(html).toContain("Team Expansion Recruits");
     expect(html).not.toContain("Onboard, then raise support");
+    expect(html).not.toContain("Save profile");
+    expect(html).not.toContain("Save milestones");
+  });
+
+  it("treats an unchanged editor as clean and any field edit as dirty", () => {
+    expect(ministryPersonEditorIsDirty(cleanEditor, cleanEditor)).toBe(false);
+    expect(
+      ministryPersonEditorIsDirty(cleanEditor, { ...cleanEditor, displayName: "Ada King" }),
+    ).toBe(true);
+    expect(ministryPersonEditorIsDirty(cleanEditor, { ...cleanEditor, sent: true })).toBe(true);
+    expect(
+      ministryPersonEditorIsDirty(cleanEditor, { ...cleanEditor, activityDirty: true }),
+    ).toBe(true);
   });
 });
