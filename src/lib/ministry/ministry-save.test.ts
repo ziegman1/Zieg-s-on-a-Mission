@@ -297,6 +297,24 @@ describe("ministry save boundaries", () => {
     expect(sql).not.toContain("ministry_legacy_links");
   });
 
+  it("adds Launch as an activity label without rewriting people or activities", () => {
+    const sql = readFileSync(
+      resolve(process.cwd(), "prisma/migrations/20261030160000_add_launch_activity_type/migration.sql"),
+      "utf8",
+    );
+    const statements = sql
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("--"))
+      .join("\n");
+    expect(statements).toContain("ADD VALUE 'LAUNCH'");
+    expect(statements.toLowerCase()).not.toContain("update ");
+    expect(statements.toLowerCase()).not.toContain("insert ");
+    expect(statements).not.toContain("ministry_people");
+    expect(statements).not.toContain("ministry_activities");
+    expect(statements).not.toContain("ministry_legacy_links");
+    expect(statements).not.toContain("recruits");
+  });
+
   it("saves a person in one transaction and does not touch legacy evidence or activities", () => {
     const db = readFileSync(resolve(process.cwd(), "src/lib/ministry/ministry-db.ts"), "utf8");
     const start = db.indexOf("export async function saveMinistryPersonChanges");

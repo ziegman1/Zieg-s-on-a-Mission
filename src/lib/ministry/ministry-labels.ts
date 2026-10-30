@@ -36,6 +36,7 @@ export const ACTIVITY_LABELS: Record<MinistryActivityType, string> = {
   ZUME: "Zúme",
   FOUR_FIELDS_ONLINE: "Four Fields Online",
   FIDELIS: "Fidelis",
+  LAUNCH: "Launch",
   OTHER: "Other",
 };
 

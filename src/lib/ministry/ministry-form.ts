@@ -23,6 +23,7 @@ const activityTypeSchema = z.enum([
   "ZUME",
   "FOUR_FIELDS_ONLINE",
   "FIDELIS",
+  "LAUNCH",
   "OTHER",
 ]);
 

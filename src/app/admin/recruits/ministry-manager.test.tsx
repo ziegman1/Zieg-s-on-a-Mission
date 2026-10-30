@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
-import { MinistryManager, RecruitProgression, ministryPersonEditorIsDirty } from "./ministry-manager";
+import { ActivityEditor, MinistryManager, RecruitProgression, ministryPersonEditorIsDirty } from "./ministry-manager";
 import { MinistrySummary } from "./ministry-summary";
 
 const cleanEditor = {
@@ -126,6 +126,53 @@ describe("ministry admin preview", () => {
     expect(html).toContain("Emerald Hills");
     expect(html).not.toContain("Save profile");
     expect(html).not.toContain("Save milestones");
+  });
+
+  it("lists Launch in the program menu and shows a saved Launch activity", () => {
+    const blank = {
+      activityType: "JONATHAN_TRAINING" as const,
+      status: "PARTICIPATED" as const,
+      activityOn: "",
+      location: "",
+      notes: "",
+    };
+    const html = renderToStaticMarkup(
+      <ActivityEditor
+        activities={[
+          {
+            id: "activity-launch",
+            activityType: "LAUNCH",
+            status: "COMPLETED",
+            activityOn: "2026-04-01",
+            location: "Emerald Hills",
+            notes: "departure notes",
+          },
+        ]}
+        removedActivityIds={[]}
+        newActivity={blank}
+        onNewActivity={() => undefined}
+        editingActivityId={null}
+        activityEdit={blank}
+        onActivityEdit={() => undefined}
+        onEdit={() => undefined}
+        onCancelEdit={() => undefined}
+        onRemove={() => undefined}
+        onUndoRemove={() => undefined}
+      />,
+    );
+    expect(html).toContain('value="LAUNCH"');
+    expect(html).toContain(">Launch</option>");
+    expect(html).toContain("Jonathan Training (DMM)");
+    expect(html).toContain("Medical Training");
+    expect(html).toContain("Support Raising / Coaching");
+    expect(html).toContain("D-Course");
+    expect(html).toContain("Zúme");
+    expect(html).toContain("Four Fields Online");
+    expect(html).toContain("Fidelis");
+    expect(html).toContain(">Other</option>");
+    expect(html).toContain("Launch ");
+    expect(html).toContain("Emerald Hills");
+    expect(html).toContain("departure notes");
   });
 
   it("treats an unchanged editor as clean and any field edit as dirty", () => {

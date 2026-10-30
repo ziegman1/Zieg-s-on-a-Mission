@@ -791,6 +791,7 @@ enum MinistryActivityType {
   ZUME
   FOUR_FIELDS_ONLINE
   FIDELIS
+  LAUNCH
   OTHER
 }
 

@@ -1057,7 +1057,7 @@ function MilestoneRow({
   );
 }
 
-function ActivityEditor({
+export function ActivityEditor({
   activities,
   removedActivityIds,
   newActivity,

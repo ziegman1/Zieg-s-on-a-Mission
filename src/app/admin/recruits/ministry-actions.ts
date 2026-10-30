@@ -6,6 +6,7 @@ import {
   formatActivityInputErrors,
   formatMinistryInputErrors,
   ministryActivitySchema,
+  type MinistryActivityInput,
   ministryMilestoneSchema,
   ministryPersonSaveSchema,
   ministryPersonSchema,
@@ -190,13 +191,7 @@ export async function saveMinistryPersonAction(
     return { ok: false, error: "A person cannot be their own household." };
   }
 
-  let activityCreate: {
-    activityType: "JONATHAN_TRAINING" | "MEDICAL_TRAINING" | "SUPPORT_RAISING_COACHING" | "D_COURSE" | "ZUME" | "FOUR_FIELDS_ONLINE" | "FIDELIS" | "OTHER";
-    status: "PARTICIPATED" | "COMPLETED";
-    activityOn: string | null;
-    location: string;
-    notes: string;
-  } | null = null;
+  let activityCreate: MinistryActivityInput | null = null;
   if (input.activityCreate) {
     const parsedActivity = ministryActivitySchema.safeParse(input.activityCreate);
     if (!parsedActivity.success) {
@@ -204,14 +199,7 @@ export async function saveMinistryPersonAction(
     }
     activityCreate = parsedActivity.data;
   }
-  let activityUpdate: {
-    id: string;
-    activityType: "JONATHAN_TRAINING" | "MEDICAL_TRAINING" | "SUPPORT_RAISING_COACHING" | "D_COURSE" | "ZUME" | "FOUR_FIELDS_ONLINE" | "FIDELIS" | "OTHER";
-    status: "PARTICIPATED" | "COMPLETED";
-    activityOn: string | null;
-    location: string;
-    notes: string;
-  } | null = null;
+  let activityUpdate: (MinistryActivityInput & { id: string }) | null = null;
   if (input.activityUpdate) {
     const parsedActivity = ministryActivitySchema.safeParse(input.activityUpdate);
     if (!parsedActivity.success) {

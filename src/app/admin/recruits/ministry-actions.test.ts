@@ -253,6 +253,39 @@ describe("saveMinistryPersonAction", () => {
     expect(saved.activities?.create?.activityType).toBe("FIDELIS");
   });
 
+  it("saves a Launch activity without changing pathway or milestone flags", async () => {
+    const result = await saveMinistryPersonAction("person-1", {
+      ...saveInput,
+      pathway: "NATIONAL_PARTNER",
+      jonathanTrainingComplete: false,
+      fullyFunded: false,
+      mobilized: false,
+      trainedEquipped: false,
+      sent: false,
+      sentDesignation: "",
+      activityCreate: {
+        activityType: "LAUNCH",
+        status: "COMPLETED",
+        activityOn: "2026-04-01",
+        location: "Emerald Hills",
+        notes: "departure notes",
+      },
+    });
+    expect(result.ok).toBe(true);
+    const saved = vi.mocked(saveMinistryPersonChanges).mock.calls[0][1];
+    expect(saved.pathway).toBe("NATIONAL_PARTNER");
+    expect(saved.submission.mobilized).toBe(false);
+    expect(saved.submission.trainedEquipped).toBe(false);
+    expect(saved.submission.sent).toBe(false);
+    expect(saved.activities?.create).toMatchObject({
+      activityType: "LAUNCH",
+      status: "COMPLETED",
+      activityOn: "2026-04-01",
+      location: "Emerald Hills",
+      notes: "departure notes",
+    });
+  });
+
   it("reports a database failure without refreshing the list", async () => {
     vi.mocked(saveMinistryPersonChanges).mockRejectedValue(new Error("db down"));
     const result = await saveMinistryPersonAction("person-1", saveInput);

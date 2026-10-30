@@ -143,6 +143,45 @@ describe("ministryActivitySchema", () => {
     expect(Array.isArray(plan.create)).toBe(false);
   });
 
+  it("accepts Launch and every existing program without changing their identifiers", () => {
+    const programs = [
+      "JONATHAN_TRAINING",
+      "MEDICAL_TRAINING",
+      "SUPPORT_RAISING_COACHING",
+      "D_COURSE",
+      "ZUME",
+      "FOUR_FIELDS_ONLINE",
+      "FIDELIS",
+      "LAUNCH",
+      "OTHER",
+    ] as const;
+    for (const activityType of programs) {
+      const parsed = ministryActivitySchema.safeParse({
+        activityType,
+        status: "PARTICIPATED",
+        activityOn: "2026-04-01",
+        location: "Emerald Hills",
+        notes: "unchanged notes",
+      });
+      expect(parsed.success).toBe(true);
+      if (!parsed.success) return;
+      expect(parsed.data.activityType).toBe(activityType);
+      expect(parsed.data.status).toBe("PARTICIPATED");
+      expect(parsed.data.activityOn).toBe("2026-04-01");
+      expect(parsed.data.location).toBe("Emerald Hills");
+      expect(parsed.data.notes).toBe("unchanged notes");
+    }
+    expect(ministryPersonMatchesQuery(
+      {
+        displayName: "Ada",
+        pathway: "NATIONAL_PARTNER",
+        notes: "",
+        activities: [{ activityType: "LAUNCH", location: "" }],
+      },
+      "launch",
+    )).toBe(true);
+  });
+
   it("does not offer a separate DMM program", () => {
     expect(ministryActivitySchema.safeParse({
       activityType: "DMM",
