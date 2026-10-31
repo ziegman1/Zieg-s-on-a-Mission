@@ -218,7 +218,7 @@ describe("legacy reconciliation safety", () => {
     expect(importer).not.toContain("recruitRecord.update");
     expect(importer).not.toContain("recruitRecord.delete");
     expect(importer).toContain("pg_advisory_xact_lock");
-    expect(homepage).toContain("getMinistryOutcomeCounts");
+    expect(homepage).toContain("loadPublicMinistryProgressCounts");
     expect(homepage).not.toContain("getRecruitCounts");
     expect(homepage).not.toContain("planLegacyImport");
     for (const name of [

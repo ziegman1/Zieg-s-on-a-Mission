@@ -73,7 +73,9 @@ export default async function AdminSiteBuilderPage() {
         edit Ways to Get Involved under <strong className="text-zinc-300">Get Involved → Partner</strong>,
         or the Advocacy Team page. On <strong className="text-zinc-300">Blog</strong>, use Blog posts for stories (Page intro for the blog
         header). <strong className="text-zinc-300">Community</strong> edits the Mission Hub landing above the feed.{" "}
-        <strong className="text-zinc-300">Newsletters</strong> are managed separately from page sections.
+        <strong className="text-zinc-300">Newsletters</strong> are managed separately from page sections.{" "}
+        <strong className="text-zinc-300">Our Mission</strong> keeps its milestone definitions on the
+        page. Sections you add there are supplemental stories and other editorial content.
       </p>
       <Suspense
         fallback={

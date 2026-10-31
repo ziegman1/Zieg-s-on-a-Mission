@@ -13,7 +13,9 @@ import {
   combineMinistryOutcomes,
   countMinistryOutcomes,
   countNationalPartnerInitiativeOutcomes,
+  publicProgressCounts,
   type MinistryOutcomeBreakdown,
+  type PublicProgressCounts,
 } from "@/lib/ministry/ministry-milestones";
 import {
   initialMilestonesForPathway,
@@ -114,6 +116,19 @@ export async function getMinistryOutcomeCounts(): Promise<MinistryOutcomeBreakdo
     countMinistryOutcomes(people),
     countNationalPartnerInitiativeOutcomes(initiatives),
   );
+}
+
+/**
+ * Homepage and Our Mission totals. A database failure returns null so the
+ * tracker is omitted instead of showing counts that were never calculated.
+ */
+export async function loadPublicMinistryProgressCounts(): Promise<PublicProgressCounts | null> {
+  try {
+    return publicProgressCounts(await getMinistryOutcomeCounts());
+  } catch (error) {
+    console.error("[ministry] public progress counts unavailable", error);
+    return null;
+  }
 }
 
 /**

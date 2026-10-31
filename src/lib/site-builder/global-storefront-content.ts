@@ -5,6 +5,7 @@ import {
   GIVE_NOW_NAV,
   STOREFRONT_FOOTER_NAV,
   STOREFRONT_HEADER_NAV,
+  ensureOurMissionFooterLink,
   type GetInvolvedNavItem,
   type StorefrontNavLink,
 } from "@/data/storefront-navigation";
@@ -398,11 +399,16 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
     legacyKey: "legal.supportEmail / legal.supportResponseTime",
   });
 
+  const resolvedFooterNavLinks = {
+    ...footerNavLinks,
+    value: ensureOurMissionFooterLink(footerNavLinks.value),
+  };
+
   const resolved: ResolvedStorefrontShell = {
     hasCustomGlobalSections,
     siteName,
     footerBlurb,
-    footerNavLinks,
+    footerNavLinks: resolvedFooterNavLinks,
     headerNavLabelOverrides,
     giveNow,
     getInvolved,
@@ -411,7 +417,7 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
 
   logGlobalFieldDebug("siteName", siteName, hasCustomGlobalSections);
   logGlobalFieldDebug("footerBlurb", footerBlurb, hasCustomGlobalSections);
-  logGlobalFieldDebug("footerNavLinks", footerNavLinks, hasCustomGlobalSections);
+  logGlobalFieldDebug("footerNavLinks", resolvedFooterNavLinks, hasCustomGlobalSections);
   logGlobalFieldDebug("headerNavLabelOverrides", headerNavLabelOverrides, hasCustomGlobalSections);
   logGlobalFieldDebug("giveNow", giveNow, hasCustomGlobalSections);
   logGlobalFieldDebug("getInvolved", getInvolved, hasCustomGlobalSections);

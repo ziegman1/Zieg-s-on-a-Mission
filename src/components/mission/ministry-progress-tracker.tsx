@@ -31,7 +31,13 @@ function StepArrow() {
  *
  * Receives aggregate integers only — no recruit record ever reaches this component.
  */
-export function MinistryProgressTracker({ counts }: { counts: PublicProgressCounts }) {
+export function MinistryProgressTracker({
+  counts,
+  trainedLabel = "Trained",
+}: {
+  counts: PublicProgressCounts;
+  trainedLabel?: string;
+}) {
   const { mobilized, trained, sent } = counts;
   const percent = sentGoalPercent(sent);
   const remaining = Math.max(0, RECRUIT_SENT_GOAL - sent);
@@ -51,7 +57,7 @@ export function MinistryProgressTracker({ counts }: { counts: PublicProgressCoun
       <div className="mt-5 flex items-start gap-3 sm:gap-4">
         <MilestoneStep label="Mobilized" value={mobilized} />
         <StepArrow />
-        <MilestoneStep label="Trained" value={trained} />
+        <MilestoneStep label={trainedLabel} value={trained} />
         <StepArrow />
         <MilestoneStep label="Sent" value={sent} />
       </div>

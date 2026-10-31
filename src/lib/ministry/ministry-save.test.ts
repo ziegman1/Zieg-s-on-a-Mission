@@ -332,8 +332,13 @@ describe("ministry save boundaries", () => {
       resolve(process.cwd(), "src/lib/site-builder/render-page.tsx"),
       "utf8",
     );
-    expect(renderPage).toContain("getMinistryOutcomeCounts");
-    expect(renderPage).toContain("publicProgressCounts");
+    expect(renderPage).toContain("loadPublicMinistryProgressCounts");
+    const ministryDb = readFileSync(resolve(process.cwd(), "src/lib/ministry/ministry-db.ts"), "utf8");
+    const loaderStart = ministryDb.indexOf("export async function loadPublicMinistryProgressCounts");
+    const loader = ministryDb.slice(loaderStart, ministryDb.indexOf("export async function", loaderStart + 1));
+    expect(loader).toContain("publicProgressCounts(await getMinistryOutcomeCounts())");
+    expect(loader).toContain("return null");
+    expect(loader).not.toContain("mobilized: 0");
     expect(renderPage).toContain("noStore");
     expect(renderPage).not.toContain("getRecruitCounts");
     expect(renderPage).not.toContain("mobilized: 0");

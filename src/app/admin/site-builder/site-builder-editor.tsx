@@ -694,7 +694,9 @@ export function SiteBuilderEditor({
           <p className="text-[11px] text-zinc-600 mb-2">
             {activePage === "global"
               ? "Edit section content below, or use the form above for live header labels."
-              : "Click any text, card, button, or image in the preview to edit it."}
+              : activePage === "our-mission"
+                ? "Sections added here appear on /our-mission after the progress explanation. The milestone definitions and tracker stay in the page itself."
+                : "Click any text, card, button, or image in the preview to edit it."}
           </p>
           <div
             className="rounded-lg border border-zinc-700 overflow-hidden shadow-xl bg-white max-w-4xl mx-auto"

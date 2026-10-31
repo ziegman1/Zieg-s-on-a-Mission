@@ -165,12 +165,13 @@ describe("public tracker accessibility and privacy", () => {
 
   it("labels each milestone in text rather than by color alone", () => {
     expect(tracker).toContain('label="Mobilized"');
-    expect(tracker).toContain('label="Trained"');
+    expect(tracker).toContain('trainedLabel = "Trained"');
+    expect(tracker).toContain("label={trainedLabel}");
     expect(tracker).toContain('label="Sent"');
   });
 
   it("receives aggregate counts only", () => {
-    expect(tracker).toContain("counts }: { counts: PublicProgressCounts }");
+    expect(tracker).toContain("counts: PublicProgressCounts");
     expect(tracker).not.toMatch(/\bname\b/);
   });
 

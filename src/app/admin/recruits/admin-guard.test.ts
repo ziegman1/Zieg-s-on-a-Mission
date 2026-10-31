@@ -96,7 +96,7 @@ describe("admin recruits guard", () => {
       "utf8",
     );
     const homePage = readFileSync(resolve(process.cwd(), "src/app/(storefront)/page.tsx"), "utf8");
-    expect(renderPage).toContain("getMinistryOutcomeCounts");
+    expect(renderPage).toContain("loadPublicMinistryProgressCounts");
     expect(renderPage).not.toContain("getRecruitCounts");
     expect(renderPage).toContain("noStore");
     expect(homePage).toContain('export const dynamic = "force-dynamic"');

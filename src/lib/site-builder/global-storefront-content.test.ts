@@ -141,6 +141,7 @@ describe("resolveStorefrontShellContent", () => {
     expect(shell.giveNow.value.label).toBe("Give Today");
     expect(shell.getInvolved.value.label).toBe("Join Us");
     expect(shell.footerNavLinks.value[0]?.label).toBe("Custom Home");
+    expect(shell.footerNavLinks.value.some((link) => link.href === "/our-mission")).toBe(true);
     expect(shell.legalSupport.value.supportEmail).toBe("help@example.com");
   });
 

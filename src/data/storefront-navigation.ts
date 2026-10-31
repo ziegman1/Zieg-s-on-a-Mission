@@ -17,8 +17,13 @@ export const ABOUT_MISSION_NAV: StorefrontNavLink = {
   label: "About & Mission",
 };
 
+export const OUR_MISSION_NAV: StorefrontNavLink = {
+  href: "/our-mission",
+  label: "Our Mission",
+};
+
 /** Header links before the Get Involved dropdown. */
-export const HEADER_NAV_BEFORE_GET_INVOLVED = ["/", "/about"] as const;
+export const HEADER_NAV_BEFORE_GET_INVOLVED = ["/", "/about", "/our-mission"] as const;
 
 /** Header links after the Get Involved dropdown. */
 export const HEADER_NAV_AFTER_GET_INVOLVED = ["/community", "/blog", "/contact"] as const;
@@ -27,6 +32,7 @@ export const HEADER_NAV_AFTER_GET_INVOLVED = ["/community", "/blog", "/contact"]
 export const STOREFRONT_HEADER_NAV: StorefrontNavLink[] = [
   { href: "/", label: "Home" },
   ABOUT_MISSION_NAV,
+  OUR_MISSION_NAV,
   { href: "/community", label: "Community" },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
@@ -59,6 +65,7 @@ export const GIVE_NOW_NAV: StorefrontNavLink = {
 export const STOREFRONT_FOOTER_NAV: StorefrontNavLink[] = [
   { href: "/", label: "Home" },
   ABOUT_MISSION_NAV,
+  OUR_MISSION_NAV,
   { href: "/partner", label: "Become a Partner" },
   { href: "/advocacy-team", label: "Advocacy Team" },
   { href: "/community", label: "Community" },
@@ -82,6 +89,18 @@ export function defaultSiteCopyNavLinks(): StorefrontNavLink[] {
 }
 
 export type NavLabelOverrides = Record<string, string>;
+
+/** Keeps Our Mission in the footer when saved navigation predates the page. */
+export function ensureOurMissionFooterLink(links: StorefrontNavLink[]): StorefrontNavLink[] {
+  if (links.some((link) => link.href === OUR_MISSION_NAV.href)) return links;
+  const aboutIndex = links.findIndex((link) => link.href === "/about");
+  if (aboutIndex === -1) return [...links, OUR_MISSION_NAV];
+  return [
+    ...links.slice(0, aboutIndex + 1),
+    OUR_MISSION_NAV,
+    ...links.slice(aboutIndex + 1),
+  ];
+}
 
 export function navLabel(
   href: string,

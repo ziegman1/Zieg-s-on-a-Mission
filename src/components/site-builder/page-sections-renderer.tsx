@@ -102,7 +102,7 @@ export function PageSectionsRenderer({
     );
   }
 
-  if (["about", "mission", "blog", "contact", "give", "merch"].includes(pageKey)) {
+  if (["about", "mission", "our-mission", "blog", "contact", "give", "merch"].includes(pageKey)) {
     return <MinistrySectionsPage sections={toRender} inEditor={inEditor} wrap={wrap} />;
   }
 

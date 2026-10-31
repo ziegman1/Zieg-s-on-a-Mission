@@ -2,11 +2,8 @@ import { unstable_noStore as noStore } from "next/cache";
 import { ReactNode } from "react";
 import { PageSectionsRenderer } from "@/components/site-builder/page-sections-renderer";
 import { getSiteCopy } from "@/lib/site-copy";
-import { getMinistryOutcomeCounts } from "@/lib/ministry/ministry-db";
-import {
-  publicProgressCounts,
-  type PublicProgressCounts,
-} from "@/lib/ministry/ministry-milestones";
+import { loadPublicMinistryProgressCounts } from "@/lib/ministry/ministry-db";
+import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import { getPublishedPageSections, pageHasCustomSections } from "./sections-db";
 
 /**
@@ -17,12 +14,7 @@ import { getPublishedPageSections, pageHasCustomSections } from "./sections-db";
  */
 async function loadPublicProgressCounts(pageKey: string): Promise<PublicProgressCounts | null> {
   if (pageKey !== "home") return null;
-  try {
-    return publicProgressCounts(await getMinistryOutcomeCounts());
-  } catch (error) {
-    console.error("[render-page] ministry progress counts unavailable", error);
-    return null;
-  }
+  return loadPublicMinistryProgressCounts();
 }
 
 export async function renderStorefrontPage(

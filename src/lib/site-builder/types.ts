@@ -41,6 +41,7 @@ export const BUILDER_PAGES = [
   { pageKey: "home", label: "Home", path: "/" },
   { pageKey: "about", label: "About", path: "/about" },
   { pageKey: "mission", label: "Mission", path: "/mission" },
+  { pageKey: "our-mission", label: "Our Mission", path: "/our-mission" },
   {
     pageKey: "partner",
     label: "Partner",
@@ -69,6 +70,7 @@ export const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
   home: ["/"],
   about: ["/about"],
   mission: ["/mission"],
+  "our-mission": ["/our-mission"],
   partner: ["/partner"],
   "advocacy-team": ["/advocacy-team"],
   give: ["/give"],

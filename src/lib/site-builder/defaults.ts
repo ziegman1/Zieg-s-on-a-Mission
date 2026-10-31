@@ -18,6 +18,8 @@ import {
 import {
   GET_INVOLVED_NAV,
   GIVE_NOW_NAV,
+  HEADER_NAV_AFTER_GET_INVOLVED,
+  HEADER_NAV_BEFORE_GET_INVOLVED,
   STOREFRONT_FOOTER_NAV,
   STOREFRONT_HEADER_NAV,
 } from "@/data/storefront-navigation";
@@ -98,6 +100,8 @@ export function defaultSectionsForPage(pageKey: string): PageSection[] {
       return defaultAboutSections(c);
     case "mission":
       return defaultMissionSections(c);
+    case "our-mission":
+      return [];
     case "blog":
       return defaultBlogSections(c);
     case "community":
@@ -125,6 +129,7 @@ export function defaultAllPageSections(): PageSection[] {
     "home",
     "about",
     "mission",
+    "our-mission",
     "partner",
     "advocacy-team",
     "give",
@@ -552,10 +557,14 @@ function defaultGlobalSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
   const labelFor = (href: string, fallback: string) =>
     c.navLinks.find((l) => l.href === href)?.label ?? fallback;
 
+  const headerItem = (href: string) => {
+    const item = STOREFRONT_HEADER_NAV.find((link) => link.href === href);
+    return `${labelFor(href, item?.label ?? href)} → ${href}`;
+  };
   const headerLabels = [
-    ...STOREFRONT_HEADER_NAV.slice(0, 2).map((item) => `${labelFor(item.href, item.label)} → ${item.href}`),
+    ...HEADER_NAV_BEFORE_GET_INVOLVED.map(headerItem),
     `${getInvolvedLabel} (dropdown) → /partner, /advocacy-team`,
-    ...STOREFRONT_HEADER_NAV.slice(2).map((item) => `${labelFor(item.href, item.label)} → ${item.href}`),
+    ...HEADER_NAV_AFTER_GET_INVOLVED.map(headerItem),
   ];
 
   return [
