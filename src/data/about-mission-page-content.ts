@@ -73,25 +73,13 @@ The sender is as vital as the one sent. No missionary goes alone. For every work
       sectionKey: "what-we-do",
       label: "What we do",
       headline: "What We Do",
-      body: `Everything we do fits into three words.
-
-Mobilize. Through church partnerships, speaking, conferences, and personal mentoring, we help believers see the unreached clearly and find their place in reaching them.
-
-Train. Through Jonathan Training, D-Course, disciple-making and church-planting principles, and leadership cohorts with Fidelis International Seminary, we build workers who will still be standing ten years in.
-
-Send. Through partnership development coaching, we help workers build sustainable prayer and financial teams, so they launch strong and stay on the field for the long haul.`,
+      body: `<p>Everything we do fits into three words.</p><p><b>Mobilize.</b> We help people recognize their place in God's mission. Through missions events, personal conversations, and training opportunities, we invite people to take meaningful steps toward participating in the Great Commission.</p><p><b>Train &amp; Equip.</b> Through Jonathan Training, missionary preparation, and our work with national partners, we equip people with the biblical understanding, practical skills, and preparation they need to make disciples and contribute to reaching the unreached.</p><p><b>Send.</b> We help workers take their next steps into ministry. Some are commissioned through disciple-making training, others graduate from medical training, and missionary recruits complete their partnership development journey, preparing them to move forward into their assignments.</p><p><a href="/our-mission">Discover how we mobilize, train, and send workers →</a></p>`,
     },
     {
       sectionKey: "vision-300",
       label: "Vision 300",
       headline: "The Vision: 300 by 2031",
-      body: `We are after one audacious thing.
-
-To mobilize, train, and send 300 additional missionaries to the unreached peoples of the world by August 31, 2031.
-
-This is one of the most ambitious sending goals in modern missions, and we mean to hit it. It will take churches willing to send, workers willing to go, and partners willing to stand behind them. Every person who prays, gives, or goes becomes part of those 300.
-
-The assignment is finishable. We are building the people who will finish it. Maybe that includes you.`,
+      body: `<p>We are after one audacious thing.</p><p>To see God mobilize, train, and send 300 more workers by August 31, 2031, <strong>for the sake of reaching the unreached</strong>.</p><p>It's an ambitious goal, and we mean to pursue it with everything we've got. Some of these workers will go directly to unreached peoples. Others will equip and support those who go, while still others will begin making disciples right where they are. Every one of them has a part to play in seeing the Gospel reach those who have yet to hear.</p><p>It will take churches willing to send, workers willing to step forward, and partners willing to stand behind them. Every person who prays, gives, or goes has a part to play.</p><p>The assignment is finishable. We are helping prepare the people who will carry it forward. Maybe that includes you.</p>`,
     },
   ] satisfies AboutMissionBodySection[],
   closingCta: {

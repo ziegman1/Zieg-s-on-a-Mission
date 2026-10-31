@@ -27,7 +27,7 @@ function section(
   };
 }
 
-/** Mirrors the live homepage: the "BECOME PART OF THE 300" copy sits on guided-merch. */
+/** Mirrors the live homepage: the impact copy sits on guided-merch. */
 const HOME_SECTIONS: PageSection[] = [
   section("hero", { sectionType: "hero" }),
   section("mission-counter", { sectionType: "mission_counter" }),
@@ -40,7 +40,7 @@ const HOME_SECTIONS: PageSection[] = [
 ];
 
 describe("section identification", () => {
-  it("targets the section carrying the BECOME PART OF THE 300 copy", () => {
+  it("targets the homepage section beside the tracker", () => {
     expect(MINISTRY_PROGRESS_SECTION_KEY).toBe("guided-merch");
     expect(resolveMinistryProgressSectionKey(HOME_SECTIONS)).toBe("guided-merch");
   });
@@ -173,6 +173,18 @@ describe("public tracker accessibility and privacy", () => {
   it("receives aggregate counts only", () => {
     expect(tracker).toContain("counts: PublicProgressCounts");
     expect(tracker).not.toMatch(/\bname\b/);
+  });
+
+  it("uses the vision caption and full trained label on the homepage section", () => {
+    const split = readFileSync(
+      resolve(process.cwd(), "src/components/site-builder/sections/image-text-split-section.tsx"),
+      "utf8",
+    );
+    expect(split).toContain('trainedLabel="Trained & Equipped"');
+    expect(split).toContain('remainingDetail="toward our vision by August 31, 2031."');
+    expect(split).not.toContain("228");
+    expect(tracker).toContain("{remaining}");
+    expect(tracker).toContain("{remainingDetail}");
   });
 
   it("keeps the milestone counts unlabeled and speaks of workers", () => {

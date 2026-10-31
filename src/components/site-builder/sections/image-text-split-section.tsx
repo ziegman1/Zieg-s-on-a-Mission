@@ -111,7 +111,11 @@ export function ImageTextSplitSection({
     // Fills the column that would otherwise be an empty spacer. Visible on mobile too, where the
     // grid stacks it above the copy.
     <div className="col-span-2 md:col-span-1 md:self-center">
-      <MinistryProgressTracker counts={progressCounts} />
+      <MinistryProgressTracker
+        counts={progressCounts}
+        trainedLabel="Trained & Equipped"
+        remainingDetail="toward our vision by August 31, 2031."
+      />
     </div>
   ) : (
     <div className="hidden md:block md:col-span-1 min-h-[5rem]" aria-hidden />

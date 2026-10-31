@@ -47,6 +47,20 @@ describe("default About & Mission sections", () => {
     );
   });
 
+  it("uses the approved ministry descriptions and vision without sending every worker to the field", () => {
+    const sections = defaultSectionsForPage("about");
+    const work = String(sections.find((s) => s.sectionKey === "what-we-do")?.content.body ?? "");
+    const vision = String(sections.find((s) => s.sectionKey === "vision-300")?.content.body ?? "");
+    expect(work).toContain("Train &amp; Equip.");
+    expect(work).toContain('href="/our-mission"');
+    expect(work).toContain("Discover how we mobilize, train, and send workers →");
+    expect(work).not.toContain("stay on the field for the long haul");
+    expect(vision).toContain("<strong>for the sake of reaching the unreached</strong>");
+    expect(vision).toContain("300 more workers by August 31, 2031");
+    expect(vision).not.toContain("300 additional missionaries");
+    expect(vision.match(/<p>/g)?.length).toBe(5);
+  });
+
   it("includes tertiary CTA fields on the closing section", () => {
     const closing = defaultSectionsForPage("about").find((s) => s.sectionKey === "where-you-come-in");
     expect(String(closing?.content.tertiaryCtaLabel ?? "")).toBe(

@@ -7,7 +7,7 @@ import type { PageSection } from "./types";
  * (`@@unique([pageKey, sectionKey])` on SitePageSection), so it survives reordering, relabelling,
  * and visibility changes in the site builder.
  *
- * `guided-merch` currently carries the "BECOME PART OF THE 300" copy. If that content ever moves,
+ * `guided-merch` is the homepage section beside the tracker. If that content ever moves,
  * set `settings.ministryProgressTracker = true` on the new section and it takes precedence with
  * no code change.
  */

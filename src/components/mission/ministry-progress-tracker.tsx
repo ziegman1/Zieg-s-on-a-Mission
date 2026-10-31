@@ -34,9 +34,12 @@ function StepArrow() {
 export function MinistryProgressTracker({
   counts,
   trainedLabel = "Trained",
+  remainingDetail = "to reach the unreached by August 31, 2031.",
 }: {
   counts: PublicProgressCounts;
   trainedLabel?: string;
+  /** Words after “more workers”. The number itself is the goal minus Sent. */
+  remainingDetail?: string;
 }) {
   const { mobilized, trained, sent } = counts;
   const percent = sentGoalPercent(sent);
@@ -88,8 +91,8 @@ export function MinistryProgressTracker({
         <p className="mt-3 text-xs text-brand-ink/60 leading-relaxed">
           {remaining > 0 ? (
             <>
-              <span className="font-medium text-brand-ink">{remaining}</span> more workers to reach
-              the unreached by August 31, 2031.
+              <span className="font-medium text-brand-ink">{remaining}</span> more workers{" "}
+              {remainingDetail}
             </>
           ) : (
             <span className="font-medium text-brand-primary">
