@@ -254,6 +254,17 @@ export function migrateOurMissionFullEditSections(sections: PageSection[]): {
       };
       changed = true;
     }
+    // Retarget default Partner CTA to Ministry Funding (preserve custom destinations).
+    if (
+      (row.sectionKey === "invitation" || row.sectionType === "cta") &&
+      String(row.content?.primaryCtaUrl ?? "").trim() === "/partner"
+    ) {
+      row = {
+        ...row,
+        content: { ...row.content, primaryCtaUrl: "/ministry-funding" },
+      };
+      changed = true;
+    }
     next.push(row);
   }
 

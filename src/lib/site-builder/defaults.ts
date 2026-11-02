@@ -27,6 +27,7 @@ import { ABOUT_MISSION_PAGE_CONTENT } from "@/data/about-mission-page-content";
 import { DEFAULT_MISSION_COUNTER_CONTENT } from "@/data/mission-counter-defaults";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
 import { defaultOurMissionEditableSections } from "@/lib/site-builder/our-mission-page-sections";
+import { defaultMinistryFundingSections } from "@/lib/site-builder/ministry-funding-page-sections";
 import type { PageSection, SectionType } from "./types";
 import { registryFor } from "./registry";
 
@@ -104,6 +105,8 @@ export function defaultSectionsForPage(pageKey: string): PageSection[] {
     case "our-mission":
       // Full page defaults from Ministry Impact Framework; Site Builder may edit all narrative.
       return defaultOurMissionEditableSections();
+    case "ministry-funding":
+      return defaultMinistryFundingSections();
     case "blog":
       return defaultBlogSections(c);
     case "community":
@@ -132,6 +135,7 @@ export function defaultAllPageSections(): PageSection[] {
     "about",
     "mission",
     "our-mission",
+    "ministry-funding",
     "partner",
     "advocacy-team",
     "give",

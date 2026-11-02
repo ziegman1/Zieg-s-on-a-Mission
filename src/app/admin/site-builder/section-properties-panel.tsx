@@ -6,6 +6,12 @@ import { contentStr, newListItem, visibleListItems } from "@/lib/site-builder/co
 import { patchSectionContent } from "@/lib/site-builder/patch-section";
 import type { ListItem, PageSection, SectionType } from "@/lib/site-builder/types";
 import { isOurMissionLiveTrackerSection } from "@/lib/site-builder/our-mission-page-sections";
+import {
+  isMinistryFundingAllocationSection,
+  isMinistryFundingGoalsSection,
+} from "@/lib/site-builder/ministry-funding-page-sections";
+import { parseAllocationSection } from "@/lib/ministry-funding/from-sections";
+import { formatUsd } from "@/lib/ministry-funding/calculations";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
 import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field";
 import { Button } from "@/components/ui/button";
@@ -33,6 +39,11 @@ export function SectionPropertiesPanel({
 
   const reg = registryFor(section.sectionType);
   const liveTracker = isOurMissionLiveTrackerSection(section);
+  const fundingGoals = isMinistryFundingGoalsSection(section);
+  const fundingAllocation = isMinistryFundingAllocationSection(section);
+  const allocationPreview = fundingAllocation
+    ? parseAllocationSection(section, { includeHidden: true })
+    : null;
 
   return (
     <div className="space-y-4 p-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
@@ -85,6 +96,84 @@ export function SectionPropertiesPanel({
               onChange={onChange}
             />
           ))}
+        </>
+      ) : null}
+
+      {fundingGoals ? (
+        <>
+          <p className="text-[11px] text-zinc-500 leading-relaxed">
+            Primary inputs only. Annual, remaining, and percent are calculated automatically. Leave
+            blank until verified — blank is not $0.
+          </p>
+          {(
+            [
+              ["monthlyGoal", "Monthly funding goal (USD)"],
+              ["monthlyRecurring", "Current monthly recurring (USD)"],
+              ["figuresUpdatedAt", "Figures last updated (display date)"],
+            ] as const
+          ).map(([key, label]) => (
+            <FieldEditor
+              key={key}
+              field={{ key, label, kind: "text" }}
+              section={section}
+              onChange={onChange}
+            />
+          ))}
+        </>
+      ) : null}
+
+      {fundingAllocation ? (
+        <>
+          <p className="text-[11px] text-zinc-500 leading-relaxed">
+            Enter allocated expense amounts on each function card. Percentages are calculated.
+            Chart publishes only when amounts are complete and reconcile to the expense total.
+            Mission Share is never auto-spread across functions.
+          </p>
+          {(
+            [
+              ["awaitingCopy", "Awaiting-chart message"],
+              ["reportingMonth", "Reporting month"],
+              ["expenseTotal", "Expense total to reconcile (USD)"],
+              ["missionShareAmount", "Mission Share amount (USD)"],
+              [
+                "missionShareIncludedInExpenseTotal",
+                'Mission Share in expense total? ("true" or "false")',
+              ],
+              ["missionShareLabel", "Mission Share label"],
+              ["missionShareDescription", "Mission Share description"],
+            ] as const
+          ).map(([key, label]) => (
+            <FieldEditor
+              key={key}
+              field={{
+                key,
+                label,
+                kind: key === "awaitingCopy" || key === "missionShareDescription" ? "textarea" : "text",
+              }}
+              section={section}
+              onChange={onChange}
+            />
+          ))}
+          {allocationPreview ? (
+            <div
+              className={`rounded border px-3 py-2 text-xs ${
+                allocationPreview.derived.canPublishChart
+                  ? "border-emerald-700/50 bg-emerald-950/40 text-emerald-200"
+                  : "border-amber-700/50 bg-amber-950/40 text-amber-100"
+              }`}
+            >
+              {allocationPreview.derived.canPublishChart
+                ? "Chart ready — reconciled."
+                : "Chart blocked until complete & reconciled."}
+              {allocationPreview.derived.discrepancy !== null &&
+              !allocationPreview.derived.reconciliationOk ? (
+                <span className="mt-1 block">
+                  Discrepancy:{" "}
+                  {formatUsd(Math.abs(allocationPreview.derived.discrepancy))}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </>
       ) : null}
 
@@ -152,7 +241,19 @@ function newListItemForField(fieldKey: string, sortOrder: number): ListItem {
     return { ...item, metadata: { when: "", description: "" } };
   }
   if (fieldKey === "cards") {
-    return { ...item, metadata: { body: "", amountLabel: "", giftNote: "", cta: "", href: "" } };
+    return {
+      ...item,
+      metadata: {
+        body: "",
+        amountLabel: "",
+        giftNote: "",
+        cta: "",
+        href: "",
+        programs: "",
+        color: "#83b0da",
+        amount: "",
+      },
+    };
   }
   return item;
 }
@@ -321,6 +422,33 @@ function LineItemRow({
           onChange={(next) =>
             onChange({ ...item, metadata: { ...item.metadata, amountLabel: next } })
           }
+          compact
+        />
+      ) : null}
+      {item.metadata?.programs !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="programs"
+          label="Programs (one per line)"
+          value={String(item.metadata.programs ?? "")}
+          onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, programs: next } })}
+          compact
+        />
+      ) : null}
+      {item.metadata?.color !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="color"
+          label="Chart color (hex)"
+          value={String(item.metadata.color ?? "")}
+          onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, color: next } })}
+          compact
+        />
+      ) : null}
+      {item.metadata?.amount !== undefined ? (
+        <SiteBuilderTextField
+          fieldKey="amount"
+          label="Allocated amount (USD; blank = missing, 0 = zero)"
+          value={String(item.metadata.amount ?? "")}
+          onChange={(next) => onChange({ ...item, metadata: { ...item.metadata, amount: next } })}
           compact
         />
       ) : null}

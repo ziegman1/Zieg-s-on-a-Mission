@@ -564,6 +564,8 @@ export function ElementPropertiesPanel({
           </>
         );
       }
+      const isFundingFunctionCard =
+        section.pageKey === "ministry-funding" && section.sectionKey === "allocation";
       return (
         <>
           <Field
@@ -572,14 +574,16 @@ export function ElementPropertiesPanel({
             value={card.text}
             onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { text: v }))}
           />
-          <Field
-            label="Subtitle / amount"
-            fieldKey="amountLabel"
-            value={String(card.metadata?.amountLabel ?? "")}
-            onChange={(v) =>
-              applySection((s) => updateSectionElement(s, elementId, { metadata: { amountLabel: v } }))
-            }
-          />
+          {!isFundingFunctionCard ? (
+            <Field
+              label="Subtitle / amount"
+              fieldKey="amountLabel"
+              value={String(card.metadata?.amountLabel ?? "")}
+              onChange={(v) =>
+                applySection((s) => updateSectionElement(s, elementId, { metadata: { amountLabel: v } }))
+              }
+            />
+          ) : null}
           <Field
             label="Body"
             fieldKey="body"
@@ -587,27 +591,63 @@ export function ElementPropertiesPanel({
             multiline
             onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { body: v } }))}
           />
-          <Field
-            label="Footnote"
-            fieldKey="giftNote"
-            value={String(card.metadata?.giftNote ?? "")}
-            multiline
-            onChange={(v) =>
-              applySection((s) => updateSectionElement(s, elementId, { metadata: { giftNote: v } }))
-            }
-          />
-          <Field
-            label="Button label"
-            fieldKey="cta"
-            value={String(card.metadata?.cta ?? "")}
-            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { cta: v } }))}
-          />
-          <Field
-            label="Button URL"
-            fieldKey="href"
-            value={String(card.metadata?.href ?? "")}
-            onChange={(v) => applySection((s) => updateSectionElement(s, elementId, { metadata: { href: v } }))}
-          />
+          {isFundingFunctionCard ? (
+            <>
+              <Field
+                label="Programs (one per line)"
+                fieldKey="programs"
+                value={String(card.metadata?.programs ?? "")}
+                multiline
+                onChange={(v) =>
+                  applySection((s) => updateSectionElement(s, elementId, { metadata: { programs: v } }))
+                }
+              />
+              <Field
+                label="Chart color (hex)"
+                fieldKey="color"
+                value={String(card.metadata?.color ?? "")}
+                onChange={(v) =>
+                  applySection((s) => updateSectionElement(s, elementId, { metadata: { color: v } }))
+                }
+              />
+              <Field
+                label="Allocated amount (USD)"
+                fieldKey="amount"
+                value={String(card.metadata?.amount ?? "")}
+                onChange={(v) =>
+                  applySection((s) => updateSectionElement(s, elementId, { metadata: { amount: v } }))
+                }
+              />
+            </>
+          ) : (
+            <>
+              <Field
+                label="Footnote"
+                fieldKey="giftNote"
+                value={String(card.metadata?.giftNote ?? "")}
+                multiline
+                onChange={(v) =>
+                  applySection((s) => updateSectionElement(s, elementId, { metadata: { giftNote: v } }))
+                }
+              />
+              <Field
+                label="Button label"
+                fieldKey="cta"
+                value={String(card.metadata?.cta ?? "")}
+                onChange={(v) =>
+                  applySection((s) => updateSectionElement(s, elementId, { metadata: { cta: v } }))
+                }
+              />
+              <Field
+                label="Button URL"
+                fieldKey="href"
+                value={String(card.metadata?.href ?? "")}
+                onChange={(v) =>
+                  applySection((s) => updateSectionElement(s, elementId, { metadata: { href: v } }))
+                }
+              />
+            </>
+          )}
         </>
       );
     }

@@ -11,6 +11,10 @@ import {
   migrateOurMissionFullEditSections,
   prepareOurMissionAdminSections,
 } from "./our-mission-page-sections";
+import {
+  migrateMinistryFundingSections,
+  prepareMinistryFundingAdminSections,
+} from "./ministry-funding-page-sections";
 import type { PageSection } from "./types";
 
 function hasDatabaseUrl(): boolean {
@@ -79,6 +83,10 @@ function migrateLoadedPageSections(
     const migrated = migrateOurMissionFullEditSections(sections);
     return { ...migrated, op: migrated.changed ? "migrateOurMissionFullEditSections" : null };
   }
+  if (pageKey === "ministry-funding") {
+    const migrated = migrateMinistryFundingSections(sections);
+    return { ...migrated, op: migrated.changed ? "migrateMinistryFundingSections" : null };
+  }
   if (pageKey === "home") {
     const migrated = insertHomeMissionCounterAfterHero(sections);
     return { ...migrated, op: migrated.changed ? "insertHomeMissionCounterAfterHero" : null };
@@ -139,6 +147,9 @@ export async function loadPageSectionsForAdmin(pageKey: string): Promise<{
   const base = !hasCustom ? defaultSectionsForPage(pageKey) : sections;
   if (pageKey === "our-mission") {
     return { sections: prepareOurMissionAdminSections(base), hasCustom };
+  }
+  if (pageKey === "ministry-funding") {
+    return { sections: prepareMinistryFundingAdminSections(base), hasCustom };
   }
   return { sections: base, hasCustom };
 }

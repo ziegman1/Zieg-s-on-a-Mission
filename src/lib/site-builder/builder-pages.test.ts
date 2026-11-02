@@ -32,6 +32,21 @@ describe("site builder pages", () => {
     );
   });
 
+  it("registers Ministry Funding page with defaults and revalidation path", () => {
+    const page = BUILDER_PAGES.find((p) => p.pageKey === "ministry-funding");
+    expect(page?.path).toBe("/ministry-funding");
+    expect(page?.label).toBe("Ministry Funding");
+    expect(PAGE_REVALIDATE_PATHS["ministry-funding"]).toContain("/ministry-funding");
+    const sections = defaultSectionsForPage("ministry-funding");
+    expect(sections.map((s) => s.sectionKey)).toEqual([
+      "hero",
+      "funding-goals",
+      "functions-heading",
+      "allocation",
+      "invitation",
+    ]);
+  });
+
   it("revalidates /community when community page is saved", () => {
     expect(PAGE_REVALIDATE_PATHS.community).toContain("/community");
   });

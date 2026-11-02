@@ -15,6 +15,7 @@ import { resolveMinistryProgressSectionKey } from "@/lib/site-builder/ministry-p
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import { partitionMinistrySections } from "@/lib/site-builder/ministry-sections-layout";
 import { renderOurMissionSection } from "@/components/mission/our-mission-editable-sections";
+import { renderMinistryFundingSection } from "@/components/ministry-funding/ministry-funding-editable-sections";
 import { EditableSectionShell } from "./editable-element";
 import { MinistryPageHeader } from "./ministry-page-header";
 import { useBuilderPreview } from "./builder-preview-context";
@@ -108,6 +109,18 @@ export function PageSectionsRenderer({
       <div className="bg-brand-surface text-brand-ink">
         {toRender.map((section) => {
           const designed = renderOurMissionSection(section, progressCounts);
+          if (designed) return wrap(section, designed);
+          return wrap(section, renderGenericSection(section, siteTagline));
+        })}
+      </div>
+    );
+  }
+
+  if (pageKey === "ministry-funding") {
+    return (
+      <div className="bg-brand-surface text-brand-ink">
+        {toRender.map((section) => {
+          const designed = renderMinistryFundingSection(section);
           if (designed) return wrap(section, designed);
           return wrap(section, renderGenericSection(section, siteTagline));
         })}

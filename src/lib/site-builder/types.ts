@@ -43,6 +43,11 @@ export const BUILDER_PAGES = [
   { pageKey: "about", label: "About & Mission", path: "/about" },
   { pageKey: "our-mission", label: "Our Mission", path: "/our-mission" },
   {
+    pageKey: "ministry-funding",
+    label: "Ministry Funding",
+    path: "/ministry-funding",
+  },
+  {
     pageKey: "partner",
     label: "Partner",
     path: "/partner",
@@ -72,6 +77,7 @@ export const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
   // Legacy key kept so older admin clients still revalidate the redirect target.
   mission: ["/about", "/mission"],
   "our-mission": ["/our-mission"],
+  "ministry-funding": ["/ministry-funding"],
   partner: ["/partner"],
   "advocacy-team": ["/advocacy-team"],
   give: ["/give"],

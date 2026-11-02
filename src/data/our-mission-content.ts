@@ -213,7 +213,7 @@ export const OUR_MISSION_INVITATION = {
 } as const;
 
 export const OUR_MISSION_CTAS = [
-  { href: "/partner", label: "Partner With Us" },
+  { href: "/ministry-funding", label: "Partner With Us" },
   { href: "/contact", label: "Explore Opportunities to Serve" },
 ] as const;
 

@@ -61,7 +61,7 @@ describe("our mission framework", () => {
   });
 
   it("uses existing destinations and the canonical tracker", () => {
-    expect(OUR_MISSION_CTAS.map((cta) => cta.href)).toEqual(["/partner", "/contact"]);
+    expect(OUR_MISSION_CTAS.map((cta) => cta.href)).toEqual(["/ministry-funding", "/contact"]);
     const page = readFileSync(
       resolve(process.cwd(), "src/app/(storefront)/our-mission/page.tsx"),
       "utf8",
