@@ -5,11 +5,7 @@ import { registryFor } from "@/lib/site-builder/registry";
 import { contentStr, newListItem, visibleListItems } from "@/lib/site-builder/content-utils";
 import { patchSectionContent } from "@/lib/site-builder/patch-section";
 import type { ListItem, PageSection, SectionType } from "@/lib/site-builder/types";
-import {
-  OUR_MISSION_FRAMEWORK_EDITORIAL_WARNING,
-  isOurMissionFrameworkEditorialSection,
-  isOurMissionLiveTrackerSection,
-} from "@/lib/site-builder/our-mission-page-sections";
+import { isOurMissionLiveTrackerSection } from "@/lib/site-builder/our-mission-page-sections";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
 import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field";
 import { Button } from "@/components/ui/button";
@@ -37,22 +33,9 @@ export function SectionPropertiesPanel({
 
   const reg = registryFor(section.sectionType);
   const liveTracker = isOurMissionLiveTrackerSection(section);
-  const frameworkEditorial = isOurMissionFrameworkEditorialSection(section);
 
   return (
     <div className="space-y-4 p-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
-      {liveTracker ? (
-        <div className="rounded-md border border-sky-500/40 bg-sky-950/40 px-3 py-2 text-xs text-sky-100 leading-relaxed">
-          Live Ministry Impact Tracker. You can edit the heading and visibility, but mobilized,
-          trained &amp; equipped, and sent totals always come from ministry records and cannot be
-          overridden here.
-        </div>
-      ) : null}
-      {frameworkEditorial ? (
-        <div className="rounded-md border border-amber-500/35 bg-amber-950/30 px-3 py-2 text-xs text-amber-100 leading-relaxed">
-          {OUR_MISSION_FRAMEWORK_EDITORIAL_WARNING}
-        </div>
-      ) : null}
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-medium text-zinc-200">{section.label}</p>
@@ -84,6 +67,26 @@ export function SectionPropertiesPanel({
           onChange={onChange}
         />
       ))}
+
+      {liveTracker ? (
+        <>
+          {(
+            [
+              ["mobilizedLabel", "Mobilized label"],
+              ["trainedLabel", "Trained & Equipped label"],
+              ["sentLabel", "Sent label"],
+              ["remainingDetail", "Remaining detail text"],
+            ] as const
+          ).map(([key, label]) => (
+            <FieldEditor
+              key={key}
+              field={{ key, label, kind: "text" }}
+              section={section}
+              onChange={onChange}
+            />
+          ))}
+        </>
+      ) : null}
 
       <Button type="button" variant="outline" size="sm" className="w-full" onClick={onRestoreSection}>
         Restore section default

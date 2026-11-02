@@ -13,7 +13,6 @@ import { selectionFromElement } from "@/lib/site-builder/section-elements";
 import { aboutNeedsMissionPageMigration } from "@/lib/site-builder/about-mission-migration";
 import { homeNeedsMissionCounterMigration } from "@/lib/site-builder/home-mission-counter-migration";
 import { replaceSectionInList, updateSectionInList } from "@/lib/site-builder/patch-section";
-import { isOurMissionLiveTrackerSection } from "@/lib/site-builder/our-mission-page-sections";
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import {
   loadBuilderPageAction,
@@ -675,9 +674,7 @@ export function SiteBuilderEditor({
                   )}
                 >
                   {!s.visible ? <EyeOff className="h-3 w-3 shrink-0" /> : <Eye className="h-3 w-3 shrink-0 opacity-40" />}
-                  <span className="truncate">
-                    {isOurMissionLiveTrackerSection(s) ? `Live data · ${s.label}` : s.label}
-                  </span>
+                  <span className="truncate">{s.label}</span>
                 </button>
               </li>
             ))}
@@ -700,9 +697,7 @@ export function SiteBuilderEditor({
           <p className="text-[11px] text-zinc-600 mb-2">
             {activePage === "global"
               ? "Edit section content below, or use the form above for live header labels."
-              : activePage === "our-mission"
-                ? "Click any heading, paragraph, card, or button to edit. Tracker totals stay live from ministry records. Framework wording shows an editorial warning only."
-                : "Click any text, card, button, or image in the preview to edit it."}
+              : "Click any text, card, button, or image in the preview to edit it."}
           </p>
           <div
             className="rounded-lg border border-zinc-700 overflow-hidden shadow-xl bg-white max-w-4xl mx-auto"

@@ -80,8 +80,6 @@ export default async function AdminSiteBuilderPage() {
         header). <strong className="text-zinc-300">Community</strong> edits the Mission Hub landing above the feed.{" "}
         <strong className="text-zinc-300">Newsletters</strong> are managed separately from page sections.{" "}
         <strong className="text-zinc-300">Our Mission</strong> is fully editable like other pages.
-        Tracker totals stay live from ministry records; framework wording shows an editorial warning
-        only and does not change milestone qualifications.
       </p>
       <Suspense
         fallback={

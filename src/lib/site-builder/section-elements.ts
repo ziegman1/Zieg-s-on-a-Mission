@@ -170,9 +170,19 @@ function elementTypeForId(section: PageSection, elementId: string): BuilderEleme
   if (elementId === "image") return "image";
   if (elementId.startsWith("quote:")) return "quote";
   if (
-    ["headline", "eyebrow", "body", "subheadline", "intro", "quote", "attribution"].includes(
-      elementId,
-    )
+    [
+      "headline",
+      "eyebrow",
+      "body",
+      "subheadline",
+      "intro",
+      "quote",
+      "attribution",
+      "mobilizedLabel",
+      "trainedLabel",
+      "sentLabel",
+      "remainingDetail",
+    ].includes(elementId)
   ) {
     return "text";
   }

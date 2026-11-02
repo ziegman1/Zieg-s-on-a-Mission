@@ -33,11 +33,17 @@ function StepArrow() {
  */
 export function MinistryProgressTracker({
   counts,
+  title = "The Progress So Far",
+  mobilizedLabel = "Mobilized",
   trainedLabel = "Trained",
+  sentLabel = "Sent",
   remainingDetail = "to reach the unreached by August 31, 2031.",
 }: {
   counts: PublicProgressCounts;
+  title?: string;
+  mobilizedLabel?: string;
   trainedLabel?: string;
+  sentLabel?: string;
   /** Words after “more workers”. The number itself is the goal minus Sent. */
   remainingDetail?: string;
 }) {
@@ -54,15 +60,15 @@ export function MinistryProgressTracker({
         id="ministry-progress-heading"
         className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary"
       >
-        The Progress So Far
+        {title}
       </p>
 
       <div className="mt-5 flex items-start gap-3 sm:gap-4">
-        <MilestoneStep label="Mobilized" value={mobilized} />
+        <MilestoneStep label={mobilizedLabel} value={mobilized} />
         <StepArrow />
         <MilestoneStep label={trainedLabel} value={trained} />
         <StepArrow />
-        <MilestoneStep label="Sent" value={sent} />
+        <MilestoneStep label={sentLabel} value={sent} />
       </div>
 
       <div className="mt-7 border-t border-brand-primary/15 pt-6">

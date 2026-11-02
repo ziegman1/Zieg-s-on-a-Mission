@@ -1,9 +1,9 @@
 /**
  * Our Mission Site Builder content.
  *
- * All narrative/framework copy is stored as normal Site Builder sections (defaults
- * from our-mission-content). The live tracker section is presentationally editable
- * (visibility/label/heading) but its totals always come from ministry record aggregates.
+ * All presentation copy is normal Site Builder sections (defaults from
+ * our-mission-content). The tracker section binds totals from ministry aggregates;
+ * presentation around those totals is fully editable.
  */
 
 import {
@@ -23,14 +23,8 @@ import { registryFor } from "./registry";
 
 export const OUR_MISSION_PAGE_KEY = "our-mission" as const;
 
-/** Marks sections whose wording explains the approved framework (warning only). */
-export const OUR_MISSION_FRAMEWORK_EDITORIAL_SETTING = "ministryFrameworkEditorial";
-
-/** Marks the live tracker host — totals stay data-bound. */
+/** Marks the live tracker host — totals stay data-bound; presentation is editable. */
 export const OUR_MISSION_LIVE_TRACKER_SETTING = "liveMinistryTracker";
-
-export const OUR_MISSION_FRAMEWORK_EDITORIAL_WARNING =
-  "These descriptions explain the approved Ministry Impact Framework. Changes to this wording do not change the underlying milestone qualifications or tracker calculations. Please ensure the published explanation remains accurate.";
 
 function sec(
   sectionKey: string,
@@ -86,19 +80,28 @@ export function isOurMissionLiveTrackerSection(section: PageSection): boolean {
   );
 }
 
-export function isOurMissionFrameworkEditorialSection(section: PageSection): boolean {
-  return section.settings?.[OUR_MISSION_FRAMEWORK_EDITORIAL_SETTING] === true;
-}
-
-/** @deprecated Protected CMS locking removed — always false. */
-export function isOurMissionProtectedSection(_section: PageSection): boolean {
-  return false;
+/** Strip obsolete restriction flags without touching content. */
+function scrubRestrictionSettings(section: PageSection): {
+  section: PageSection;
+  changed: boolean;
+} {
+  const settings = { ...(section.settings ?? {}) };
+  let changed = false;
+  for (const key of [
+    "ministryFrameworkProtected",
+    "ministryFrameworkEditorial",
+  ] as const) {
+    if (key in settings) {
+      delete settings[key];
+      changed = true;
+    }
+  }
+  if (!changed) return { section, changed: false };
+  return { section: { ...section, settings }, changed: true };
 }
 
 /** Full default Our Mission page as Site Builder sections. */
 export function defaultOurMissionEditableSections(): PageSection[] {
-  const framework = { [OUR_MISSION_FRAMEWORK_EDITORIAL_SETTING]: true };
-
   const avenueSections = OUR_MISSION_AVENUES.map((avenue, avenueIndex) => {
     const bullets: Array<{
       id: string;
@@ -146,7 +149,7 @@ export function defaultOurMissionEditableSections(): PageSection[] {
         bullets,
         measureLabel: OUR_MISSION_MEASURE_LABEL,
       },
-      { ...framework, ourMissionAvenue: true },
+      { ourMissionAvenue: true },
     );
   });
 
@@ -162,56 +165,42 @@ export function defaultOurMissionEditableSections(): PageSection[] {
     sec(
       "tracker",
       "text_section",
-      "Live Ministry Impact Tracker",
+      "Ministry Impact Tracker",
       {
         headline: "The Progress So Far",
-        body: "Live totals from ministry records. Presentation can be shown or hidden; totals are not manually editable.",
+        body: "",
+        mobilizedLabel: "Mobilized",
+        trainedLabel: "Trained & Equipped",
+        sentLabel: "Sent",
+        remainingDetail: "to reach the unreached by August 31, 2031.",
       },
       { [OUR_MISSION_LIVE_TRACKER_SETTING]: true },
     ),
-    sec(
-      "functions",
-      "card_grid",
-      "Mobilize, Train & Equip, Send",
-      {
-        headline: OUR_MISSION_FUNCTIONS_TITLE,
-        intro: "",
-        cards: cardItems(
-          OUR_MISSION_FUNCTIONS.map((item) => ({
-            title: item.title,
-            body: item.paragraphs.join("\n\n"),
-            meta: { amountLabel: item.subtitle },
-          })),
-        ),
-      },
-      framework,
-    ),
-    sec(
-      "avenues-heading",
-      "text_section",
-      "Three ministry avenues heading",
-      {
-        headline: OUR_MISSION_AVENUES_TITLE,
-        body: "",
-      },
-      framework,
-    ),
+    sec("functions", "card_grid", "Mobilize, Train & Equip, Send", {
+      headline: OUR_MISSION_FUNCTIONS_TITLE,
+      intro: "",
+      cards: cardItems(
+        OUR_MISSION_FUNCTIONS.map((item) => ({
+          title: item.title,
+          body: item.paragraphs.join("\n\n"),
+          meta: { amountLabel: item.subtitle },
+        })),
+      ),
+    }),
+    sec("avenues-heading", "text_section", "Three ministry avenues heading", {
+      headline: OUR_MISSION_AVENUES_TITLE,
+      body: "",
+    }),
     ...avenueSections,
     sec("beyond", "text_section", "Continued coaching", {
       headline: OUR_MISSION_BEYOND.title,
       body: OUR_MISSION_BEYOND.paragraphs.join("\n\n"),
     }),
-    sec(
-      "measurement",
-      "text_section",
-      "How We Measure Progress",
-      {
-        headline: OUR_MISSION_MEASUREMENT.title,
-        body: OUR_MISSION_MEASUREMENT.intro,
-        bullets: listItems([...OUR_MISSION_MEASUREMENT.points]),
-      },
-      framework,
-    ),
+    sec("measurement", "text_section", "How We Measure Progress", {
+      headline: OUR_MISSION_MEASUREMENT.title,
+      body: OUR_MISSION_MEASUREMENT.intro,
+      bullets: listItems([...OUR_MISSION_MEASUREMENT.points]),
+    }),
     sec("invitation", "cta", "Invitation & CTAs", {
       headline: OUR_MISSION_INVITATION.title,
       body: OUR_MISSION_INVITATION.paragraphs.join("\n\n"),
@@ -224,101 +213,96 @@ export function defaultOurMissionEditableSections(): PageSection[] {
 }
 
 /**
- * Ensure older Our Mission saves (hero/beyond/invitation only) gain the full editable
- * framework sections without overwriting existing copy. Idempotent.
+ * Add any missing default sections without reordering or overwriting existing
+ * content. Idempotent and non-destructive.
  */
 export function migrateOurMissionFullEditSections(sections: PageSection[]): {
   sections: PageSection[];
   changed: boolean;
 } {
   const defaults = defaultOurMissionEditableSections();
-  const byKey = new Map(sections.map((s) => [s.sectionKey, s]));
   const defaultKeys = new Set(defaults.map((d) => d.sectionKey));
 
   let changed = false;
-  const ordered: PageSection[] = [];
-  const used = new Set<string>();
+  let next: PageSection[] = [];
 
-  for (const d of defaults) {
-    const existing = byKey.get(d.sectionKey);
-    if (existing) {
-      let row = existing;
-      const missingSettings: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(d.settings ?? {})) {
-        if (existing.settings?.[key] === undefined) missingSettings[key] = value;
-      }
-      if (Object.keys(missingSettings).length > 0) {
-        row = { ...existing, settings: { ...existing.settings, ...missingSettings } };
-        changed = true;
-      }
-      if (d.sectionKey === "tracker" && !isOurMissionLiveTrackerSection(row)) {
-        row = {
-          ...row,
-          settings: { ...row.settings, [OUR_MISSION_LIVE_TRACKER_SETTING]: true },
-        };
-        changed = true;
-      }
-      ordered.push(row);
-    } else {
-      ordered.push(d);
-      changed = true;
-    }
-    used.add(d.sectionKey);
-  }
-
-  const supplemental: PageSection[] = [];
   for (const s of sections) {
-    if (used.has(s.sectionKey)) continue;
     // Drop obsolete virtual protected placeholders that were never real CMS content.
     if (
       s.settings?.ministryFrameworkProtected === true &&
       !defaultKeys.has(s.sectionKey) &&
-      (s.sectionKey === "avenues" || s.sectionKey === "functions" || s.sectionKey === "measurement")
+      (s.sectionKey === "avenues" ||
+        s.sectionKey === "functions" ||
+        s.sectionKey === "measurement" ||
+        s.sectionKey === "tracker")
     ) {
+      // Only drop if there is essentially no editable content (legacy placeholder).
+      const hasContent = Boolean(
+        s.content?.headline || s.content?.body || s.content?.cards || s.content?.bullets,
+      );
+      if (!hasContent) {
+        changed = true;
+        continue;
+      }
+    }
+    const scrubbed = scrubRestrictionSettings(s);
+    if (scrubbed.changed) changed = true;
+    let row = scrubbed.section;
+    if (row.sectionKey === "tracker" && !isOurMissionLiveTrackerSection(row)) {
+      row = {
+        ...row,
+        settings: { ...row.settings, [OUR_MISSION_LIVE_TRACKER_SETTING]: true },
+      };
       changed = true;
-      continue;
     }
-    supplemental.push(s);
-  }
-  // Keep supplemental editorial before the closing invitation (prior Our Mission layout).
-  if (supplemental.length > 0) {
-    const invitationIndex = ordered.findIndex((s) => s.sectionKey === "invitation");
-    if (invitationIndex >= 0) {
-      ordered.splice(invitationIndex, 0, ...supplemental);
-    } else {
-      ordered.push(...supplemental);
-    }
+    next.push(row);
   }
 
-  const next = ordered.map((s, i) => ({
+  const present = new Set(next.map((s) => s.sectionKey));
+  for (let i = 0; i < defaults.length; i++) {
+    const d = defaults[i]!;
+    if (present.has(d.sectionKey)) continue;
+
+    let insertAt = next.length;
+    for (let j = i - 1; j >= 0; j--) {
+      const predIdx = next.findIndex((s) => s.sectionKey === defaults[j]!.sectionKey);
+      if (predIdx >= 0) {
+        insertAt = predIdx + 1;
+        break;
+      }
+    }
+    if (insertAt === next.length) {
+      for (let j = i + 1; j < defaults.length; j++) {
+        const succIdx = next.findIndex((s) => s.sectionKey === defaults[j]!.sectionKey);
+        if (succIdx >= 0) {
+          insertAt = succIdx;
+          break;
+        }
+      }
+    }
+    next.splice(insertAt, 0, d);
+    present.add(d.sectionKey);
+    changed = true;
+  }
+
+  const normalized = next.map((s, i) => ({
     ...s,
     pageKey: OUR_MISSION_PAGE_KEY,
     sortOrder: i,
   }));
 
-  const sameShape =
-    next.length === sections.length &&
-    next.every(
+  const same =
+    !changed &&
+    normalized.length === sections.length &&
+    normalized.every(
       (s, i) =>
         s.sectionKey === sections[i]?.sectionKey &&
         s.sortOrder === sections[i]?.sortOrder &&
-        s.pageKey === sections[i]?.pageKey &&
-        s === sections[i],
+        s.pageKey === sections[i]?.pageKey,
     );
 
-  if (sameShape) {
-    return { sections, changed: false };
-  }
-
-  // Settings/content rows may be equivalent even when references differ.
-  const sameKeys =
-    next.length === sections.length &&
-    next.every((s, i) => s.sectionKey === sections[i]?.sectionKey);
-  if (sameKeys && !changed) {
-    return { sections, changed: false };
-  }
-
-  return { sections: next, changed: true };
+  if (same) return { sections, changed: false };
+  return { sections: normalized, changed: true };
 }
 
 /** Admin load / restore helper. */
@@ -332,7 +316,17 @@ export function mergeOurMissionAdminSections(stored: PageSection[]): PageSection
   return prepareOurMissionAdminSections(stored);
 }
 
-/** Identity — framework sections persist like any other page content. */
+/** @deprecated Restriction locking removed. */
+export function isOurMissionProtectedSection(_section: PageSection): boolean {
+  return false;
+}
+
+/** @deprecated Editorial warning removed. */
+export function isOurMissionFrameworkEditorialSection(_section: PageSection): boolean {
+  return false;
+}
+
+/** @deprecated Identity — all sections persist. */
 export function stripOurMissionProtectedSections(sections: PageSection[]): PageSection[] {
   return sections;
 }

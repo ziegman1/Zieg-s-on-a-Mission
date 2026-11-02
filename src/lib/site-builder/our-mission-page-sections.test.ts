@@ -12,7 +12,7 @@ import {
 import { prepareSectionsForSave } from "./sanitize";
 
 describe("our-mission site builder sections", () => {
-  it("provides full editable defaults from the ministry framework", () => {
+  it("provides full editable defaults with no protected or editorial flags", () => {
     const sections = defaultSectionsForPage("our-mission");
     expect(sections.map((s) => s.sectionKey)).toEqual([
       "hero",
@@ -28,8 +28,10 @@ describe("our-mission site builder sections", () => {
     ]);
     expect(String(sections[0]?.content.headline)).toBe(OUR_MISSION_HERO.title);
     expect(isOurMissionLiveTrackerSection(sections[1]!)).toBe(true);
-    expect(isOurMissionFrameworkEditorialSection(sections[2]!)).toBe(true);
     expect(sections.every((s) => !isOurMissionProtectedSection(s))).toBe(true);
+    expect(sections.every((s) => !isOurMissionFrameworkEditorialSection(s))).toBe(true);
+    expect(sections.every((s) => s.settings?.ministryFrameworkEditorial !== true)).toBe(true);
+    expect(sections.every((s) => s.settings?.ministryFrameworkProtected !== true)).toBe(true);
   });
 
   it("seeds avenue qualification bullets from the framework", () => {
@@ -44,7 +46,7 @@ describe("our-mission site builder sections", () => {
     );
   });
 
-  it("persists the full page including framework sections on save", () => {
+  it("persists the full page including tracker presentation on save", () => {
     const sections = defaultOurMissionEditableSections();
     const saved = prepareSectionsForSave("our-mission", sections);
     expect(saved.map((s) => s.sectionKey)).toEqual(sections.map((s) => s.sectionKey));
@@ -76,11 +78,55 @@ describe("our-mission site builder sections", () => {
     );
   });
 
-  it("keeps supplemental editorial before invitation", () => {
+  it("preserves custom section order and content when already complete", () => {
+    const full = defaultOurMissionEditableSections();
+    const reordered = [
+      full.find((s) => s.sectionKey === "invitation")!,
+      ...full.filter((s) => s.sectionKey !== "invitation"),
+    ].map((s, i) => ({
+      ...s,
+      sortOrder: i,
+      content:
+        s.sectionKey === "functions"
+          ? { ...s.content, headline: "Custom functions heading" }
+          : s.content,
+    }));
+
+    const { sections, changed } = migrateOurMissionFullEditSections(reordered);
+    expect(changed).toBe(false);
+    expect(sections[0]?.sectionKey).toBe("invitation");
+    expect(String(sections.find((s) => s.sectionKey === "functions")?.content.headline)).toBe(
+      "Custom functions heading",
+    );
+  });
+
+  it("scrubs obsolete restriction settings without changing copy", () => {
+    const withFlags = defaultOurMissionEditableSections().map((s) =>
+      s.sectionKey === "functions"
+        ? {
+            ...s,
+            settings: {
+              ...s.settings,
+              ministryFrameworkEditorial: true,
+              ministryFrameworkProtected: true,
+            },
+            content: { ...s.content, headline: "Keep me" },
+          }
+        : s,
+    );
+    const { sections, changed } = migrateOurMissionFullEditSections(withFlags);
+    expect(changed).toBe(true);
+    const functions = sections.find((s) => s.sectionKey === "functions");
+    expect(functions?.content.headline).toBe("Keep me");
+    expect(functions?.settings?.ministryFrameworkEditorial).toBeUndefined();
+    expect(functions?.settings?.ministryFrameworkProtected).toBeUndefined();
+  });
+
+  it("keeps supplemental editorial in its saved position when full page exists", () => {
+    const full = defaultOurMissionEditableSections();
+    const invitationIdx = full.findIndex((s) => s.sectionKey === "invitation");
     const withStory = [
-      ...defaultOurMissionEditableSections().filter((s) =>
-        ["hero", "beyond", "invitation"].includes(s.sectionKey),
-      ),
+      ...full.slice(0, invitationIdx),
       {
         id: "story",
         pageKey: "our-mission",
@@ -88,15 +134,19 @@ describe("our-mission site builder sections", () => {
         sectionType: "text_section" as const,
         label: "Story",
         visible: true,
-        sortOrder: 99,
+        sortOrder: invitationIdx,
         content: { headline: "A story", body: "Editorial" },
         settings: {},
       },
-    ];
+      ...full.slice(invitationIdx),
+    ].map((s, i) => ({ ...s, sortOrder: i }));
+
     const prepared = prepareOurMissionAdminSections(withStory);
     const keys = prepared.map((s) => s.sectionKey);
-    expect(keys.indexOf("custom-story")).toBeLessThan(keys.indexOf("invitation"));
-    expect(keys).toContain("measurement");
+    expect(keys.indexOf("custom-story")).toBe(keys.indexOf("invitation") - 1);
+    expect(String(prepared.find((s) => s.sectionKey === "custom-story")?.content.headline)).toBe(
+      "A story",
+    );
   });
 
   it("is idempotent when already fully migrated", () => {

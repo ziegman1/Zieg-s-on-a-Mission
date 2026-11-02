@@ -116,15 +116,12 @@ export function EditableSectionShell({
   label,
   children,
   className,
-  liveDataBound = false,
 }: {
   sectionId: string;
   visible: boolean;
   label: string;
   children: ReactNode;
   className?: string;
-  /** Live Ministry Impact Tracker host — presentation editable; totals are data-bound. */
-  liveDataBound?: boolean;
 }) {
   const ctx = useBuilderPreview();
   if (!ctx?.editMode) {
@@ -141,29 +138,14 @@ export function EditableSectionShell({
       tabIndex={0}
       data-builder-section={sectionId}
       data-builder-section-selected={selected ? "" : undefined}
-      data-builder-live-data={liveDataBound ? "" : undefined}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("[data-builder-element]")) return;
         e.stopPropagation();
         ctx.onSelectSection(sectionId);
       }}
-      className={cn(
-        "relative",
-        !visible && "opacity-40",
-        liveDataBound && selected && "ring-1 ring-sky-500/40",
-        className,
-      )}
+      className={cn("relative", !visible && "opacity-40", className)}
     >
-      {selected ? (
-        <span className="builder-section-label">
-          {liveDataBound ? `Live data · ${label}` : label}
-        </span>
-      ) : null}
-      {liveDataBound && selected ? (
-        <span className="absolute right-2 top-2 z-10 rounded-md border border-sky-500/40 bg-sky-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-950">
-          Live tracker data
-        </span>
-      ) : null}
+      {selected ? <span className="builder-section-label">{label}</span> : null}
       {children}
     </div>
   );

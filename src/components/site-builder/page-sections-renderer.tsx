@@ -14,7 +14,6 @@ import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
 import { resolveMinistryProgressSectionKey } from "@/lib/site-builder/ministry-progress-section";
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import { partitionMinistrySections } from "@/lib/site-builder/ministry-sections-layout";
-import { isOurMissionLiveTrackerSection } from "@/lib/site-builder/our-mission-page-sections";
 import { renderOurMissionSection } from "@/components/mission/our-mission-editable-sections";
 import { EditableSectionShell } from "./editable-element";
 import { MinistryPageHeader } from "./ministry-page-header";
@@ -51,7 +50,6 @@ export function PageSectionsRenderer({
         sectionId={section.id}
         visible={section.visible}
         label={section.label}
-        liveDataBound={isOurMissionLiveTrackerSection(section)}
       >
         {node}
       </EditableSectionShell>

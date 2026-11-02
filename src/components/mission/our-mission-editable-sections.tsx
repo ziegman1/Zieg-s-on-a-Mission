@@ -112,7 +112,7 @@ export function OurMissionHeroEditable({ section }: { section: PageSection }) {
   );
 }
 
-/** Live tracker — totals always from ministry aggregates, never from section content. */
+/** Tracker presentation is editable; totals always come from ministry aggregates. */
 export function OurMissionTrackerEditable({
   section,
   counts,
@@ -122,42 +122,94 @@ export function OurMissionTrackerEditable({
 }) {
   const ctx = useBuilderPreview();
   const c = section.content;
-  const headline = contentStr(c, "headline");
+  const headline = contentStr(c, "headline") || "The Progress So Far";
+  const body = contentStr(c, "body");
+  const mobilizedLabel = contentStr(c, "mobilizedLabel") || "Mobilized";
+  const trainedLabel = contentStr(c, "trainedLabel") || "Trained & Equipped";
+  const sentLabel = contentStr(c, "sentLabel") || "Sent";
+  const remainingDetail =
+    contentStr(c, "remainingDetail") || "to reach the unreached by August 31, 2031.";
 
   return (
     <section aria-labelledby={`${section.id}-tracker`} className="px-4 py-14 sm:py-16">
       <div className="mx-auto max-w-3xl">
-        {showField(ctx?.editMode, "headline", headline, c) ? (
-          <EditableElement
-            sectionId={section.id}
-            elementId="headline"
-            style={getFieldStyle(c, "headline")}
-            className="mb-6 text-center"
-          >
-            <SiteBuilderFormattedContent
-              text={headline}
-              className="font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide [&_p]:m-0"
-              emptyPlaceholder={ctx?.editMode ? "Tracker heading (empty)" : undefined}
-            />
-          </EditableElement>
-        ) : (
-          <h2 id={`${section.id}-tracker`} className="sr-only">
-            Ministry Impact Tracker
-          </h2>
-        )}
+        <h2 id={`${section.id}-tracker`} className="sr-only">
+          Ministry Impact Tracker
+        </h2>
         {ctx?.editMode ? (
-          <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-50 px-3 py-2 text-center text-[11px] font-medium text-amber-950">
-            Live tracker data — totals, progress, and milestone records are read-only.
-          </p>
+          <div className="mb-4 space-y-2 text-center">
+            <EditableElement
+              sectionId={section.id}
+              elementId="headline"
+              style={getFieldStyle(c, "headline")}
+            >
+              <SiteBuilderFormattedContent
+                text={headline}
+                className="font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide [&_p]:m-0"
+                emptyPlaceholder="Tracker title (empty)"
+              />
+            </EditableElement>
+            {showField(true, "body", body, c) ? (
+              <EditableElement
+                sectionId={section.id}
+                elementId="body"
+                style={getFieldStyle(c, "body")}
+              >
+                <SiteBuilderFormattedContent
+                  text={body}
+                  className="text-sm text-brand-ink/80"
+                  emptyPlaceholder="Description (empty)"
+                />
+              </EditableElement>
+            ) : null}
+            <div className="flex flex-wrap justify-center gap-2 text-[11px] text-brand-ink/70">
+              <EditableElement sectionId={section.id} elementId="mobilizedLabel" layout="inline">
+                <span>{mobilizedLabel}</span>
+              </EditableElement>
+              <span aria-hidden>·</span>
+              <EditableElement sectionId={section.id} elementId="trainedLabel" layout="inline">
+                <span>{trainedLabel}</span>
+              </EditableElement>
+              <span aria-hidden>·</span>
+              <EditableElement sectionId={section.id} elementId="sentLabel" layout="inline">
+                <span>{sentLabel}</span>
+              </EditableElement>
+            </div>
+          </div>
+        ) : body.trim() ? (
+          <div className="mb-4 text-center">
+            <SiteBuilderFormattedContent text={body} className="text-sm text-brand-ink/80" />
+          </div>
         ) : null}
-        {/* Totals are intentionally not EditableElements */}
+        {/* Numeric totals are intentionally not EditableElements */}
         {counts ? (
-          <MinistryProgressTracker counts={counts} trainedLabel="Trained & Equipped" />
+          <MinistryProgressTracker
+            counts={counts}
+            title={headline}
+            mobilizedLabel={mobilizedLabel}
+            trainedLabel={trainedLabel}
+            sentLabel={sentLabel}
+            remainingDetail={remainingDetail}
+          />
         ) : (
           <p className="rounded-2xl border border-brand-primary/25 bg-white/75 px-5 py-6 text-sm text-brand-ink/70">
             Progress totals are temporarily unavailable.
           </p>
         )}
+        {ctx?.editMode ? (
+          <EditableElement
+            sectionId={section.id}
+            elementId="remainingDetail"
+            style={getFieldStyle(c, "remainingDetail")}
+            className="mt-3 text-center"
+          >
+            <SiteBuilderFormattedContent
+              text={remainingDetail}
+              className="text-xs text-brand-ink/60"
+              emptyPlaceholder="Remaining detail (empty)"
+            />
+          </EditableElement>
+        ) : null}
         <ContentElementsBlock section={section} />
       </div>
     </section>
