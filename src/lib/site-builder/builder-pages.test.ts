@@ -10,13 +10,18 @@ describe("site builder pages", () => {
     expect(community?.path).toBe("/community");
   });
 
-  it("exposes Our Mission editable narrative defaults without protected framework rows", () => {
+  it("exposes full Our Mission defaults including live tracker and framework copy", () => {
     const page = BUILDER_PAGES.find((p) => p.pageKey === "our-mission");
     expect(page?.path).toBe("/our-mission");
     expect(PAGE_REVALIDATE_PATHS["our-mission"]).toContain("/our-mission");
     const sections = defaultSectionsForPage("our-mission");
-    expect(sections.map((s) => s.sectionKey)).toEqual(["hero", "beyond", "invitation"]);
-    expect(sections.some((s) => s.sectionKey === "tracker")).toBe(false);
+    expect(sections.map((s) => s.sectionKey)).toContain("hero");
+    expect(sections.map((s) => s.sectionKey)).toContain("tracker");
+    expect(sections.map((s) => s.sectionKey)).toContain("functions");
+    expect(sections.map((s) => s.sectionKey)).toContain("invitation");
+    expect(sections.find((s) => s.sectionKey === "tracker")?.settings?.liveMinistryTracker).toBe(
+      true,
+    );
   });
 
   it("revalidates /community when community page is saved", () => {

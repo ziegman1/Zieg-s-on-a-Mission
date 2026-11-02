@@ -5,7 +5,11 @@ import { registryFor } from "@/lib/site-builder/registry";
 import { contentStr, newListItem, visibleListItems } from "@/lib/site-builder/content-utils";
 import { patchSectionContent } from "@/lib/site-builder/patch-section";
 import type { ListItem, PageSection, SectionType } from "@/lib/site-builder/types";
-import { isOurMissionProtectedSection } from "@/lib/site-builder/our-mission-page-sections";
+import {
+  OUR_MISSION_FRAMEWORK_EDITORIAL_WARNING,
+  isOurMissionFrameworkEditorialSection,
+  isOurMissionLiveTrackerSection,
+} from "@/lib/site-builder/our-mission-page-sections";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
 import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field";
 import { Button } from "@/components/ui/button";
@@ -31,32 +35,24 @@ export function SectionPropertiesPanel({
     );
   }
 
-  if (isOurMissionProtectedSection(section)) {
-    return (
-      <div className="space-y-4 p-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
-        <div>
-          <p className="text-sm font-medium text-zinc-200">{section.label}</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-amber-400">
-            Protected ministry framework
-          </p>
-        </div>
-        <p className="text-sm text-zinc-400 leading-relaxed">
-          This section is part of the authoritative Ministry Impact Framework. It stays visible in
-          the preview so you can see the complete Our Mission page, but its definitions, milestone
-          qualifications, and live tracker values are not edited here.
-        </p>
-        <p className="text-xs text-zinc-500 leading-relaxed">
-          Edit hero copy, continued coaching, the closing invitation, or add supplemental editorial
-          sections instead.
-        </p>
-      </div>
-    );
-  }
-
   const reg = registryFor(section.sectionType);
+  const liveTracker = isOurMissionLiveTrackerSection(section);
+  const frameworkEditorial = isOurMissionFrameworkEditorialSection(section);
 
   return (
     <div className="space-y-4 p-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
+      {liveTracker ? (
+        <div className="rounded-md border border-sky-500/40 bg-sky-950/40 px-3 py-2 text-xs text-sky-100 leading-relaxed">
+          Live Ministry Impact Tracker. You can edit the heading and visibility, but mobilized,
+          trained &amp; equipped, and sent totals always come from ministry records and cannot be
+          overridden here.
+        </div>
+      ) : null}
+      {frameworkEditorial ? (
+        <div className="rounded-md border border-amber-500/35 bg-amber-950/30 px-3 py-2 text-xs text-amber-100 leading-relaxed">
+          {OUR_MISSION_FRAMEWORK_EDITORIAL_WARNING}
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-medium text-zinc-200">{section.label}</p>

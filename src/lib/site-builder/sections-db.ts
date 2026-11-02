@@ -7,7 +7,10 @@ import { insertHomeMissionCounterAfterHero } from "./home-mission-counter-migrat
 import { migrateGivePageSections } from "./give-page-sections";
 import { logSiteBuilderSaveError } from "./save-errors";
 import { prepareSectionsForSave } from "./sanitize";
-import { mergeOurMissionAdminSections } from "./our-mission-page-sections";
+import {
+  migrateOurMissionFullEditSections,
+  prepareOurMissionAdminSections,
+} from "./our-mission-page-sections";
 import type { PageSection } from "./types";
 
 function hasDatabaseUrl(): boolean {
@@ -92,6 +95,17 @@ export async function loadPageSections(pageKey: string): Promise<PageSection[]> 
         }
       }
     }
+    if (pageKey === "our-mission") {
+      const migrated = migrateOurMissionFullEditSections(sections);
+      if (migrated.changed) {
+        sections = migrated.sections;
+        try {
+          await savePageSections(pageKey, sections);
+        } catch (error) {
+          logSiteBuilderSaveError(error, { op: "migrateOurMissionFullEditSections", pageKey });
+        }
+      }
+    }
     if (pageKey === "home") {
       const migrated = insertHomeMissionCounterAfterHero(sections);
       if (migrated.changed) {
@@ -127,7 +141,7 @@ export async function loadPageSectionsForAdmin(pageKey: string): Promise<{
   const sections = await loadPageSections(pageKey);
   const base = !hasCustom ? defaultSectionsForPage(pageKey) : sections;
   if (pageKey === "our-mission") {
-    return { sections: mergeOurMissionAdminSections(base), hasCustom };
+    return { sections: prepareOurMissionAdminSections(base), hasCustom };
   }
   return { sections: base, hasCustom };
 }

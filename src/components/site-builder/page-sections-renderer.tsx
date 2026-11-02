@@ -14,19 +14,8 @@ import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
 import { resolveMinistryProgressSectionKey } from "@/lib/site-builder/ministry-progress-section";
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import { partitionMinistrySections } from "@/lib/site-builder/ministry-sections-layout";
-import {
-  isOurMissionProtectedSection,
-  resolveOurMissionNarrative,
-} from "@/lib/site-builder/our-mission-page-sections";
-import {
-  OurMissionAvenuesSection,
-  OurMissionBeyondSection,
-  OurMissionFunctionsSection,
-  OurMissionHeroSection,
-  OurMissionInvitationSection,
-  OurMissionMeasurementSection,
-  OurMissionTrackerSection,
-} from "@/components/mission/our-mission-page";
+import { isOurMissionLiveTrackerSection } from "@/lib/site-builder/our-mission-page-sections";
+import { renderOurMissionSection } from "@/components/mission/our-mission-editable-sections";
 import { EditableSectionShell } from "./editable-element";
 import { MinistryPageHeader } from "./ministry-page-header";
 import { useBuilderPreview } from "./builder-preview-context";
@@ -62,6 +51,7 @@ export function PageSectionsRenderer({
         sectionId={section.id}
         visible={section.visible}
         label={section.label}
+        liveDataBound={isOurMissionLiveTrackerSection(section)}
       >
         {node}
       </EditableSectionShell>
@@ -117,13 +107,13 @@ export function PageSectionsRenderer({
 
   if (pageKey === "our-mission") {
     return (
-      <OurMissionSectionsPage
-        sections={toRender}
-        inEditor={inEditor}
-        wrap={wrap}
-        progressCounts={progressCounts}
-        siteTagline={siteTagline}
-      />
+      <div className="bg-brand-surface text-brand-ink">
+        {toRender.map((section) => {
+          const designed = renderOurMissionSection(section, progressCounts);
+          if (designed) return wrap(section, designed);
+          return wrap(section, renderGenericSection(section, siteTagline));
+        })}
+      </div>
     );
   }
 
@@ -173,79 +163,11 @@ function renderGenericSection(section: PageSection, siteTagline: string) {
       return <QuoteSection section={section} />;
     case "mission_counter":
       return <MissionCounterSection section={section} />;
+    case "card_grid":
+      return <CardGridSection section={section} />;
     default:
       return null;
   }
-}
-
-function OurMissionSectionsPage({
-  sections,
-  inEditor,
-  wrap,
-  progressCounts,
-  siteTagline,
-}: {
-  sections: PageSection[];
-  inEditor: boolean;
-  wrap: (section: PageSection, node: React.ReactNode) => React.ReactNode;
-  progressCounts: PublicProgressCounts | null;
-  siteTagline: string;
-}) {
-  const narrative = resolveOurMissionNarrative(sections);
-  const byKey = new Map(sections.map((section) => [section.sectionKey, section]));
-  const editorial = sections.filter(
-    (section) =>
-      !["hero", "tracker", "functions", "avenues", "beyond", "measurement", "invitation"].includes(
-        section.sectionKey,
-      ),
-  );
-
-  const wrapProtected = (section: PageSection | undefined, node: React.ReactNode) => {
-    if (!section) return node;
-    if (!inEditor) return node;
-    return (
-      <EditableSectionShell
-        key={section.id}
-        sectionId={section.id}
-        visible={section.visible}
-        label={section.label}
-        protectedFramework={isOurMissionProtectedSection(section)}
-      >
-        {node}
-      </EditableSectionShell>
-    );
-  };
-
-  return (
-    <div className="bg-brand-surface text-brand-ink">
-      {byKey.get("hero")
-        ? wrap(byKey.get("hero")!, <OurMissionHeroSection narrative={narrative.hero} />)
-        : null}
-      {wrapProtected(byKey.get("tracker"), <OurMissionTrackerSection counts={progressCounts} />)}
-      {wrapProtected(byKey.get("functions"), <OurMissionFunctionsSection />)}
-      {wrapProtected(byKey.get("avenues"), <OurMissionAvenuesSection />)}
-      {byKey.get("beyond")
-        ? wrap(byKey.get("beyond")!, <OurMissionBeyondSection narrative={narrative.beyond} />)
-        : null}
-      {wrapProtected(byKey.get("measurement"), <OurMissionMeasurementSection />)}
-      {editorial.length > 0 ? (
-        <div className="border-t border-brand-primary/15">
-          {editorial.map((section) =>
-            wrap(section, renderGenericSection(section, siteTagline)),
-          )}
-        </div>
-      ) : null}
-      {byKey.get("invitation")
-        ? wrap(
-            byKey.get("invitation")!,
-            <OurMissionInvitationSection
-              narrative={narrative.invitation}
-              ctas={narrative.ctas}
-            />,
-          )
-        : null}
-    </div>
-  );
 }
 
 function MinistrySectionsPage({

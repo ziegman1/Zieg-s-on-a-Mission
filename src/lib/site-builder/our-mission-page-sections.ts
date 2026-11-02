@@ -1,59 +1,36 @@
 /**
- * Our Mission Site Builder integration.
+ * Our Mission Site Builder content.
  *
- * Editable narrative lives in Site Builder sections (defaults from our-mission-content).
- * Protected ministry framework (tracker, definitions, avenues, measurement) is always
- * rendered from the shared content module / live counts — never authored as CMS copy.
+ * All narrative/framework copy is stored as normal Site Builder sections (defaults
+ * from our-mission-content). The live tracker section is presentationally editable
+ * (visibility/label/heading) but its totals always come from ministry record aggregates.
  */
 
 import {
+  OUR_MISSION_AVENUES,
+  OUR_MISSION_AVENUES_TITLE,
   OUR_MISSION_BEYOND,
   OUR_MISSION_CTAS,
+  OUR_MISSION_FUNCTIONS,
+  OUR_MISSION_FUNCTIONS_TITLE,
   OUR_MISSION_HERO,
   OUR_MISSION_INVITATION,
+  OUR_MISSION_MEASURE_LABEL,
+  OUR_MISSION_MEASUREMENT,
 } from "@/data/our-mission-content";
 import type { PageSection, SectionType } from "./types";
 import { registryFor } from "./registry";
 
 export const OUR_MISSION_PAGE_KEY = "our-mission" as const;
 
-export const OUR_MISSION_EDITABLE_SECTION_KEYS = [
-  "hero",
-  "beyond",
-  "invitation",
-] as const;
+/** Marks sections whose wording explains the approved framework (warning only). */
+export const OUR_MISSION_FRAMEWORK_EDITORIAL_SETTING = "ministryFrameworkEditorial";
 
-export const OUR_MISSION_PROTECTED_SECTION_KEYS = [
-  "tracker",
-  "functions",
-  "avenues",
-  "measurement",
-] as const;
+/** Marks the live tracker host — totals stay data-bound. */
+export const OUR_MISSION_LIVE_TRACKER_SETTING = "liveMinistryTracker";
 
-export type OurMissionEditableSectionKey =
-  (typeof OUR_MISSION_EDITABLE_SECTION_KEYS)[number];
-
-export type OurMissionProtectedSectionKey =
-  (typeof OUR_MISSION_PROTECTED_SECTION_KEYS)[number];
-
-export const OUR_MISSION_FRAMEWORK_PROTECTED_SETTING = "ministryFrameworkProtected";
-
-export type OurMissionNarrative = {
-  hero: {
-    title: string;
-    supporting: string;
-    paragraphs: string[];
-  };
-  beyond: {
-    title: string;
-    paragraphs: string[];
-  };
-  invitation: {
-    title: string;
-    paragraphs: string[];
-  };
-  ctas: Array<{ href: string; label: string }>;
-};
+export const OUR_MISSION_FRAMEWORK_EDITORIAL_WARNING =
+  "These descriptions explain the approved Ministry Impact Framework. Changes to this wording do not change the underlying milestone qualifications or tracker calculations. Please ensure the published explanation remains accurate.";
 
 function sec(
   sectionKey: string,
@@ -76,36 +53,165 @@ function sec(
   };
 }
 
-export function isOurMissionProtectedSection(section: PageSection): boolean {
+function listItems(strings: string[]) {
+  return strings.map((text, i) => ({
+    id: `ln-${i}`,
+    text,
+    visible: true,
+    sortOrder: i,
+    metadata: {},
+  }));
+}
+
+function cardItems(
+  cards: Array<{
+    title: string;
+    body: string;
+    meta?: Record<string, unknown>;
+  }>,
+) {
+  return cards.map((c, i) => ({
+    id: `card-${i}`,
+    text: c.title,
+    visible: true,
+    sortOrder: i,
+    metadata: { body: c.body, ...c.meta },
+  }));
+}
+
+export function isOurMissionLiveTrackerSection(section: PageSection): boolean {
   return (
-    section.settings?.[OUR_MISSION_FRAMEWORK_PROTECTED_SETTING] === true ||
-    (OUR_MISSION_PROTECTED_SECTION_KEYS as readonly string[]).includes(section.sectionKey)
+    section.settings?.[OUR_MISSION_LIVE_TRACKER_SETTING] === true ||
+    section.sectionKey === "tracker"
   );
 }
 
-export function isOurMissionEditableSectionKey(key: string): boolean {
-  return (OUR_MISSION_EDITABLE_SECTION_KEYS as readonly string[]).includes(key);
+export function isOurMissionFrameworkEditorialSection(section: PageSection): boolean {
+  return section.settings?.[OUR_MISSION_FRAMEWORK_EDITORIAL_SETTING] === true;
 }
 
-export function isOurMissionFrameworkSectionKey(key: string): boolean {
-  return (
-    isOurMissionEditableSectionKey(key) ||
-    (OUR_MISSION_PROTECTED_SECTION_KEYS as readonly string[]).includes(key)
-  );
+/** @deprecated Protected CMS locking removed — always false. */
+export function isOurMissionProtectedSection(_section: PageSection): boolean {
+  return false;
 }
 
-/** Editable defaults only — never include protected framework as CMS rows. */
+/** Full default Our Mission page as Site Builder sections. */
 export function defaultOurMissionEditableSections(): PageSection[] {
+  const framework = { [OUR_MISSION_FRAMEWORK_EDITORIAL_SETTING]: true };
+
+  const avenueSections = OUR_MISSION_AVENUES.map((avenue, avenueIndex) => {
+    const bullets: Array<{
+      id: string;
+      text: string;
+      visible: boolean;
+      sortOrder: number;
+      metadata: Record<string, unknown>;
+    }> = [];
+    let sort = 0;
+    for (const track of avenue.tracks) {
+      const trackTitle = track.title ?? "";
+      for (const q of track.qualifications) {
+        bullets.push({
+          id: `q-${avenue.id}-${sort}`,
+          text: `${q.label}: ${q.text}`,
+          visible: true,
+          sortOrder: sort++,
+          metadata: {
+            kind: "qualification",
+            label: q.label,
+            trackTitle,
+          },
+        });
+      }
+      for (const note of track.notes) {
+        bullets.push({
+          id: `n-${avenue.id}-${sort}`,
+          text: note,
+          visible: true,
+          sortOrder: sort++,
+          metadata: { kind: "note", trackTitle },
+        });
+      }
+    }
+
+    return sec(
+      `avenue-${avenue.id}`,
+      "text_section",
+      `Avenue ${avenueIndex + 1}: ${avenue.title}`,
+      {
+        eyebrow: `Avenue ${avenueIndex + 1}`,
+        headline: avenue.title,
+        subheadline: avenue.summary,
+        body: avenue.paragraphs.join("\n\n"),
+        bullets,
+        measureLabel: OUR_MISSION_MEASURE_LABEL,
+      },
+      { ...framework, ourMissionAvenue: true },
+    );
+  });
+
   return [
     sec("hero", "hero", "Hero & ministry vision", {
       headline: OUR_MISSION_HERO.title,
       subheadline: OUR_MISSION_HERO.supporting,
       body: OUR_MISSION_HERO.paragraphs.join("\n\n"),
+      primaryCtaLabel: "",
+      secondaryCtaLabel: "",
+      tertiaryCtaLabel: "",
     }),
+    sec(
+      "tracker",
+      "text_section",
+      "Live Ministry Impact Tracker",
+      {
+        headline: "The Progress So Far",
+        body: "Live totals from ministry records. Presentation can be shown or hidden; totals are not manually editable.",
+      },
+      { [OUR_MISSION_LIVE_TRACKER_SETTING]: true },
+    ),
+    sec(
+      "functions",
+      "card_grid",
+      "Mobilize, Train & Equip, Send",
+      {
+        headline: OUR_MISSION_FUNCTIONS_TITLE,
+        intro: "",
+        cards: cardItems(
+          OUR_MISSION_FUNCTIONS.map((item) => ({
+            title: item.title,
+            body: item.paragraphs.join("\n\n"),
+            meta: { amountLabel: item.subtitle },
+          })),
+        ),
+      },
+      framework,
+    ),
+    sec(
+      "avenues-heading",
+      "text_section",
+      "Three ministry avenues heading",
+      {
+        headline: OUR_MISSION_AVENUES_TITLE,
+        body: "",
+      },
+      framework,
+    ),
+    ...avenueSections,
     sec("beyond", "text_section", "Continued coaching", {
       headline: OUR_MISSION_BEYOND.title,
       body: OUR_MISSION_BEYOND.paragraphs.join("\n\n"),
     }),
+    sec(
+      "measurement",
+      "text_section",
+      "How We Measure Progress",
+      {
+        headline: OUR_MISSION_MEASUREMENT.title,
+        body: OUR_MISSION_MEASUREMENT.intro,
+        bullets: listItems([...OUR_MISSION_MEASUREMENT.points]),
+      },
+      framework,
+    ),
     sec("invitation", "cta", "Invitation & CTAs", {
       headline: OUR_MISSION_INVITATION.title,
       body: OUR_MISSION_INVITATION.paragraphs.join("\n\n"),
@@ -117,167 +223,116 @@ export function defaultOurMissionEditableSections(): PageSection[] {
   ].map((section, index) => ({ ...section, sortOrder: index }));
 }
 
-/** Virtual protected sections for Site Builder preview / selection only. */
-export function ourMissionProtectedPreviewSections(): PageSection[] {
-  const protectedSettings = { [OUR_MISSION_FRAMEWORK_PROTECTED_SETTING]: true };
-  return [
-    sec(
-      "tracker",
-      "text_section",
-      "Live Ministry Impact Tracker",
-      {
-        headline: "The Progress So Far",
-        body: "Live totals from ministry records. Not editable here.",
-      },
-      protectedSettings,
-    ),
-    sec(
-      "functions",
-      "text_section",
-      "Mobilize, Train & Equip, Send",
-      {
-        headline: "What Does It Mean to Mobilize, Train & Send?",
-        body: "Authoritative ministry definitions from the Ministry Impact Framework.",
-      },
-      protectedSettings,
-    ),
-    sec(
-      "avenues",
-      "text_section",
-      "Three ministry avenues",
-      {
-        headline: "Three Avenues. One Mission.",
-        body: "Avenue descriptions and milestone qualifications stay in code.",
-      },
-      protectedSettings,
-    ),
-    sec(
-      "measurement",
-      "text_section",
-      "How We Measure Progress",
-      {
-        headline: "How We Measure Our Progress",
-        body: "Official milestone methodology. Not editable here.",
-      },
-      protectedSettings,
-    ),
-  ];
-}
-
 /**
- * Merge stored editable/editorial sections with virtual protected framework sections
- * in the public page order for the admin preview.
+ * Ensure older Our Mission saves (hero/beyond/invitation only) gain the full editable
+ * framework sections without overwriting existing copy. Idempotent.
  */
+export function migrateOurMissionFullEditSections(sections: PageSection[]): {
+  sections: PageSection[];
+  changed: boolean;
+} {
+  const defaults = defaultOurMissionEditableSections();
+  const byKey = new Map(sections.map((s) => [s.sectionKey, s]));
+  const defaultKeys = new Set(defaults.map((d) => d.sectionKey));
+
+  let changed = false;
+  const ordered: PageSection[] = [];
+  const used = new Set<string>();
+
+  for (const d of defaults) {
+    const existing = byKey.get(d.sectionKey);
+    if (existing) {
+      let row = existing;
+      const missingSettings: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(d.settings ?? {})) {
+        if (existing.settings?.[key] === undefined) missingSettings[key] = value;
+      }
+      if (Object.keys(missingSettings).length > 0) {
+        row = { ...existing, settings: { ...existing.settings, ...missingSettings } };
+        changed = true;
+      }
+      if (d.sectionKey === "tracker" && !isOurMissionLiveTrackerSection(row)) {
+        row = {
+          ...row,
+          settings: { ...row.settings, [OUR_MISSION_LIVE_TRACKER_SETTING]: true },
+        };
+        changed = true;
+      }
+      ordered.push(row);
+    } else {
+      ordered.push(d);
+      changed = true;
+    }
+    used.add(d.sectionKey);
+  }
+
+  const supplemental: PageSection[] = [];
+  for (const s of sections) {
+    if (used.has(s.sectionKey)) continue;
+    // Drop obsolete virtual protected placeholders that were never real CMS content.
+    if (
+      s.settings?.ministryFrameworkProtected === true &&
+      !defaultKeys.has(s.sectionKey) &&
+      (s.sectionKey === "avenues" || s.sectionKey === "functions" || s.sectionKey === "measurement")
+    ) {
+      changed = true;
+      continue;
+    }
+    supplemental.push(s);
+  }
+  // Keep supplemental editorial before the closing invitation (prior Our Mission layout).
+  if (supplemental.length > 0) {
+    const invitationIndex = ordered.findIndex((s) => s.sectionKey === "invitation");
+    if (invitationIndex >= 0) {
+      ordered.splice(invitationIndex, 0, ...supplemental);
+    } else {
+      ordered.push(...supplemental);
+    }
+  }
+
+  const next = ordered.map((s, i) => ({
+    ...s,
+    pageKey: OUR_MISSION_PAGE_KEY,
+    sortOrder: i,
+  }));
+
+  const sameShape =
+    next.length === sections.length &&
+    next.every(
+      (s, i) =>
+        s.sectionKey === sections[i]?.sectionKey &&
+        s.sortOrder === sections[i]?.sortOrder &&
+        s.pageKey === sections[i]?.pageKey &&
+        s === sections[i],
+    );
+
+  if (sameShape) {
+    return { sections, changed: false };
+  }
+
+  // Settings/content rows may be equivalent even when references differ.
+  const sameKeys =
+    next.length === sections.length &&
+    next.every((s, i) => s.sectionKey === sections[i]?.sectionKey);
+  if (sameKeys && !changed) {
+    return { sections, changed: false };
+  }
+
+  return { sections: next, changed: true };
+}
+
+/** Admin load / restore helper. */
+export function prepareOurMissionAdminSections(stored: PageSection[]): PageSection[] {
+  if (stored.length === 0) return defaultOurMissionEditableSections();
+  return migrateOurMissionFullEditSections(stored).sections;
+}
+
+/** @deprecated Use prepareOurMissionAdminSections */
 export function mergeOurMissionAdminSections(stored: PageSection[]): PageSection[] {
-  const byKey = new Map(stored.map((section) => [section.sectionKey, section]));
-  const editableDefaults = defaultOurMissionEditableSections();
-  const protectedDefaults = ourMissionProtectedPreviewSections();
-
-  const hero =
-    byKey.get("hero") ??
-    editableDefaults.find((section) => section.sectionKey === "hero")!;
-  const beyond =
-    byKey.get("beyond") ??
-    editableDefaults.find((section) => section.sectionKey === "beyond")!;
-  const invitation =
-    byKey.get("invitation") ??
-    editableDefaults.find((section) => section.sectionKey === "invitation")!;
-
-  const tracker = protectedDefaults.find((section) => section.sectionKey === "tracker")!;
-  const functions = protectedDefaults.find((section) => section.sectionKey === "functions")!;
-  const avenues = protectedDefaults.find((section) => section.sectionKey === "avenues")!;
-  const measurement = protectedDefaults.find(
-    (section) => section.sectionKey === "measurement",
-  )!;
-
-  const editorial = stored.filter(
-    (section) => !isOurMissionFrameworkSectionKey(section.sectionKey),
-  );
-
-  return [hero, tracker, functions, avenues, beyond, measurement, ...editorial, invitation].map(
-    (section, index) => ({
-      ...section,
-      pageKey: OUR_MISSION_PAGE_KEY,
-      sortOrder: index,
-      settings: isOurMissionProtectedSection(section)
-        ? { ...section.settings, [OUR_MISSION_FRAMEWORK_PROTECTED_SETTING]: true }
-        : section.settings,
-    }),
-  );
+  return prepareOurMissionAdminSections(stored);
 }
 
-/** Remove virtual protected sections before persisting. */
+/** Identity — framework sections persist like any other page content. */
 export function stripOurMissionProtectedSections(sections: PageSection[]): PageSection[] {
-  return sections
-    .filter((section) => !isOurMissionProtectedSection(section))
-    .map((section, index) => ({ ...section, sortOrder: index }));
-}
-
-function paragraphsFromBody(body: string): string[] {
-  return body
-    .split(/\n\s*\n/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
-function contentString(section: PageSection | undefined, key: string): string {
-  const value = section?.content?.[key];
-  return typeof value === "string" ? value.trim() : "";
-}
-
-/** Resolve public narrative from stored sections, falling back to authoritative defaults. */
-export function resolveOurMissionNarrative(sections: PageSection[]): OurMissionNarrative {
-  const byKey = new Map(sections.map((section) => [section.sectionKey, section]));
-  const hero = byKey.get("hero");
-  const beyond = byKey.get("beyond");
-  const invitation = byKey.get("invitation");
-
-  const heroBody = contentString(hero, "body");
-  const beyondBody = contentString(beyond, "body");
-  const invitationBody = contentString(invitation, "body");
-
-  const primaryLabel = contentString(invitation, "primaryCtaLabel");
-  const primaryUrl = contentString(invitation, "primaryCtaUrl");
-  const secondaryLabel = contentString(invitation, "secondaryCtaLabel");
-  const secondaryUrl = contentString(invitation, "secondaryCtaUrl");
-
-  return {
-    hero: {
-      title: contentString(hero, "headline") || OUR_MISSION_HERO.title,
-      supporting: contentString(hero, "subheadline") || OUR_MISSION_HERO.supporting,
-      paragraphs: heroBody ? paragraphsFromBody(heroBody) : [...OUR_MISSION_HERO.paragraphs],
-    },
-    beyond: {
-      title: contentString(beyond, "headline") || OUR_MISSION_BEYOND.title,
-      paragraphs: beyondBody
-        ? paragraphsFromBody(beyondBody)
-        : [...OUR_MISSION_BEYOND.paragraphs],
-    },
-    invitation: {
-      title: contentString(invitation, "headline") || OUR_MISSION_INVITATION.title,
-      paragraphs: invitationBody
-        ? paragraphsFromBody(invitationBody)
-        : [...OUR_MISSION_INVITATION.paragraphs],
-    },
-    ctas: [
-      {
-        label: primaryLabel || OUR_MISSION_CTAS[0]!.label,
-        href: primaryUrl || OUR_MISSION_CTAS[0]!.href,
-      },
-      {
-        label: secondaryLabel || OUR_MISSION_CTAS[1]!.label,
-        href: secondaryUrl || OUR_MISSION_CTAS[1]!.href,
-      },
-    ],
-  };
-}
-
-/** Supplemental Site Builder sections (stories, etc.) — not the framework. */
-export function partitionOurMissionEditorialSections(sections: PageSection[]): PageSection[] {
-  return sections.filter(
-    (section) =>
-      section.visible &&
-      !isOurMissionFrameworkSectionKey(section.sectionKey) &&
-      !isOurMissionProtectedSection(section),
-  );
+  return sections;
 }

@@ -5,6 +5,11 @@ import type { BuilderSelection } from "@/lib/site-builder/element-types";
 import type { ElementStyle } from "@/lib/site-builder/element-types";
 import type { PageSection } from "@/lib/site-builder/types";
 import {
+  OUR_MISSION_FRAMEWORK_EDITORIAL_WARNING,
+  isOurMissionFrameworkEditorialSection,
+  isOurMissionLiveTrackerSection,
+} from "@/lib/site-builder/our-mission-page-sections";
+import {
   addCardToSection,
   addContentElementToSection,
   clearElementStyle,
@@ -335,6 +340,17 @@ export function ElementPropertiesPanel({
 
   return (
     <div className="space-y-3 p-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
+      {isOurMissionLiveTrackerSection(section) ? (
+        <div className="rounded-md border border-sky-500/40 bg-sky-950/40 px-3 py-2 text-xs text-sky-100 leading-relaxed">
+          Tracker totals remain live from ministry records and cannot be overridden by editing this
+          section.
+        </div>
+      ) : null}
+      {isOurMissionFrameworkEditorialSection(section) ? (
+        <div className="rounded-md border border-amber-500/35 bg-amber-950/30 px-3 py-2 text-xs text-amber-100 leading-relaxed">
+          {OUR_MISSION_FRAMEWORK_EDITORIAL_WARNING}
+        </div>
+      ) : null}
       <p className="text-sm font-medium text-zinc-200">{label}</p>
       <p className="text-[11px] text-zinc-500 font-mono">{elementId}</p>
 

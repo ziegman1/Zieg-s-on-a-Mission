@@ -1,9 +1,9 @@
 /**
- * Authoritative public copy for /our-mission.
+ * Default public copy for /our-mission (Ministry Impact Framework).
  *
- * Milestone qualifications, avenue definitions, and measurement methodology stay in code.
- * Site Builder may override hero / continued coaching / invitation narrative, and may add
- * supplemental editorial sections. The live tracker always uses ministry record totals.
+ * Used to seed Site Builder sections. Saved Site Builder content takes precedence.
+ * Milestone qualification logic and live tracker totals stay in code / ministry records —
+ * editing page copy does not change calculations.
  */
 
 export const OUR_MISSION_META = {

@@ -102,7 +102,7 @@ export function defaultSectionsForPage(pageKey: string): PageSection[] {
     case "mission":
       return defaultMissionSections(c);
     case "our-mission":
-      // Editable narrative only. Protected framework is injected for admin preview.
+      // Full page defaults from Ministry Impact Framework; Site Builder may edit all narrative.
       return defaultOurMissionEditableSections();
     case "blog":
       return defaultBlogSections(c);

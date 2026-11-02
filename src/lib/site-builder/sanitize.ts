@@ -1,4 +1,3 @@
-import { stripOurMissionProtectedSections } from "./our-mission-page-sections";
 import type { PageSection } from "./types";
 
 /** Strip undefined/non-JSON values so Prisma Json columns accept the payload. */
@@ -13,10 +12,8 @@ export function prepareSectionsForSave(
   pageKey: string,
   sections: PageSection[],
 ): PageSection[] {
-  const source =
-    pageKey === "our-mission" ? stripOurMissionProtectedSections(sections) : sections;
   const seen = new Set<string>();
-  return source.map((s, i) => {
+  return sections.map((s, i) => {
     let key = s.sectionKey?.trim() || `section-${i}`;
     if (seen.has(key)) {
       key = `${key}-${i}`;

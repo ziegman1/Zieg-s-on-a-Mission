@@ -67,15 +67,17 @@ describe("our mission framework", () => {
       "utf8",
     );
     const view = readFileSync(
-      resolve(process.cwd(), "src/components/mission/our-mission-page.tsx"),
+      resolve(process.cwd(), "src/components/mission/our-mission-editable-sections.tsx"),
       "utf8",
     );
     expect(page).toContain("loadPublicMinistryProgressCounts");
+    expect(page).toContain("getPublishedPageSections");
     expect(page).toContain('export const dynamic = "force-dynamic"');
     expect(page).not.toContain("getRecruitCounts");
     expect(page).not.toContain("mobilized: 0");
     expect(view).toContain('trainedLabel="Trained & Equipped"');
     expect(view).toContain("Progress totals are temporarily unavailable.");
+    expect(view).toContain("intentionally not EditableElements");
     expect(view).not.toContain("/our-impact");
   });
 });
