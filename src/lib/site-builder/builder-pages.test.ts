@@ -11,7 +11,7 @@ describe("site builder pages", () => {
   });
 
   it("edits About & Mission as one page because /mission redirects to /about", () => {
-    expect(BUILDER_PAGES.some((p) => p.pageKey === "mission")).toBe(false);
+    expect(BUILDER_PAGES.map((p) => p.pageKey)).not.toContain("mission");
     const about = BUILDER_PAGES.find((p) => p.pageKey === "about");
     expect(about?.label).toBe("About & Mission");
     expect(about?.path).toBe("/about");
