@@ -19,8 +19,14 @@ export type FundingGoalDerived = {
   annualizedRecurring: MoneyInput;
   remainingMonthly: MoneyInput;
   remainingAnnual: MoneyInput;
-  /** 0–100 when both inputs are set; null when incomplete. */
+  /**
+   * Actual funding progress percentage when both inputs are set and goal > 0.
+   * May exceed 100 when partnership surpasses the goal. Null when incomplete
+   * or when the monthly goal is zero (avoids divide-by-zero).
+   */
   percentAchieved: number | null;
+  /** Visual progress bar width 0–100. Caps over-goal progress at 100. */
+  progressBarPercent: number | null;
   /** True when both primary inputs are present (including explicit zeros). */
   isComplete: boolean;
 };
@@ -77,13 +83,35 @@ export function parseMoneyInput(raw: unknown): MoneyInput {
     if (!Number.isFinite(raw) || raw < 0) return null;
     return raw;
   }
-  const text = String(raw).trim();
+  // Strip rich-text markup if a value was previously saved through a text editor.
+  const text = String(raw)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
   if (!text) return null;
   const cleaned = text.replace(/[$,\s]/g, "");
   if (!cleaned) return null;
   const n = Number(cleaned);
   if (!Number.isFinite(n) || n < 0) return null;
   return n;
+}
+
+/**
+ * Normalize a money field for Site Builder storage.
+ * Empty → ""; keeps valid non-negative numeric typing (including "0" and "10.").
+ * Rejects negatives and non-numeric input (falls back to parsed value when pasting currency).
+ */
+export function normalizeMoneyFieldInput(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  const cleaned = trimmed.replace(/[$,]/g, "").replace(/\s/g, "");
+  if (!cleaned) return "";
+  if (/^\d*\.?\d*$/.test(cleaned)) {
+    if (cleaned === ".") return "";
+    return cleaned;
+  }
+  const parsed = parseMoneyInput(raw);
+  return parsed === null ? "" : String(parsed);
 }
 
 export function annualizeMonthly(monthly: MoneyInput): MoneyInput {
@@ -111,11 +139,15 @@ export function deriveFundingGoals(input: FundingGoalInputs): FundingGoalDerived
       : null;
 
   let percentAchieved: number | null = null;
+  let progressBarPercent: number | null = null;
   if (isComplete && monthlyGoal !== null && monthlyRecurring !== null) {
     if (monthlyGoal === 0) {
-      percentAchieved = monthlyRecurring === 0 ? 100 : 100;
+      // Avoid divide-by-zero: no meaningful percentage against a $0 goal.
+      percentAchieved = null;
+      progressBarPercent = monthlyRecurring > 0 ? 100 : 0;
     } else {
-      percentAchieved = Math.min(100, Math.round((monthlyRecurring / monthlyGoal) * 100));
+      percentAchieved = Math.round((monthlyRecurring / monthlyGoal) * 100);
+      progressBarPercent = Math.min(100, percentAchieved);
     }
   }
 
@@ -127,6 +159,7 @@ export function deriveFundingGoals(input: FundingGoalInputs): FundingGoalDerived
     remainingMonthly,
     remainingAnnual,
     percentAchieved,
+    progressBarPercent,
     isComplete,
   };
 }

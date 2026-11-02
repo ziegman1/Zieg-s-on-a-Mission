@@ -20,6 +20,8 @@ import {
   findListItemByElementId,
 } from "@/lib/site-builder/section-elements";
 import { contentStr, getFieldStyle, sortedListItems } from "@/lib/site-builder/content-utils";
+import { isMinistryFundingGoalsSection } from "@/lib/site-builder/ministry-funding-page-sections";
+import { FundingGoalsPropertiesFields } from "@/components/admin/funding-goals-properties-fields";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
 import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field";
 import { Button } from "@/components/ui/button";
@@ -333,10 +335,19 @@ export function ElementPropertiesPanel({
   const isButton = elementType === "button";
   const isCard = elementType === "card";
 
+  const fundingGoals = isMinistryFundingGoalsSection(section);
+
   return (
     <div className="space-y-3 p-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
       <p className="text-sm font-medium text-zinc-200">{label}</p>
       <p className="text-[11px] text-zinc-500 font-mono">{elementId}</p>
+
+      {fundingGoals ? (
+        <FundingGoalsPropertiesFields
+          section={section}
+          onChange={(next) => applySection(() => next)}
+        />
+      ) : null}
 
       <Collapse title="Content">{contentGroup}</Collapse>
       {!isImage ? (

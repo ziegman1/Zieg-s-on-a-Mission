@@ -42,6 +42,12 @@ describe("richTextModeForField", () => {
     expect(richTextModeForField("primaryCtaLabel")).toBe("plain");
   });
 
+  it("keeps ministry funding money fields plain (not rich text)", () => {
+    expect(richTextModeForField("monthlyGoal")).toBe("plain");
+    expect(richTextModeForField("monthlyRecurring")).toBe("plain");
+    expect(richTextModeForField("figuresUpdatedAt")).toBe("plain");
+  });
+
   it("uses full rich text for body fields", () => {
     expect(richTextModeForField("body", { multiline: true })).toBe("full");
   });

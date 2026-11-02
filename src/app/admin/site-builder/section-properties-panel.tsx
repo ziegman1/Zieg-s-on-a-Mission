@@ -12,6 +12,7 @@ import {
 } from "@/lib/site-builder/ministry-funding-page-sections";
 import { parseAllocationSection } from "@/lib/ministry-funding/from-sections";
 import { formatUsd } from "@/lib/ministry-funding/calculations";
+import { FundingGoalsPropertiesFields } from "@/components/admin/funding-goals-properties-fields";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
 import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronUp, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useState } from "react";
+
+/** Presentation fields only — financial amounts use dedicated controls above. */
+const FUNDING_GOALS_COPY_FIELDS = new Set(["headline", "body"]);
 
 export function SectionPropertiesPanel({
   section,
@@ -70,14 +74,27 @@ export function SectionPropertiesPanel({
         aria-label="Section label"
       />
 
-      {reg.fields.map((field) => (
-        <FieldEditor
-          key={field.key}
-          field={field}
-          section={section}
-          onChange={onChange}
-        />
-      ))}
+      {fundingGoals ? (
+        <FundingGoalsPropertiesFields section={section} onChange={onChange} />
+      ) : null}
+
+      {reg.fields
+        .filter((field) => !fundingGoals || FUNDING_GOALS_COPY_FIELDS.has(field.key))
+        .map((field) => (
+          <FieldEditor
+            key={field.key}
+            field={
+              fundingGoals && field.key === "body"
+                ? {
+                    ...field,
+                    label: "Awaiting-update message (shown publicly until both amounts are set)",
+                  }
+                : field
+            }
+            section={section}
+            onChange={onChange}
+          />
+        ))}
 
       {liveTracker ? (
         <>
@@ -87,29 +104,6 @@ export function SectionPropertiesPanel({
               ["trainedLabel", "Trained & Equipped label"],
               ["sentLabel", "Sent label"],
               ["remainingDetail", "Remaining detail text"],
-            ] as const
-          ).map(([key, label]) => (
-            <FieldEditor
-              key={key}
-              field={{ key, label, kind: "text" }}
-              section={section}
-              onChange={onChange}
-            />
-          ))}
-        </>
-      ) : null}
-
-      {fundingGoals ? (
-        <>
-          <p className="text-[11px] text-zinc-500 leading-relaxed">
-            Primary inputs only. Annual, remaining, and percent are calculated automatically. Leave
-            blank until verified — blank is not $0.
-          </p>
-          {(
-            [
-              ["monthlyGoal", "Monthly funding goal (USD)"],
-              ["monthlyRecurring", "Current monthly recurring (USD)"],
-              ["figuresUpdatedAt", "Figures last updated (display date)"],
             ] as const
           ).map(([key, label]) => (
             <FieldEditor

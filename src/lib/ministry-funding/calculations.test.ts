@@ -3,6 +3,7 @@ import {
   deriveAllocation,
   deriveFundingGoals,
   formatUsd,
+  normalizeMoneyFieldInput,
   parseMoneyInput,
 } from "./calculations";
 
@@ -20,10 +21,28 @@ describe("parseMoneyInput", () => {
     expect(parseMoneyInput("$1,250.00")).toBe(1250);
   });
 
+  it("strips rich-text markup from previously mis-saved amounts", () => {
+    expect(parseMoneyInput("<p>2500</p>")).toBe(2500);
+    expect(parseMoneyInput("<p>$1,000</p>")).toBe(1000);
+  });
+
   it("rejects negatives and non-numeric text", () => {
     expect(parseMoneyInput("-10")).toBeNull();
     expect(parseMoneyInput(-5)).toBeNull();
     expect(parseMoneyInput("abc")).toBeNull();
+  });
+});
+
+describe("normalizeMoneyFieldInput", () => {
+  it("keeps blank distinct from zero", () => {
+    expect(normalizeMoneyFieldInput("")).toBe("");
+    expect(normalizeMoneyFieldInput("0")).toBe("0");
+  });
+
+  it("accepts positive amounts and rejects negatives", () => {
+    expect(normalizeMoneyFieldInput("1250")).toBe("1250");
+    expect(normalizeMoneyFieldInput("$1,250")).toBe("1250");
+    expect(normalizeMoneyFieldInput("-5")).toBe("");
   });
 });
 
@@ -32,6 +51,7 @@ describe("deriveFundingGoals", () => {
     const partial = deriveFundingGoals({ monthlyGoal: 10000, monthlyRecurring: null });
     expect(partial.isComplete).toBe(false);
     expect(partial.percentAchieved).toBeNull();
+    expect(partial.progressBarPercent).toBeNull();
     expect(partial.annualGoal).toBe(120000);
     expect(partial.remainingMonthly).toBeNull();
   });
@@ -44,19 +64,29 @@ describe("deriveFundingGoals", () => {
     expect(full.remainingMonthly).toBe(6000);
     expect(full.remainingAnnual).toBe(72000);
     expect(full.percentAchieved).toBe(40);
+    expect(full.progressBarPercent).toBe(40);
   });
 
   it("treats explicit zero recurring as complete data", () => {
     const zero = deriveFundingGoals({ monthlyGoal: 5000, monthlyRecurring: 0 });
     expect(zero.isComplete).toBe(true);
     expect(zero.percentAchieved).toBe(0);
+    expect(zero.progressBarPercent).toBe(0);
     expect(zero.remainingMonthly).toBe(5000);
   });
 
-  it("does not produce negative remaining need", () => {
+  it("shows actual over-goal percentage but caps the progress bar at 100", () => {
     const over = deriveFundingGoals({ monthlyGoal: 1000, monthlyRecurring: 1500 });
     expect(over.remainingMonthly).toBe(0);
-    expect(over.percentAchieved).toBe(100);
+    expect(over.percentAchieved).toBe(150);
+    expect(over.progressBarPercent).toBe(100);
+  });
+
+  it("avoids divide-by-zero when the monthly goal is zero", () => {
+    const zeroGoal = deriveFundingGoals({ monthlyGoal: 0, monthlyRecurring: 100 });
+    expect(zeroGoal.isComplete).toBe(true);
+    expect(zeroGoal.percentAchieved).toBeNull();
+    expect(zeroGoal.progressBarPercent).toBe(100);
   });
 });
 

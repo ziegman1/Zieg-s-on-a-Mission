@@ -1,7 +1,21 @@
-/** URL, button label, and identifier fields stay plain text. */
-const PLAIN_ONLY_KEYS = new Set(["imageAlt", "slug", "id", "href", "cta"]);
+/** URL, button label, identifier, and numeric money fields stay plain text. */
+const PLAIN_ONLY_KEYS = new Set([
+  "imageAlt",
+  "slug",
+  "id",
+  "href",
+  "cta",
+  "monthlyGoal",
+  "monthlyRecurring",
+  "figuresUpdatedAt",
+  "expenseTotal",
+  "missionShareAmount",
+  "amount",
+  "color",
+  "reportingMonth",
+]);
 
-const PLAIN_ONLY_SUFFIXES = ["Label", "Url", "Alt", "Href", "Email"];
+const PLAIN_ONLY_SUFFIXES = ["Label", "Url", "Alt", "Href", "Email", "Amount"];
 
 export function isPlainTextField(fieldKey: string): boolean {
   if (PLAIN_ONLY_KEYS.has(fieldKey)) return true;

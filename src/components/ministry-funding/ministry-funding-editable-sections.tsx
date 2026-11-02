@@ -41,13 +41,32 @@ function showField(
 
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="text-center sm:text-left">
+    <div className="rounded-xl border border-brand-primary/15 bg-white/70 px-4 py-4 text-center sm:text-left">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-primary">
         {label}
       </p>
-      <p className="mt-1 font-serif text-xl sm:text-2xl text-brand-ink tracking-wide">{value}</p>
+      <p className="mt-2 font-serif text-xl sm:text-2xl text-brand-ink tracking-wide tabular-nums">
+        {value}
+      </p>
     </div>
   );
+}
+
+function formatFiguresUpdatedAt(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, d] = trimmed.split("-").map(Number);
+    const date = new Date(y!, m! - 1, d!);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+  }
+  return trimmed;
 }
 
 export function FundingGoalsEditable({ section }: { section: PageSection }) {
@@ -59,33 +78,41 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
   const awaiting = view.awaitingCopy;
   const { derived } = view;
   const money = (n: number | null) => (n === null ? "—" : formatUsd(n));
+  const editMode = Boolean(ctx?.editMode);
+  // Public: awaiting state until both verified inputs exist.
+  // Builder: always show the dashboard so property changes preview immediately.
+  const showDashboard = derived.isComplete || editMode;
+  const updatedLabel = formatFiguresUpdatedAt(view.figuresUpdatedAt);
+  const barWidth = derived.progressBarPercent ?? 0;
+  const percentLabel =
+    derived.percentAchieved === null
+      ? derived.isComplete
+        ? "n/a"
+        : "—"
+      : `${derived.percentAchieved}%`;
 
   return (
     <section className="border-b border-brand-primary/15 px-4 py-14 sm:py-16">
       <div className="mx-auto max-w-3xl">
-        {showField(ctx?.editMode, "headline", headline, c) ? (
+        {showField(editMode, "headline", headline, c) ? (
           <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
             <SiteBuilderFormattedContent
               text={headline}
               className="text-center font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide [&_p]:m-0"
-              emptyPlaceholder={ctx?.editMode ? "Section heading (empty)" : undefined}
+              emptyPlaceholder={editMode ? "Section heading (empty)" : undefined}
             />
           </EditableElement>
         ) : null}
         <GoldRule />
 
-        {!derived.isComplete ? (
+        {!showDashboard ? (
           <div className="mt-8 rounded-2xl border border-brand-primary/20 bg-white/70 px-5 py-6 sm:px-7">
-            {showField(ctx?.editMode, "body", awaiting, c) ? (
+            {showField(editMode, "body", awaiting, c) ? (
               <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
                 <SiteBuilderFormattedContent
                   text={awaiting}
                   className="text-center text-brand-ink/85 leading-relaxed"
-                  emptyPlaceholder={
-                    ctx?.editMode
-                      ? "Awaiting-update message (shown until verified figures are published)"
-                      : undefined
-                  }
+                  emptyPlaceholder={undefined}
                 />
               </EditableElement>
             ) : (
@@ -93,81 +120,91 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
                 Partnership figures will appear here once they are published.
               </p>
             )}
-            {ctx?.editMode ? (
-              <p className="mt-4 text-center text-xs text-brand-ink/55">
-                Enter monthly goal and current monthly recurring in the properties panel. Leave blank
-                until verified — empty is not the same as $0.
-              </p>
-            ) : null}
           </div>
         ) : (
           <div className="mt-8 space-y-8">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <StatCell label="Annual ministry funding goal" value={money(derived.annualGoal)} />
-              <StatCell label="Monthly ministry funding goal" value={money(derived.monthlyGoal)} />
+            {editMode && !derived.isComplete ? (
+              <p className="text-center text-xs text-brand-ink/55">
+                Preview: enter Monthly Funding Goal and Current Monthly Recurring Partnership in the
+                properties panel. The public page keeps the awaiting message until both values are
+                saved and published.
+              </p>
+            ) : null}
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <StatCell label="Annual Funding Goal" value={money(derived.annualGoal)} />
+              <StatCell label="Monthly Funding Goal" value={money(derived.monthlyGoal)} />
               <StatCell
-                label="Current monthly recurring partnership"
+                label="Current Monthly Recurring Partnership"
                 value={money(derived.monthlyRecurring)}
               />
               <StatCell
-                label="Current annualized recurring partnership"
+                label="Annualized Recurring Partnership"
                 value={money(derived.annualizedRecurring)}
               />
+              <StatCell label="Remaining Monthly Need" value={money(derived.remainingMonthly)} />
               <StatCell
-                label="Remaining monthly funding need"
-                value={money(derived.remainingMonthly)}
-              />
-              <StatCell
-                label="Remaining annualized funding need"
+                label="Remaining Annualized Need"
                 value={money(derived.remainingAnnual)}
               />
             </div>
 
-            <div className="rounded-2xl border border-brand-primary/20 bg-white/75 px-5 py-6 sm:px-7 shadow-sm">
+            <div className="rounded-2xl border border-brand-primary/20 bg-[#eae5e1]/55 px-5 py-6 sm:px-7 shadow-sm">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-primary">
-                    Recurring funding goal achieved
+                    Funding Progress
                   </p>
-                  <p className="mt-2 font-serif text-3xl text-brand-ink tracking-wide">
-                    {derived.percentAchieved ?? 0}%
+                  <p className="mt-2 font-serif text-3xl text-brand-ink tracking-wide tabular-nums">
+                    {percentLabel}
                   </p>
                 </div>
-                <p className="text-sm text-brand-ink/70">
+                <p className="text-sm text-brand-ink/70 tabular-nums">
                   {money(derived.monthlyRecurring)} of {money(derived.monthlyGoal)} / month
                 </p>
               </div>
               <div
-                className="mt-5 h-4 w-full overflow-hidden rounded-full bg-brand-primary/10"
+                className="mt-5 h-4 w-full overflow-hidden rounded-full bg-[#1c252e]/10"
                 role="progressbar"
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-valuenow={derived.percentAchieved ?? 0}
+                aria-valuenow={barWidth}
                 aria-label="Percentage of recurring funding goal achieved"
               >
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-accent transition-all duration-500 ease-out"
-                  style={{ width: `${derived.percentAchieved ?? 0}%` }}
+                  className="h-full rounded-full bg-gradient-to-r from-[#1c252e] to-[#edb73e] transition-all duration-500 ease-out"
+                  style={{ width: `${barWidth}%` }}
                 />
               </div>
             </div>
 
-            {view.figuresUpdatedAt.trim() || ctx?.editMode ? (
+            {updatedLabel || editMode ? (
               <p className="text-center text-sm text-brand-ink/60">
                 Figures last updated{" "}
+                <span className="text-brand-ink/80">
+                  {updatedLabel || (editMode ? "(set Last Updated in properties)" : "")}
+                </span>
+              </p>
+            ) : null}
+
+            {editMode ? (
+              <div className="rounded-xl border border-dashed border-brand-primary/25 bg-white/50 px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-primary">
+                  Awaiting-update message
+                </p>
                 <EditableElement
                   sectionId={section.id}
-                  elementId="figuresUpdatedAt"
-                  style={getFieldStyle(c, "figuresUpdatedAt")}
-                  layout="inline"
+                  elementId="body"
+                  style={getFieldStyle(c, "body")}
+                  className="mt-2"
                 >
                   <SiteBuilderFormattedContent
-                    text={view.figuresUpdatedAt}
-                    className="inline [&_p]:m-0 [&_p]:inline"
-                    emptyPlaceholder={ctx?.editMode ? "date" : undefined}
+                    text={awaiting}
+                    className="text-sm text-brand-ink/75 leading-relaxed"
+                    emptyPlaceholder="Shown on the public page until both amounts are published"
                   />
                 </EditableElement>
-              </p>
+              </div>
             ) : null}
           </div>
         )}
