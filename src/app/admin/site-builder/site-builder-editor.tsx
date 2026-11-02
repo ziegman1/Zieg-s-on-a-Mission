@@ -13,6 +13,8 @@ import { selectionFromElement } from "@/lib/site-builder/section-elements";
 import { aboutNeedsMissionPageMigration } from "@/lib/site-builder/about-mission-migration";
 import { homeNeedsMissionCounterMigration } from "@/lib/site-builder/home-mission-counter-migration";
 import { replaceSectionInList, updateSectionInList } from "@/lib/site-builder/patch-section";
+import { isOurMissionProtectedSection } from "@/lib/site-builder/our-mission-page-sections";
+import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import {
   loadBuilderPageAction,
   publishAllBuilderPagesAction,
@@ -62,6 +64,7 @@ export function SiteBuilderEditor({
   newsletterLoadError = null,
   initialSiteCopy,
   initialNavExtras,
+  ourMissionProgressCounts = null,
 }: {
   initialPages: PageData;
   initialBlogPosts?: BlogPostRecord[];
@@ -71,6 +74,7 @@ export function SiteBuilderEditor({
   newsletterLoadError?: string | null;
   initialSiteCopy: SiteCopy;
   initialNavExtras: StorefrontNavExtras;
+  ourMissionProgressCounts?: PublicProgressCounts | null;
 }) {
   const { state: urlState, navigate } = useSiteBuilderNavigation();
   const activePage = urlState.page;
@@ -138,6 +142,9 @@ export function SiteBuilderEditor({
   sectionsRef.current = sections;
 
   const selectedSection = sections.find((s) => s.id === selectedSectionId) ?? null;
+  const selectedIsProtected = Boolean(
+    selectedSection && isOurMissionProtectedSection(selectedSection),
+  );
   const pageMeta = BUILDER_PAGES.find((p) => p.pageKey === activePage);
   const pageLabel = pageMeta?.label ?? activePage;
 
@@ -231,6 +238,8 @@ export function SiteBuilderEditor({
     (id: string) => {
       setPages((p) => {
         const current = p[activePage]?.sections ?? [];
+        const target = current.find((s) => s.id === id);
+        if (target && isOurMissionProtectedSection(target)) return p;
         return {
           ...p,
           [activePage]: {
@@ -671,7 +680,9 @@ export function SiteBuilderEditor({
                   )}
                 >
                   {!s.visible ? <EyeOff className="h-3 w-3 shrink-0" /> : <Eye className="h-3 w-3 shrink-0 opacity-40" />}
-                  <span className="truncate">{s.label}</span>
+                  <span className="truncate">
+                    {isOurMissionProtectedSection(s) ? `Protected · ${s.label}` : s.label}
+                  </span>
                 </button>
               </li>
             ))}
@@ -695,7 +706,7 @@ export function SiteBuilderEditor({
             {activePage === "global"
               ? "Edit section content below, or use the form above for live header labels."
               : activePage === "our-mission"
-                ? "Sections added here appear on /our-mission after the progress explanation. The milestone definitions and tracker stay in the page itself."
+                ? "Full page preview. Protected ministry framework sections are visible but not editable. Add supplemental stories after the measurement section."
                 : "Click any text, card, button, or image in the preview to edit it."}
           </p>
           <div
@@ -716,6 +727,9 @@ export function SiteBuilderEditor({
                   sections={sections}
                   siteTagline=""
                   editMode
+                  progressCounts={
+                    activePage === "our-mission" ? ourMissionProgressCounts : null
+                  }
                 />
               </div>
             </BuilderPreviewProvider>
@@ -739,7 +753,10 @@ export function SiteBuilderEditor({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  disabled={sections.findIndex((s) => s.id === selectedSection.id) <= 0}
+                  disabled={
+                    selectedIsProtected ||
+                    sections.findIndex((s) => s.id === selectedSection.id) <= 0
+                  }
                   onClick={() =>
                     moveSection(
                       sections.findIndex((s) => s.id === selectedSection.id),
@@ -754,6 +771,7 @@ export function SiteBuilderEditor({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
+                  disabled={selectedIsProtected}
                   onClick={() =>
                     moveSection(
                       sections.findIndex((s) => s.id === selectedSection.id),
@@ -768,6 +786,7 @@ export function SiteBuilderEditor({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
+                  disabled={selectedIsProtected}
                   onClick={() => duplicateSection(selectedSection)}
                 >
                   <Copy className="h-4 w-4" />
@@ -777,6 +796,7 @@ export function SiteBuilderEditor({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-red-400"
+                  disabled={selectedIsProtected}
                   onClick={() => {
                     if (window.confirm(`Delete section "${selectedSection.label}"?`)) {
                       deleteSection(selectedSection.id);

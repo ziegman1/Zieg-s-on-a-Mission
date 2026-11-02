@@ -9,6 +9,7 @@ import {
 import { formatNewsletterError, logNewsletterAction } from "@/lib/newsletter/errors";
 import { BUILDER_PAGES } from "@/lib/site-builder/types";
 import { loadPageSectionsForAdmin } from "@/lib/site-builder/sections-db";
+import { loadPublicMinistryProgressCounts } from "@/lib/ministry/ministry-db";
 import { getSiteCopy, getSiteCopyBlocksForAdmin } from "@/lib/site-copy";
 import { resolveNavigationExtras } from "@/lib/site-copy-blocks/navigation-extras";
 import { Suspense } from "react";
@@ -29,8 +30,12 @@ export default async function AdminSiteBuilderPage() {
     }),
   );
 
-  const initialSiteCopy = await getSiteCopy();
-  const initialNavExtras = resolveNavigationExtras(await getSiteCopyBlocksForAdmin());
+  const [initialSiteCopy, ourMissionProgressCounts, navBlocks] = await Promise.all([
+    getSiteCopy(),
+    loadPublicMinistryProgressCounts(),
+    getSiteCopyBlocksForAdmin(),
+  ]);
+  const initialNavExtras = resolveNavigationExtras(navBlocks);
 
   let initialBlogPosts: Awaited<ReturnType<typeof listBlogPostsForAdmin>> = [];
   let blogLoadError: string | null = null;
@@ -74,8 +79,9 @@ export default async function AdminSiteBuilderPage() {
         or the Advocacy Team page. On <strong className="text-zinc-300">Blog</strong>, use Blog posts for stories (Page intro for the blog
         header). <strong className="text-zinc-300">Community</strong> edits the Mission Hub landing above the feed.{" "}
         <strong className="text-zinc-300">Newsletters</strong> are managed separately from page sections.{" "}
-        <strong className="text-zinc-300">Our Mission</strong> keeps its milestone definitions on the
-        page. Sections you add there are supplemental stories and other editorial content.
+        <strong className="text-zinc-300">Our Mission</strong> shows the full Ministry Impact
+        Framework in preview. Tracker values, definitions, avenues, and measurement rules are
+        protected; hero, coaching narrative, invitation, and supplemental sections are editable.
       </p>
       <Suspense
         fallback={
@@ -92,6 +98,7 @@ export default async function AdminSiteBuilderPage() {
             newsletterLoadError={newsletterLoadError}
             initialSiteCopy={initialSiteCopy}
             initialNavExtras={initialNavExtras}
+            ourMissionProgressCounts={ourMissionProgressCounts}
           />
         </SiteBuilderUrlProvider>
       </Suspense>

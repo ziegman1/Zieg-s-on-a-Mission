@@ -116,12 +116,15 @@ export function EditableSectionShell({
   label,
   children,
   className,
+  protectedFramework = false,
 }: {
   sectionId: string;
   visible: boolean;
   label: string;
   children: ReactNode;
   className?: string;
+  /** Ministry Impact Framework block — visible in preview, not CMS-editable. */
+  protectedFramework?: boolean;
 }) {
   const ctx = useBuilderPreview();
   if (!ctx?.editMode) {
@@ -138,14 +141,29 @@ export function EditableSectionShell({
       tabIndex={0}
       data-builder-section={sectionId}
       data-builder-section-selected={selected ? "" : undefined}
+      data-builder-protected={protectedFramework ? "" : undefined}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("[data-builder-element]")) return;
         e.stopPropagation();
         ctx.onSelectSection(sectionId);
       }}
-      className={cn("relative", !visible && "opacity-40", className)}
+      className={cn(
+        "relative",
+        !visible && "opacity-40",
+        protectedFramework && selected && "ring-1 ring-amber-500/50",
+        className,
+      )}
     >
-      {selected ? <span className="builder-section-label">{label}</span> : null}
+      {selected ? (
+        <span className="builder-section-label">
+          {protectedFramework ? `Protected · ${label}` : label}
+        </span>
+      ) : null}
+      {protectedFramework && selected ? (
+        <span className="absolute right-2 top-2 z-10 rounded-md border border-amber-500/40 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-900">
+          Protected ministry framework
+        </span>
+      ) : null}
       {children}
     </div>
   );

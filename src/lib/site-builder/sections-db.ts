@@ -7,6 +7,7 @@ import { insertHomeMissionCounterAfterHero } from "./home-mission-counter-migrat
 import { migrateGivePageSections } from "./give-page-sections";
 import { logSiteBuilderSaveError } from "./save-errors";
 import { prepareSectionsForSave } from "./sanitize";
+import { mergeOurMissionAdminSections } from "./our-mission-page-sections";
 import type { PageSection } from "./types";
 
 function hasDatabaseUrl(): boolean {
@@ -124,10 +125,11 @@ export async function loadPageSectionsForAdmin(pageKey: string): Promise<{
 }> {
   const hasCustom = await pageHasCustomSections(pageKey);
   const sections = await loadPageSections(pageKey);
-  if (!hasCustom) {
-    return { sections: defaultSectionsForPage(pageKey), hasCustom: false };
+  const base = !hasCustom ? defaultSectionsForPage(pageKey) : sections;
+  if (pageKey === "our-mission") {
+    return { sections: mergeOurMissionAdminSections(base), hasCustom };
   }
-  return { sections, hasCustom: true };
+  return { sections: base, hasCustom };
 }
 
 export type SavePageSectionsResult = {

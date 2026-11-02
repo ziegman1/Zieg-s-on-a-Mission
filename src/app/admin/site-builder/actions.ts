@@ -192,7 +192,14 @@ export async function insertHomeMissionCounterAction(currentSections: PageSectio
 export async function restoreBuilderPageDefaultsAction(pageKey: string) {
   const session = await requireAdminSession();
   if (!session) return { ok: false as const, error: "Unauthorized" };
-  return { ok: true as const, sections: defaultSectionsForPage(pageKey) };
+  const { mergeOurMissionAdminSections } = await import(
+    "@/lib/site-builder/our-mission-page-sections"
+  );
+  const sections =
+    pageKey === "our-mission"
+      ? mergeOurMissionAdminSections(defaultSectionsForPage(pageKey))
+      : defaultSectionsForPage(pageKey);
+  return { ok: true as const, sections };
 }
 
 export async function restoreBuilderSectionDefaultsAction(

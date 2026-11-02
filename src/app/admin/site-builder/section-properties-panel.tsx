@@ -5,6 +5,7 @@ import { registryFor } from "@/lib/site-builder/registry";
 import { contentStr, newListItem, visibleListItems } from "@/lib/site-builder/content-utils";
 import { patchSectionContent } from "@/lib/site-builder/patch-section";
 import type { ListItem, PageSection, SectionType } from "@/lib/site-builder/types";
+import { isOurMissionProtectedSection } from "@/lib/site-builder/our-mission-page-sections";
 import { AdminImageUrlField } from "../site-copy/admin-image-url-field";
 import { SiteBuilderTextField } from "@/components/admin/site-builder-text-field";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,28 @@ export function SectionPropertiesPanel({
       <p className="text-sm text-zinc-500 p-4">
         Select a section in the preview or list to edit its content.
       </p>
+    );
+  }
+
+  if (isOurMissionProtectedSection(section)) {
+    return (
+      <div className="space-y-4 p-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
+        <div>
+          <p className="text-sm font-medium text-zinc-200">{section.label}</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-amber-400">
+            Protected ministry framework
+          </p>
+        </div>
+        <p className="text-sm text-zinc-400 leading-relaxed">
+          This section is part of the authoritative Ministry Impact Framework. It stays visible in
+          the preview so you can see the complete Our Mission page, but its definitions, milestone
+          qualifications, and live tracker values are not edited here.
+        </p>
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          Edit hero copy, continued coaching, the closing invitation, or add supplemental editorial
+          sections instead.
+        </p>
+      </div>
     );
   }
 

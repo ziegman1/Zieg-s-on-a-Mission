@@ -1,6 +1,9 @@
 /**
  * Authoritative public copy for /our-mission.
- * Milestone qualifications stay in code. Site builder sections only supplement this page.
+ *
+ * Milestone qualifications, avenue definitions, and measurement methodology stay in code.
+ * Site Builder may override hero / continued coaching / invitation narrative, and may add
+ * supplemental editorial sections. The live tracker always uses ministry record totals.
  */
 
 export const OUR_MISSION_META = {

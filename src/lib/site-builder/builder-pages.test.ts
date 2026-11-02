@@ -10,11 +10,13 @@ describe("site builder pages", () => {
     expect(community?.path).toBe("/community");
   });
 
-  it("keeps Our Mission definitions out of replaceable builder defaults", () => {
+  it("exposes Our Mission editable narrative defaults without protected framework rows", () => {
     const page = BUILDER_PAGES.find((p) => p.pageKey === "our-mission");
     expect(page?.path).toBe("/our-mission");
     expect(PAGE_REVALIDATE_PATHS["our-mission"]).toContain("/our-mission");
-    expect(defaultSectionsForPage("our-mission")).toEqual([]);
+    const sections = defaultSectionsForPage("our-mission");
+    expect(sections.map((s) => s.sectionKey)).toEqual(["hero", "beyond", "invitation"]);
+    expect(sections.some((s) => s.sectionKey === "tracker")).toBe(false);
   });
 
   it("revalidates /community when community page is saved", () => {

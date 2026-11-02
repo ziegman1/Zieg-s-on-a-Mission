@@ -26,6 +26,7 @@ import {
 import { ABOUT_MISSION_PAGE_CONTENT } from "@/data/about-mission-page-content";
 import { DEFAULT_MISSION_COUNTER_CONTENT } from "@/data/mission-counter-defaults";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
+import { defaultOurMissionEditableSections } from "@/lib/site-builder/our-mission-page-sections";
 import type { PageSection, SectionType } from "./types";
 import { registryFor } from "./registry";
 
@@ -101,7 +102,8 @@ export function defaultSectionsForPage(pageKey: string): PageSection[] {
     case "mission":
       return defaultMissionSections(c);
     case "our-mission":
-      return [];
+      // Editable narrative only. Protected framework is injected for admin preview.
+      return defaultOurMissionEditableSections();
     case "blog":
       return defaultBlogSections(c);
     case "community":
