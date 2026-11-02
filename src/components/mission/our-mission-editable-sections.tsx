@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import type { ListItem, PageSection } from "@/lib/site-builder/types";
+import type { PageSection } from "@/lib/site-builder/types";
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import {
   contentStr,
@@ -12,8 +12,6 @@ import {
   visibleListItems,
 } from "@/lib/site-builder/content-utils";
 import { isElementVisible } from "@/lib/site-builder/element-style-utils";
-import { SUPPORT_RAISING_JOURNEY } from "@/data/our-mission-content";
-import { OUR_MISSION_MEASURE_LABEL } from "@/data/our-mission-content";
 import { storefrontButtonClasses } from "@/lib/storefront/storefront-button-styles";
 import { MinistryProgressTracker } from "@/components/mission/ministry-progress-tracker";
 import { EditableElement } from "@/components/site-builder/editable-element";
@@ -28,34 +26,6 @@ function GoldRule() {
 
 function showField(editMode: boolean | undefined, key: string, text: string, content: Record<string, unknown>) {
   return Boolean(editMode) || (text.trim().length > 0 && fieldVisible(content, key));
-}
-
-function QualificationInline({ text }: { text: string }) {
-  const index = text.indexOf(SUPPORT_RAISING_JOURNEY);
-  if (index === -1) {
-    return <SiteBuilderFormattedContent text={text} className="inline" />;
-  }
-  return (
-    <>
-      {text.slice(0, index)}
-      <em>{SUPPORT_RAISING_JOURNEY}</em>
-      {text.slice(index + SUPPORT_RAISING_JOURNEY.length)}
-    </>
-  );
-}
-
-function groupAvenueBullets(bullets: ListItem[]) {
-  const groups: Array<{ trackTitle: string; items: ListItem[] }> = [];
-  for (const bullet of bullets) {
-    const trackTitle = String(bullet.metadata?.trackTitle ?? "");
-    const last = groups[groups.length - 1];
-    if (last && last.trackTitle === trackTitle) {
-      last.items.push(bullet);
-    } else {
-      groups.push({ trackTitle, items: [bullet] });
-    }
-  }
-  return groups;
 }
 
 export function OurMissionHeroEditable({ section }: { section: PageSection }) {
@@ -303,7 +273,6 @@ export function OurMissionTextEditable({
   const primaryUrl = contentStr(c, "primaryCtaUrl") || "/partner";
   const secondary = contentStr(c, "secondaryCtaLabel");
   const secondaryUrl = contentStr(c, "secondaryCtaUrl") || "/contact";
-  const measureLabel = contentStr(c, "measureLabel") || OUR_MISSION_MEASURE_LABEL;
 
   const isAvenue = Boolean(section.settings?.ourMissionAvenue);
   const isInvitation = variant === "invitation" || section.sectionType === "cta";
@@ -377,84 +346,6 @@ export function OurMissionTextEditable({
             emptyPlaceholder={ctx?.editMode ? "Body (empty)" : undefined}
           />
         </EditableElement>
-      ) : null}
-
-      {isAvenue && bullets.length > 0 ? (
-        <details className="group mt-6 rounded-xl border border-brand-primary/20 bg-brand-surface/70">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 font-semibold text-brand-ink outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/70 [&::-webkit-details-marker]:hidden">
-            {measureLabel}
-            <span
-              aria-hidden
-              className="text-lg leading-none text-brand-accent transition-transform group-open:rotate-45"
-            >
-              +
-            </span>
-          </summary>
-          <div className="space-y-6 border-t border-brand-primary/15 px-4 py-4">
-            {groupAvenueBullets(bullets).map((group, groupIndex) => (
-              <div key={`${group.trackTitle}-${groupIndex}`}>
-                {group.trackTitle ? (
-                  <h4 className="font-serif text-lg text-brand-ink tracking-wide">{group.trackTitle}</h4>
-                ) : null}
-                <ul className="mt-4 space-y-3">
-                  {group.items.map((item) => {
-                    if (!ctx?.editMode && (!item.visible || !isElementVisible(item.style, true))) {
-                      return null;
-                    }
-                    const kind = String(item.metadata?.kind ?? "qualification");
-                    if (kind === "note") {
-                      return (
-                        <li key={item.id} className="text-sm text-brand-ink/80 leading-relaxed list-none">
-                          <EditableElement
-                            sectionId={section.id}
-                            elementId={`bullet:${item.id}`}
-                            style={item.style}
-                            visible={item.visible}
-                          >
-                            <SiteBuilderFormattedContent
-                              text={item.text}
-                              emptyPlaceholder={ctx?.editMode ? "Note (empty)" : undefined}
-                            />
-                          </EditableElement>
-                        </li>
-                      );
-                    }
-                    const label = String(item.metadata?.label ?? "");
-                    const raw = item.text;
-                    const split = label && raw.startsWith(`${label}:`)
-                      ? raw.slice(label.length + 1).trim()
-                      : raw.includes(": ")
-                        ? raw.slice(raw.indexOf(": ") + 2)
-                        : raw;
-                    const displayLabel =
-                      label || (raw.includes(": ") ? raw.slice(0, raw.indexOf(": ")) : "");
-                    return (
-                      <li
-                        key={item.id}
-                        className={cn(
-                          "text-brand-ink/88 leading-relaxed",
-                          !item.visible && ctx?.editMode && "opacity-50",
-                        )}
-                      >
-                        <EditableElement
-                          sectionId={section.id}
-                          elementId={`bullet:${item.id}`}
-                          style={item.style}
-                          visible={item.visible}
-                        >
-                          {displayLabel ? (
-                            <span className="font-semibold text-brand-ink">{displayLabel}: </span>
-                          ) : null}
-                          <QualificationInline text={split} />
-                        </EditableElement>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </details>
       ) : null}
 
       {!isAvenue && bullets.length > 0 ? (

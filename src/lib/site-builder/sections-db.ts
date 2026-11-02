@@ -59,8 +59,39 @@ export async function pageHasCustomSections(pageKey: string): Promise<boolean> {
   }
 }
 
-export async function loadPageSections(pageKey: string): Promise<PageSection[]> {
+/**
+ * Apply one-shot page migrations in memory.
+ * Persistence is opt-in so public GETs cannot race with admin saves and rewrite the DB.
+ */
+function migrateLoadedPageSections(
+  pageKey: string,
+  sections: PageSection[],
+): { sections: PageSection[]; changed: boolean; op: string | null } {
+  if (pageKey === "give") {
+    const migrated = migrateGivePageSections(sections);
+    return { ...migrated, op: migrated.changed ? "migrateGivePageSections" : null };
+  }
+  if (pageKey === "about") {
+    const migrated = migrateAboutMissionPageSections(sections);
+    return { ...migrated, op: migrated.changed ? "migrateAboutMissionPageSections" : null };
+  }
+  if (pageKey === "our-mission") {
+    const migrated = migrateOurMissionFullEditSections(sections);
+    return { ...migrated, op: migrated.changed ? "migrateOurMissionFullEditSections" : null };
+  }
+  if (pageKey === "home") {
+    const migrated = insertHomeMissionCounterAfterHero(sections);
+    return { ...migrated, op: migrated.changed ? "insertHomeMissionCounterAfterHero" : null };
+  }
+  return { sections, changed: false, op: null };
+}
+
+export async function loadPageSections(
+  pageKey: string,
+  options?: { persistMigrations?: boolean },
+): Promise<PageSection[]> {
   noStore();
+  const persistMigrations = options?.persistMigrations === true;
   if (!hasDatabaseUrl()) {
     return defaultSectionsForPage(pageKey);
   }
@@ -73,48 +104,13 @@ export async function loadPageSections(pageKey: string): Promise<PageSection[]> 
       return defaultSectionsForPage(pageKey);
     }
     let sections = rows.map(rowToSection);
-    if (pageKey === "give") {
-      const migrated = migrateGivePageSections(sections);
-      if (migrated.changed) {
-        sections = migrated.sections;
-        try {
-          await savePageSections(pageKey, sections);
-        } catch (error) {
-          logSiteBuilderSaveError(error, { op: "migrateGivePageSections", pageKey });
-        }
-      }
-    }
-    if (pageKey === "about") {
-      const migrated = migrateAboutMissionPageSections(sections);
-      if (migrated.changed) {
-        sections = migrated.sections;
-        try {
-          await savePageSections(pageKey, sections);
-        } catch (error) {
-          logSiteBuilderSaveError(error, { op: "migrateAboutMissionPageSections", pageKey });
-        }
-      }
-    }
-    if (pageKey === "our-mission") {
-      const migrated = migrateOurMissionFullEditSections(sections);
-      if (migrated.changed) {
-        sections = migrated.sections;
-        try {
-          await savePageSections(pageKey, sections);
-        } catch (error) {
-          logSiteBuilderSaveError(error, { op: "migrateOurMissionFullEditSections", pageKey });
-        }
-      }
-    }
-    if (pageKey === "home") {
-      const migrated = insertHomeMissionCounterAfterHero(sections);
-      if (migrated.changed) {
-        sections = migrated.sections;
-        try {
-          await savePageSections(pageKey, sections);
-        } catch (error) {
-          logSiteBuilderSaveError(error, { op: "insertHomeMissionCounterAfterHero", pageKey });
-        }
+    const migrated = migrateLoadedPageSections(pageKey, sections);
+    sections = migrated.sections;
+    if (migrated.changed && persistMigrations && migrated.op) {
+      try {
+        await savePageSections(pageKey, sections);
+      } catch (error) {
+        logSiteBuilderSaveError(error, { op: migrated.op, pageKey });
       }
     }
     return sections;
@@ -137,8 +133,9 @@ export async function loadPageSectionsForAdmin(pageKey: string): Promise<{
   sections: PageSection[];
   hasCustom: boolean;
 }> {
+  // Admin loads may persist one-shot migrations so the editor matches what will save.
   const hasCustom = await pageHasCustomSections(pageKey);
-  const sections = await loadPageSections(pageKey);
+  const sections = await loadPageSections(pageKey, { persistMigrations: true });
   const base = !hasCustom ? defaultSectionsForPage(pageKey) : sections;
   if (pageKey === "our-mission") {
     return { sections: prepareOurMissionAdminSections(base), hasCustom };
@@ -161,6 +158,14 @@ export async function savePageSections(
   }
 
   const prepared = prepareSectionsForSave(pageKey, sections);
+  if (prepared.length === 0) {
+    const existingCount = await prisma.sitePageSection.count({ where: { pageKey } });
+    if (existingCount > 0) {
+      throw new Error(
+        `Refusing to save an empty section list for "${pageKey}" because it would delete ${existingCount} existing section${existingCount === 1 ? "" : "s"}.`,
+      );
+    }
+  }
   const rows = prepared.map((s, i) => ({
     pageKey,
     sectionKey: s.sectionKey,

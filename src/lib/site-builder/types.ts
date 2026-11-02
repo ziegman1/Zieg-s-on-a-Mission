@@ -39,8 +39,8 @@ export type PageSection = {
 
 export const BUILDER_PAGES = [
   { pageKey: "home", label: "Home", path: "/" },
-  { pageKey: "about", label: "About", path: "/about" },
-  { pageKey: "mission", label: "Mission", path: "/mission" },
+  // /mission permanently redirects to /about, so Mission is edited here — not as a separate page.
+  { pageKey: "about", label: "About & Mission", path: "/about" },
   { pageKey: "our-mission", label: "Our Mission", path: "/our-mission" },
   {
     pageKey: "partner",
@@ -68,8 +68,9 @@ export type BuilderPageKey = (typeof BUILDER_PAGES)[number]["pageKey"];
 
 export const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
   home: ["/"],
-  about: ["/about"],
-  mission: ["/mission"],
+  about: ["/about", "/mission"],
+  // Legacy key kept so older admin clients still revalidate the redirect target.
+  mission: ["/about", "/mission"],
   "our-mission": ["/our-mission"],
   partner: ["/partner"],
   "advocacy-team": ["/advocacy-team"],

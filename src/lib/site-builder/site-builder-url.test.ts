@@ -24,4 +24,9 @@ describe("site-builder URL (client navigation without server refetch)", () => {
     expect(next.issue).toBe("abc");
     expect(siteBuilderHref(next)).toContain("mode=preview");
   });
+
+  it("maps legacy page=mission to About & Mission because /mission redirects to /about", () => {
+    const state = parseSiteBuilderSearchParams(new URLSearchParams("page=mission"));
+    expect(state.page).toBe("about");
+  });
 });

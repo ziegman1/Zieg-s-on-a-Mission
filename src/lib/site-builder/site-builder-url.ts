@@ -41,7 +41,9 @@ type SearchParamsLike = { get(name: string): string | null };
 
 export function parseSiteBuilderSearchParams(params: SearchParamsLike): SiteBuilderSearchState {
   const rawPage = params.get("page")?.trim() || DEFAULT_PAGE;
-  const page: SiteBuilderPageKey = isValidPageKey(rawPage) ? rawPage : DEFAULT_PAGE;
+  // /mission redirects to /about on the public site; keep old admin links working.
+  const normalizedPage = rawPage === "mission" ? "about" : rawPage;
+  const page: SiteBuilderPageKey = isValidPageKey(normalizedPage) ? normalizedPage : DEFAULT_PAGE;
 
   const blogTab = params.get("blogTab") === "intro" ? "intro" : "posts";
 

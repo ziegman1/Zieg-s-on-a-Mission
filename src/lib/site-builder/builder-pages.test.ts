@@ -10,6 +10,14 @@ describe("site builder pages", () => {
     expect(community?.path).toBe("/community");
   });
 
+  it("edits About & Mission as one page because /mission redirects to /about", () => {
+    expect(BUILDER_PAGES.some((p) => p.pageKey === "mission")).toBe(false);
+    const about = BUILDER_PAGES.find((p) => p.pageKey === "about");
+    expect(about?.label).toBe("About & Mission");
+    expect(about?.path).toBe("/about");
+    expect(PAGE_REVALIDATE_PATHS.about).toEqual(expect.arrayContaining(["/about", "/mission"]));
+  });
+
   it("exposes full Our Mission defaults including live tracker and framework copy", () => {
     const page = BUILDER_PAGES.find((p) => p.pageKey === "our-mission");
     expect(page?.path).toBe("/our-mission");

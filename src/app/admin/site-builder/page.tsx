@@ -72,8 +72,10 @@ export default async function AdminSiteBuilderPage() {
     <div className="space-y-2">
       <h1 className="font-serif text-2xl text-brand-primary tracking-wide">Site builder</h1>
       <p className="text-sm text-zinc-400 max-w-2xl leading-relaxed">
-        Visual editor for storefront pages. Save updates the live site (no separate publish step required).
-        On <strong className="text-zinc-300">Global (nav &amp; footer)</strong>, use the navigation form for live header
+        Visual editor for storefront pages. Save updates the live site immediately (no code deploy required).
+        Edit <strong className="text-zinc-300">About &amp; Mission</strong> for the public /about page — /mission
+        redirects there, so there is no separate Mission page in this list. On{" "}
+        <strong className="text-zinc-300">Global (nav &amp; footer)</strong>, use the navigation form for live header
         labels and the sections below for site metadata and footer copy. On <strong className="text-zinc-300">Partner</strong>,
         edit Ways to Get Involved under <strong className="text-zinc-300">Get Involved → Partner</strong>,
         or the Advocacy Team page. On <strong className="text-zinc-300">Blog</strong>, use Blog posts for stories (Page intro for the blog

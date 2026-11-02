@@ -326,20 +326,36 @@ export function SiteBuilderEditor({
     return true;
   }
 
+  function flushPendingRichTextEdits() {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) {
+      active.blur();
+    }
+  }
+
   async function handleSave() {
     if (isContentEditorTab) return;
+    flushPendingRichTextEdits();
     setStatus("saving");
     setError(null);
     setPageSuccessMessage(null);
+    // Let blur handlers commit rich-text content into React state before reading sections.
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 0);
+    });
     const toSave = sectionsRef.current;
     await applySaveResult(await saveBuilderPageAction(activePage, toSave));
   }
 
   async function handlePublishAll() {
     if (isContentEditorTab) return;
+    flushPendingRichTextEdits();
     setStatus("saving");
     setError(null);
     setPageSuccessMessage(null);
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 0);
+    });
     const toSave = sectionsRef.current;
     const res = await publishAllBuilderPagesAction(activePage, toSave);
     if (!res.ok) {

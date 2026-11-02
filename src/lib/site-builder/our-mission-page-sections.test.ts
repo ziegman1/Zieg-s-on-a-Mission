@@ -34,16 +34,51 @@ describe("our-mission site builder sections", () => {
     expect(sections.every((s) => s.settings?.ministryFrameworkProtected !== true)).toBe(true);
   });
 
-  it("seeds avenue qualification bullets from the framework", () => {
-    const avenue = defaultOurMissionEditableSections().find(
-      (s) => s.sectionKey === "avenue-jonathan-training",
+  it("seeds avenue cards without the measure-progress accordion fields", () => {
+    const avenues = defaultOurMissionEditableSections().filter((s) =>
+      String(s.sectionKey).startsWith("avenue-"),
     );
-    expect(avenue?.settings?.ourMissionAvenue).toBe(true);
-    const bullets = (avenue?.content.bullets as Array<{ text: string }>) ?? [];
-    expect(bullets[0]?.text).toContain("Mobilized:");
-    expect(bullets.length).toBeGreaterThanOrEqual(
-      OUR_MISSION_AVENUES[0]!.tracks[0]!.qualifications.length,
+    expect(avenues).toHaveLength(OUR_MISSION_AVENUES.length);
+    for (const avenue of avenues) {
+      expect(avenue.settings?.ourMissionAvenue).toBe(true);
+      expect(avenue.content.measureLabel).toBeUndefined();
+      expect(avenue.content.bullets).toEqual([]);
+      expect(String(avenue.content.headline)).toBeTruthy();
+      expect(String(avenue.content.subheadline)).toBeTruthy();
+      expect(String(avenue.content.body)).toBeTruthy();
+    }
+  });
+
+  it("strips saved avenue measure accordion content without changing titles", () => {
+    const seeded = defaultOurMissionEditableSections().map((section) =>
+      section.sectionKey === "avenue-jonathan-training"
+        ? {
+            ...section,
+            content: {
+              ...section.content,
+              measureLabel: "How We Measure Progress",
+              bullets: [
+                {
+                  id: "q-1",
+                  text: "Mobilized: Registers for Jonathan Training.",
+                  visible: true,
+                  sortOrder: 0,
+                  metadata: { kind: "qualification", label: "Mobilized" },
+                },
+              ],
+            },
+          }
+        : section,
     );
+    const headline = String(
+      seeded.find((s) => s.sectionKey === "avenue-jonathan-training")?.content.headline,
+    );
+    const { sections, changed } = migrateOurMissionFullEditSections(seeded);
+    expect(changed).toBe(true);
+    const avenue = sections.find((s) => s.sectionKey === "avenue-jonathan-training");
+    expect(String(avenue?.content.headline)).toBe(headline);
+    expect(avenue?.content.measureLabel).toBeUndefined();
+    expect(avenue?.content.bullets).toEqual([]);
   });
 
   it("persists the full page including tracker presentation on save", () => {

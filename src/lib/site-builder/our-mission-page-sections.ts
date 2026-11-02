@@ -15,7 +15,6 @@ import {
   OUR_MISSION_FUNCTIONS_TITLE,
   OUR_MISSION_HERO,
   OUR_MISSION_INVITATION,
-  OUR_MISSION_MEASURE_LABEL,
   OUR_MISSION_MEASUREMENT,
 } from "@/data/our-mission-content";
 import type { PageSection, SectionType } from "./types";
@@ -100,44 +99,42 @@ function scrubRestrictionSettings(section: PageSection): {
   return { section: { ...section, settings }, changed: true };
 }
 
+function isOurMissionAvenueSection(section: PageSection): boolean {
+  return (
+    section.settings?.ourMissionAvenue === true || section.sectionKey.startsWith("avenue-")
+  );
+}
+
+/** Drop per-avenue “How We Measure Progress” accordion fields from saved content. */
+function stripAvenueMeasureAccordion(section: PageSection): {
+  section: PageSection;
+  changed: boolean;
+} {
+  if (!isOurMissionAvenueSection(section)) {
+    return { section, changed: false };
+  }
+  const content = { ...(section.content ?? {}) };
+  let changed = false;
+  const bullets = content.bullets;
+  if (Array.isArray(bullets) && bullets.length > 0) {
+    content.bullets = [];
+    changed = true;
+  } else if ("bullets" in content && bullets !== undefined && !Array.isArray(bullets)) {
+    delete content.bullets;
+    changed = true;
+  }
+  if ("measureLabel" in content) {
+    delete content.measureLabel;
+    changed = true;
+  }
+  if (!changed) return { section, changed: false };
+  return { section: { ...section, content }, changed: true };
+}
+
 /** Full default Our Mission page as Site Builder sections. */
 export function defaultOurMissionEditableSections(): PageSection[] {
-  const avenueSections = OUR_MISSION_AVENUES.map((avenue, avenueIndex) => {
-    const bullets: Array<{
-      id: string;
-      text: string;
-      visible: boolean;
-      sortOrder: number;
-      metadata: Record<string, unknown>;
-    }> = [];
-    let sort = 0;
-    for (const track of avenue.tracks) {
-      const trackTitle = track.title ?? "";
-      for (const q of track.qualifications) {
-        bullets.push({
-          id: `q-${avenue.id}-${sort}`,
-          text: `${q.label}: ${q.text}`,
-          visible: true,
-          sortOrder: sort++,
-          metadata: {
-            kind: "qualification",
-            label: q.label,
-            trackTitle,
-          },
-        });
-      }
-      for (const note of track.notes) {
-        bullets.push({
-          id: `n-${avenue.id}-${sort}`,
-          text: note,
-          visible: true,
-          sortOrder: sort++,
-          metadata: { kind: "note", trackTitle },
-        });
-      }
-    }
-
-    return sec(
+  const avenueSections = OUR_MISSION_AVENUES.map((avenue, avenueIndex) =>
+    sec(
       `avenue-${avenue.id}`,
       "text_section",
       `Avenue ${avenueIndex + 1}: ${avenue.title}`,
@@ -146,12 +143,11 @@ export function defaultOurMissionEditableSections(): PageSection[] {
         headline: avenue.title,
         subheadline: avenue.summary,
         body: avenue.paragraphs.join("\n\n"),
-        bullets,
-        measureLabel: OUR_MISSION_MEASURE_LABEL,
+        bullets: [],
       },
       { ourMissionAvenue: true },
-    );
-  });
+    ),
+  );
 
   return [
     sec("hero", "hero", "Hero & ministry vision", {
@@ -248,6 +244,9 @@ export function migrateOurMissionFullEditSections(sections: PageSection[]): {
     const scrubbed = scrubRestrictionSettings(s);
     if (scrubbed.changed) changed = true;
     let row = scrubbed.section;
+    const stripped = stripAvenueMeasureAccordion(row);
+    if (stripped.changed) changed = true;
+    row = stripped.section;
     if (row.sectionKey === "tracker" && !isOurMissionLiveTrackerSection(row)) {
       row = {
         ...row,

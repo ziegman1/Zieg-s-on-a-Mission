@@ -6,6 +6,7 @@ import {
   STOREFRONT_FOOTER_NAV,
   STOREFRONT_HEADER_NAV,
   defaultSiteCopyNavLinks,
+  ensureOurMissionFooterLink,
 } from "./storefront-navigation";
 
 describe("storefront navigation", () => {
@@ -39,5 +40,22 @@ describe("storefront navigation", () => {
     expect(defaultSiteCopyNavLinks().find((l) => l.href === "/about")?.label).toBe(
       ABOUT_MISSION_NAV.label,
     );
+  });
+
+  it("drops legacy /mission footer entries that only redirect to /about", () => {
+    const links = ensureOurMissionFooterLink([
+      { href: "/", label: "Home" },
+      { href: "/about", label: "About" },
+      { href: "/mission", label: "Mission" },
+      { href: "/partner", label: "Become a Partner" },
+    ]);
+    expect(links.some((l) => l.href === "/mission")).toBe(false);
+    expect(links.some((l) => l.href === "/our-mission")).toBe(true);
+    expect(links.map((l) => l.href)).toEqual([
+      "/",
+      "/about",
+      "/our-mission",
+      "/partner",
+    ]);
   });
 });

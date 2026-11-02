@@ -77,8 +77,6 @@ export type OurMissionAvenue = {
 
 export const OUR_MISSION_AVENUES_TITLE = "Three Avenues. One Mission.";
 
-export const OUR_MISSION_MEASURE_LABEL = "How We Measure Progress";
-
 export const OUR_MISSION_AVENUES: readonly OurMissionAvenue[] = [
   {
     id: "jonathan-training",

@@ -90,15 +90,20 @@ export function defaultSiteCopyNavLinks(): StorefrontNavLink[] {
 
 export type NavLabelOverrides = Record<string, string>;
 
-/** Keeps Our Mission in the footer when saved navigation predates the page. */
+/**
+ * Keeps Our Mission in the footer when saved navigation predates the page.
+ * Also drops legacy `/mission` entries — that path permanently redirects to `/about`,
+ * so a separate Mission footer link only makes Site Builder edits look “missing.”
+ */
 export function ensureOurMissionFooterLink(links: StorefrontNavLink[]): StorefrontNavLink[] {
-  if (links.some((link) => link.href === OUR_MISSION_NAV.href)) return links;
-  const aboutIndex = links.findIndex((link) => link.href === "/about");
-  if (aboutIndex === -1) return [...links, OUR_MISSION_NAV];
+  const cleaned = links.filter((link) => link.href !== "/mission");
+  if (cleaned.some((link) => link.href === OUR_MISSION_NAV.href)) return cleaned;
+  const aboutIndex = cleaned.findIndex((link) => link.href === "/about");
+  if (aboutIndex === -1) return [...cleaned, OUR_MISSION_NAV];
   return [
-    ...links.slice(0, aboutIndex + 1),
+    ...cleaned.slice(0, aboutIndex + 1),
     OUR_MISSION_NAV,
-    ...links.slice(aboutIndex + 1),
+    ...cleaned.slice(aboutIndex + 1),
   ];
 }
 
