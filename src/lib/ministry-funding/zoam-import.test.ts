@@ -232,7 +232,7 @@ describe("validateZoamMinistryAllocationImport", () => {
     expect(result.preview.chartTotalInvestmentCents).toBe(499500);
   });
 
-  it("soft-blocks chart publication when Operations is missing (Apply still allowed)", () => {
+  it("synthesizes Operations when omitted from source and still publishes a 7-function chart", () => {
     const withoutOps = {
       ...validSnapshot,
       ministryFunctions: validSnapshot.ministryFunctions.filter(
@@ -244,11 +244,92 @@ describe("validateZoamMinistryAllocationImport", () => {
     const result = validateZoamMinistryAllocationImport(json(withoutOps));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.preview.chartSlices).toHaveLength(0);
-    expect(result.preview.chartPublicationBlockedReason).toMatch(/Operations/i);
-    expect(result.issues.some((i) => i.severity === "warning" && /Operations/i.test(i.message))).toBe(
-      true,
-    );
+    expect(result.preview.functions).toHaveLength(7);
+    expect(result.preview.chartSlices).toHaveLength(7);
+    expect(result.preview.chartPublicationBlockedReason).toBeNull();
+    expect(result.preview.chartTotalInvestmentCents).toBe(490000);
+    const ops = result.preview.functions.find((f) => f.name.includes("Operations"))!;
+    expect(ops.synthesizedFromCanonical).toBe(true);
+    expect(ops.sourceInvestmentCents).toBe(0);
+    expect(ops.totalInvestmentCents).toBe(35000);
+    expect(ops.missionShareIncludedCents).toBe(35000);
+    expect(
+      result.issues.some((i) => i.severity === "info" && /omitted from the source/i.test(i.message)),
+    ).toBe(true);
+  });
+
+  it("accepts the October 2026 production-shaped export (Ops omitted, MS excluded from reported)", () => {
+    const october = {
+      ...validSnapshot,
+      reportingMonth: "2026-10",
+      reportingMonthLabel: "October 2026",
+      ministryFunctions: [
+        {
+          name: "Training & Equipping",
+          recordedTimeMinutes: 6720,
+          recordedTimePercentage: 46.67,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 216770,
+          totalInvestmentCents: 216770,
+          calculatedInvestmentPercentage: 46.67,
+        },
+        {
+          name: "Coaching & Development",
+          recordedTimeMinutes: 4095,
+          recordedTimePercentage: 28.43,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 132094,
+          totalInvestmentCents: 132094,
+          calculatedInvestmentPercentage: 28.44,
+        },
+        {
+          name: "Mobilization",
+          recordedTimeMinutes: 1380,
+          recordedTimePercentage: 9.58,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 44515,
+          totalInvestmentCents: 44515,
+          calculatedInvestmentPercentage: 9.58,
+        },
+        {
+          name: "Partnership Development & Support Raising",
+          recordedTimeMinutes: 1380,
+          recordedTimePercentage: 9.58,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 44515,
+          totalInvestmentCents: 44515,
+          calculatedInvestmentPercentage: 9.58,
+        },
+        {
+          name: "Leadership Development & Education",
+          recordedTimeMinutes: 705,
+          recordedTimePercentage: 4.89,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 22742,
+          totalInvestmentCents: 22742,
+          calculatedInvestmentPercentage: 4.9,
+        },
+        {
+          name: "Disciple-Making & Church Multiplication",
+          recordedTimeMinutes: 120,
+          recordedTimePercentage: 0.83,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 3871,
+          totalInvestmentCents: 3871,
+          calculatedInvestmentPercentage: 0.83,
+        },
+      ],
+      missionShare: { amountCents: 35000, includedInReportedFinancialTotal: false },
+      reportedMonthlyFinancialTotalCents: 464507,
+      totalAllocatedInvestmentCents: 464507,
+    };
+    const result = validateZoamMinistryAllocationImport(json(october));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.preview.functions).toHaveLength(7);
+    expect(result.preview.chartTotalInvestmentCents).toBe(499507);
+    expect(result.preview.missionShareFoldedIntoOperations).toBe(true);
+    expect(result.snapshot.ministryFunctions).toHaveLength(6);
   });
 
   it("rejects duplicate function names", () => {
@@ -325,13 +406,21 @@ describe("validateZoamMinistryAllocationImport", () => {
     expect(result.compare.requiresConfirmation).toBe(true);
   });
 
-  it("rejects identical duplicate imports", () => {
+  it("treats identical snapshots as informational (no reimport required)", () => {
     const result = validateZoamMinistryAllocationImport(json(), {
       snapshot: validSnapshot,
       reportingMonthKey: "2025-10",
     });
-    expect(result.ok).toBe(false);
-    expect(result.issues.some((i) => i.message.includes("identical"))).toBe(true);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.compare.isIdenticalDuplicate).toBe(true);
+    expect(result.issues.some((i) => i.severity === "error")).toBe(false);
+    expect(
+      result.issues.some(
+        (i) => i.severity === "info" && /No reimport is needed/i.test(i.message),
+      ),
+    ).toBe(true);
+    expect(result.preview.chartSlices).toHaveLength(7);
   });
 });
 
@@ -412,7 +501,7 @@ describe("applyZoamSnapshotToAllocationSection", () => {
     expect(view.chartPresentation?.ok && view.chartPresentation.chartTotalCents).toBe(499500);
   });
 
-  it("blocks chart publish when Operations mapping is missing on an otherwise valid snapshot", () => {
+  it("publishes charts for existing snapshots that omit Operations (presentation synthesizes it)", () => {
     const withoutOps = {
       ...validSnapshot,
       ministryFunctions: validSnapshot.ministryFunctions.filter(
@@ -425,9 +514,112 @@ describe("applyZoamSnapshotToAllocationSection", () => {
     const applied = applyZoamSnapshotToAllocationSection(allocation, withoutOps);
     const view = parseAllocationSection(applied)!;
     expect(view.zoamSnapshot).not.toBeNull();
+    expect(view.zoamSnapshot?.ministryFunctions).toHaveLength(6);
     expect(view.derived.reconciliationOk).toBe(true);
-    expect(view.chartPresentation?.ok).toBe(false);
-    expect(view.derived.canPublishChart).toBe(false);
+    expect(view.chartPresentation?.ok).toBe(true);
+    expect(view.derived.canPublishChart).toBe(true);
+    expect(view.derived.slices).toHaveLength(7);
+    expect(view.chartPresentation?.ok && view.chartPresentation.operationsSynthesized).toBe(true);
+    expect(view.chartPresentation?.ok && view.chartPresentation.chartTotalCents).toBe(490000);
+
+    // Descriptions / programs on canonical cards are preserved.
+    const opsCard = view.functions.find((f) => f.id === "operations-stewardship");
+    expect(opsCard?.description.length).toBeGreaterThan(20);
+    expect(opsCard?.programs.length).toBeGreaterThan(0);
+  });
+
+  it("renders the October 2026 saved snapshot with Mission Share in Operations without reimport", () => {
+    const october = {
+      schemaVersion: ZOAM_MINISTRY_ALLOCATION_SCHEMA,
+      sourceApplication: "PD Coaching OS" as const,
+      exportedAt: "2026-11-02T12:00:00.000Z",
+      reportingMonth: "2026-10",
+      reportingMonthLabel: "October 2026",
+      allocationMethodology: "test",
+      currency: "USD" as const,
+      scope: { household: "combined" as const, label: "Combined" as const },
+      ministryFunctions: [
+        {
+          name: "Training & Equipping",
+          recordedTimeMinutes: 6720,
+          recordedTimePercentage: 46.67,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 216770,
+          totalInvestmentCents: 216770,
+          calculatedInvestmentPercentage: 46.67,
+        },
+        {
+          name: "Coaching & Development",
+          recordedTimeMinutes: 4095,
+          recordedTimePercentage: 28.43,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 132094,
+          totalInvestmentCents: 132094,
+          calculatedInvestmentPercentage: 28.44,
+        },
+        {
+          name: "Mobilization",
+          recordedTimeMinutes: 1380,
+          recordedTimePercentage: 9.58,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 44515,
+          totalInvestmentCents: 44515,
+          calculatedInvestmentPercentage: 9.58,
+        },
+        {
+          name: "Partnership Development & Support Raising",
+          recordedTimeMinutes: 1380,
+          recordedTimePercentage: 9.58,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 44515,
+          totalInvestmentCents: 44515,
+          calculatedInvestmentPercentage: 9.58,
+        },
+        {
+          name: "Leadership Development & Education",
+          recordedTimeMinutes: 705,
+          recordedTimePercentage: 4.89,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 22742,
+          totalInvestmentCents: 22742,
+          calculatedInvestmentPercentage: 4.9,
+        },
+        {
+          name: "Disciple-Making & Church Multiplication",
+          recordedTimeMinutes: 120,
+          recordedTimePercentage: 0.83,
+          directExpenseCents: 0,
+          timeWeightedAllocatedExpenseCents: 3871,
+          totalInvestmentCents: 3871,
+          calculatedInvestmentPercentage: 0.83,
+        },
+      ],
+      missionShare: { amountCents: 35000, includedInReportedFinancialTotal: false },
+      reportedMonthlyFinancialTotalCents: 464507,
+      totalAllocatedInvestmentCents: 464507,
+      reconciliation: {
+        status: "reconciled" as const,
+        shortfallCents: 0 as const,
+        unallocatedExpensePoolCents: 0 as const,
+      },
+      calculationWarnings: [],
+    };
+    const allocation = defaultMinistryFundingSections().find((s) => s.sectionKey === "allocation")!;
+    const withSnapshot = {
+      ...allocation,
+      content: {
+        ...allocation.content,
+        zoamSnapshot: october,
+        reportingMonth: "October 2026",
+        reportingMonthKey: "2026-10",
+      },
+    };
+    const view = parseAllocationSection(withSnapshot)!;
+    expect(view.derived.canPublishChart).toBe(true);
+    expect(view.derived.slices).toHaveLength(7);
+    expect(view.chartPresentation?.ok && view.chartPresentation.chartTotalCents).toBe(499507);
+    const ops = view.derived.slices.find((s) => s.name.includes("Operations"));
+    expect(ops?.amount).toBe(350);
   });
 
   it("keeps draft zoam data out of empty defaults (no invented chart)", () => {

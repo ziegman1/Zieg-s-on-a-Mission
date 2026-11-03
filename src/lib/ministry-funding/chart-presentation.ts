@@ -4,6 +4,9 @@
  * Source ZOAM snapshots keep Mission Share separate (PD Coaching OS contract).
  * For the public seven-function chart, Mission Share is assigned only to
  * Ministry Operations & Stewardship — never as an 8th slice, and never twice.
+ *
+ * PD exports may omit zero-allocation functions. Presentation synthesizes those
+ * missing canonical rows (especially Operations) without mutating the snapshot.
  */
 
 import { MINISTRY_FUNDING_FUNCTIONS } from "@/data/ministry-funding-content";
@@ -15,6 +18,7 @@ import {
   centsToDollars,
   normalizeFunctionName,
   type ZoamMinistryAllocationV1,
+  type ZoamMinistryFunctionV1,
 } from "./zoam-schema";
 
 export const OPERATIONS_STEWARDSHIP_FUNCTION_ID = "operations-stewardship" as const;
@@ -61,14 +65,16 @@ export const CANONICAL_FUNCTION_NAME_ALIASES: Record<CanonicalMinistryFunctionId
 
 export type ChartPresentationFunction = {
   id: string;
-  canonicalId: CanonicalMinistryFunctionId | null;
+  canonicalId: CanonicalMinistryFunctionId;
   name: string;
-  /** Original investment cents from the snapshot (before Mission Share fold-in). */
+  /** Original investment cents from the snapshot (0 when synthesized). */
   sourceInvestmentCents: number;
   /** Display investment cents after Mission Share assignment. */
   displayInvestmentCents: number;
   /** Mission Share cents folded into this row (0 for non-operations). */
   missionShareIncludedCents: number;
+  /** True when this row was added for presentation because the source omitted it. */
+  synthesizedFromCanonical: boolean;
   percent: number;
 };
 
@@ -84,6 +90,8 @@ export type ChartPresentationResult =
       missionShareAlreadyInSourceTotals: boolean;
       operationsFunctionId: string;
       operationsFunctionName: string;
+      /** True when Operations was absent from the source and synthesized at $0. */
+      operationsSynthesized: boolean;
     }
   | {
       ok: false;
@@ -96,6 +104,7 @@ export type ChartPresentationResult =
       missionShareAlreadyInSourceTotals: boolean;
       operationsFunctionId: null;
       operationsFunctionName: null;
+      operationsSynthesized: false;
     };
 
 export function resolveCanonicalFunctionId(input: {
@@ -146,163 +155,186 @@ export function missionShareAlreadyCountedInFunctionTotals(
   return false;
 }
 
-export function derivePublicChartFromZoamSnapshot(
-  snapshot: ZoamMinistryAllocationV1,
-): ChartPresentationResult {
-  const ms = snapshot.missionShare.amountCents;
-  const alreadyIn = missionShareAlreadyCountedInFunctionTotals(snapshot);
-  const mustFold = ms > 0 && !alreadyIn;
+function buildCanonicalDisplayRows(input: {
+  sourceByCanonical: Map<
+    CanonicalMinistryFunctionId,
+    { name: string; sourceInvestmentCents: number }
+  >;
+  missionShareCents: number;
+  alreadyIn: boolean;
+}): {
+  displayRows: Array<{
+    id: CanonicalMinistryFunctionId;
+    canonicalId: CanonicalMinistryFunctionId;
+    name: string;
+    sourceInvestmentCents: number;
+    displayInvestmentCents: number;
+    missionShareIncludedCents: number;
+    synthesizedFromCanonical: boolean;
+  }>;
+  mustFold: boolean;
+  operationsSynthesized: boolean;
+} {
+  const ms = Math.max(0, input.missionShareCents);
+  const mustFold = ms > 0 && !input.alreadyIn;
 
-  const mapped = snapshot.ministryFunctions.map((f, index) => {
-    const canonicalId = resolveCanonicalFunctionId({ name: f.name });
+  const displayRows = MINISTRY_FUNDING_FUNCTIONS.map((fn) => {
+    const source = input.sourceByCanonical.get(fn.id);
+    const sourceInvestmentCents = source?.sourceInvestmentCents ?? 0;
+    const synthesizedFromCanonical = !source;
+    const addMs = mustFold && fn.id === OPERATIONS_STEWARDSHIP_FUNCTION_ID ? ms : 0;
     return {
-      index,
-      name: f.name,
-      canonicalId,
-      sourceInvestmentCents: f.totalInvestmentCents,
-    };
-  });
-
-  const operations = mapped.find((m) => m.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID);
-
-  if (mustFold && !operations) {
-    return {
-      ok: false,
-      error:
-        "Cannot publish the ministry investment chart: Team Expansion Mission Share must be included in Ministry Operations & Stewardship, but that function could not be identified in the imported snapshot. Ensure the export includes Ministry Operations & Stewardship (id: operations-stewardship).",
-      slices: [],
-      functions: [],
-      chartTotalCents: snapshot.totalAllocatedInvestmentCents,
-      missionShareCents: ms,
-      missionShareFoldedIntoOperations: false,
-      missionShareAlreadyInSourceTotals: alreadyIn,
-      operationsFunctionId: null,
-      operationsFunctionName: null,
-    };
-  }
-
-  const displayRows = mapped.map((m) => {
-    const addMs =
-      mustFold && m.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID ? ms : 0;
-    return {
-      id: m.canonicalId ?? `fn-${m.index}`,
-      canonicalId: m.canonicalId,
-      name: m.name,
-      sourceInvestmentCents: m.sourceInvestmentCents,
-      displayInvestmentCents: m.sourceInvestmentCents + addMs,
+      id: fn.id,
+      canonicalId: fn.id,
+      name: source?.name ?? fn.name,
+      sourceInvestmentCents,
+      displayInvestmentCents: sourceInvestmentCents + addMs,
       missionShareIncludedCents: addMs,
+      synthesizedFromCanonical,
     };
   });
 
-  const chartTotalCents = displayRows.reduce((s, r) => s + r.displayInvestmentCents, 0);
+  const operations = displayRows.find((r) => r.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID)!;
+
+  return {
+    displayRows,
+    mustFold,
+    operationsSynthesized: operations.synthesizedFromCanonical,
+  };
+}
+
+function finalizePresentation(input: {
+  displayRows: Array<{
+    id: string;
+    canonicalId: CanonicalMinistryFunctionId;
+    name: string;
+    sourceInvestmentCents: number;
+    displayInvestmentCents: number;
+    missionShareIncludedCents: number;
+    synthesizedFromCanonical: boolean;
+  }>;
+  missionShareCents: number;
+  mustFold: boolean;
+  alreadyIn: boolean;
+  operationsSynthesized: boolean;
+}): ChartPresentationResult {
+  const chartTotalCents = input.displayRows.reduce((s, r) => s + r.displayInvestmentCents, 0);
   const percentSlices = recalculateInvestmentPercents(
-    displayRows.map((r) => ({
+    input.displayRows.map((r) => ({
       name: r.name,
       totalInvestmentCents: r.displayInvestmentCents,
     })),
   );
 
-  const functions: ChartPresentationFunction[] = displayRows.map((r, i) => ({
-    ...r,
-    percent: percentSlices[i]?.percent ?? 0,
-  }));
-
-  const slices: AllocationSlice[] = percentSlices.map((s, i) => ({
-    id: displayRows[i]!.id,
-    name: s.name,
-    amount: centsToDollars(displayRows[i]!.displayInvestmentCents),
-    percent: s.percent,
-  }));
+  const operations = input.displayRows.find(
+    (r) => r.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID,
+  )!;
 
   return {
     ok: true,
-    slices,
-    functions,
+    slices: percentSlices.map((s, i) => ({
+      id: input.displayRows[i]!.id,
+      name: s.name,
+      amount: centsToDollars(input.displayRows[i]!.displayInvestmentCents),
+      percent: s.percent,
+    })),
+    functions: input.displayRows.map((r, i) => ({
+      ...r,
+      percent: percentSlices[i]?.percent ?? 0,
+    })),
     chartTotalCents,
-    missionShareCents: ms,
-    missionShareFoldedIntoOperations: mustFold,
-    missionShareAlreadyInSourceTotals: alreadyIn,
-    operationsFunctionId: operations?.canonicalId ?? OPERATIONS_STEWARDSHIP_FUNCTION_ID,
-    operationsFunctionName: operations?.name ?? "Ministry Operations & Stewardship",
+    missionShareCents: input.missionShareCents,
+    missionShareFoldedIntoOperations: input.mustFold,
+    missionShareAlreadyInSourceTotals: input.alreadyIn,
+    operationsFunctionId: OPERATIONS_STEWARDSHIP_FUNCTION_ID,
+    operationsFunctionName: operations.name,
+    operationsSynthesized: input.operationsSynthesized,
   };
+}
+
+function indexSourceFunctions(
+  functions: Array<{ id?: string; name: string; totalInvestmentCents: number }>,
+): Map<CanonicalMinistryFunctionId, { name: string; sourceInvestmentCents: number }> {
+  const sourceByCanonical = new Map<
+    CanonicalMinistryFunctionId,
+    { name: string; sourceInvestmentCents: number }
+  >();
+
+  for (const f of functions) {
+    const canonicalId = resolveCanonicalFunctionId({ id: f.id, name: f.name });
+    if (!canonicalId) continue;
+    const existing = sourceByCanonical.get(canonicalId);
+    if (existing) {
+      sourceByCanonical.set(canonicalId, {
+        name: existing.name,
+        sourceInvestmentCents: existing.sourceInvestmentCents + f.totalInvestmentCents,
+      });
+    } else {
+      sourceByCanonical.set(canonicalId, {
+        name: f.name,
+        sourceInvestmentCents: f.totalInvestmentCents,
+      });
+    }
+  }
+
+  return sourceByCanonical;
+}
+
+export function derivePublicChartFromZoamSnapshot(
+  snapshot: ZoamMinistryAllocationV1,
+): ChartPresentationResult {
+  const ms = snapshot.missionShare.amountCents;
+  const alreadyIn = missionShareAlreadyCountedInFunctionTotals(snapshot);
+  const sourceByCanonical = indexSourceFunctions(
+    snapshot.ministryFunctions.map((f: ZoamMinistryFunctionV1) => ({
+      name: f.name,
+      totalInvestmentCents: f.totalInvestmentCents,
+    })),
+  );
+
+  const built = buildCanonicalDisplayRows({
+    sourceByCanonical,
+    missionShareCents: ms,
+    alreadyIn,
+  });
+
+  return finalizePresentation({
+    displayRows: built.displayRows,
+    missionShareCents: ms,
+    mustFold: built.mustFold,
+    alreadyIn,
+    operationsSynthesized: built.operationsSynthesized,
+  });
 }
 
 /**
  * Manual (non-snapshot) chart presentation: fold section Mission Share into the
- * operations-stewardship card when present.
+ * operations-stewardship card. Missing canonical functions are synthesized at $0.
  */
 export function derivePublicChartFromManualFunctions(input: {
   functions: Array<{ id: string; name: string; amountCents: number }>;
   missionShareCents: number;
 }): ChartPresentationResult {
   const ms = Math.max(0, input.missionShareCents);
-  const mapped = input.functions.map((f, index) => ({
-    index,
-    id: f.id,
-    name: f.name,
-    canonicalId: resolveCanonicalFunctionId({ id: f.id, name: f.name }),
-    sourceInvestmentCents: f.amountCents,
-  }));
-
-  const functionSum = mapped.reduce((s, m) => s + m.sourceInvestmentCents, 0);
-  const alreadyIn = ms > 0 && functionSum > 0 && false; // manual amounts are function-only
-  const mustFold = ms > 0 && !alreadyIn;
-  const operations = mapped.find((m) => m.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID);
-
-  if (mustFold && !operations) {
-    return {
-      ok: false,
-      error:
-        "Cannot publish the ministry investment chart: Mission Share must be included in Ministry Operations & Stewardship, but that function was not found among the allocation cards.",
-      slices: [],
-      functions: [],
-      chartTotalCents: functionSum,
-      missionShareCents: ms,
-      missionShareFoldedIntoOperations: false,
-      missionShareAlreadyInSourceTotals: false,
-      operationsFunctionId: null,
-      operationsFunctionName: null,
-    };
-  }
-
-  const displayRows = mapped.map((m) => {
-    const addMs =
-      mustFold && m.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID ? ms : 0;
-    return {
-      id: m.canonicalId ?? m.id,
-      canonicalId: m.canonicalId,
-      name: m.name,
-      sourceInvestmentCents: m.sourceInvestmentCents,
-      displayInvestmentCents: m.sourceInvestmentCents + addMs,
-      missionShareIncludedCents: addMs,
-    };
-  });
-
-  const chartTotalCents = displayRows.reduce((s, r) => s + r.displayInvestmentCents, 0);
-  const percentSlices = recalculateInvestmentPercents(
-    displayRows.map((r) => ({
-      name: r.name,
-      totalInvestmentCents: r.displayInvestmentCents,
+  const sourceByCanonical = indexSourceFunctions(
+    input.functions.map((f) => ({
+      id: f.id,
+      name: f.name,
+      totalInvestmentCents: f.amountCents,
     })),
   );
-
-  return {
-    ok: true,
-    slices: percentSlices.map((s, i) => ({
-      id: displayRows[i]!.id,
-      name: s.name,
-      amount: centsToDollars(displayRows[i]!.displayInvestmentCents),
-      percent: s.percent,
-    })),
-    functions: displayRows.map((r, i) => ({
-      ...r,
-      percent: percentSlices[i]?.percent ?? 0,
-    })),
-    chartTotalCents,
+  const alreadyIn = false;
+  const built = buildCanonicalDisplayRows({
+    sourceByCanonical,
     missionShareCents: ms,
-    missionShareFoldedIntoOperations: mustFold,
-    missionShareAlreadyInSourceTotals: alreadyIn,
-    operationsFunctionId: operations?.canonicalId ?? OPERATIONS_STEWARDSHIP_FUNCTION_ID,
-    operationsFunctionName: operations?.name ?? "Ministry Operations & Stewardship",
-  };
+    alreadyIn,
+  });
+
+  return finalizePresentation({
+    displayRows: built.displayRows,
+    missionShareCents: ms,
+    mustFold: built.mustFold,
+    alreadyIn,
+    operationsSynthesized: built.operationsSynthesized,
+  });
 }

@@ -10,6 +10,7 @@ import {
 import {
   derivePublicChartFromZoamSnapshot,
   OPERATIONS_STEWARDSHIP_FUNCTION_ID,
+  resolveCanonicalFunctionId,
 } from "./chart-presentation";
 import {
   ZOAM_EXPORT_CURRENCY,
@@ -25,7 +26,7 @@ import {
 export { recalculateInvestmentPercents };
 
 export type ZoamImportIssue = {
-  severity: "error" | "warning";
+  severity: "error" | "warning" | "info";
   message: string;
 };
 
@@ -39,6 +40,8 @@ export type ZoamImportPreviewFunction = {
   /** Display investment after Mission Share is included in Operations. */
   totalInvestmentCents: number;
   missionShareIncludedCents: number;
+  /** True when this row was synthesized because the source omitted a zero-allocation function. */
+  synthesizedFromCanonical: boolean;
   /** Recalculated from display totals; not the payload percentage. */
   percent: number;
 };
@@ -105,6 +108,10 @@ function err(message: string): ZoamImportIssue {
 
 function warn(message: string): ZoamImportIssue {
   return { severity: "warning", message };
+}
+
+function info(message: string): ZoamImportIssue {
+  return { severity: "info", message };
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -504,24 +511,41 @@ export function validateZoamMinistryAllocationImport(
 
   const presentation = derivePublicChartFromZoamSnapshot(snapshot);
   if (!presentation.ok) {
+    // Presentation should always succeed for the canonical seven-function set.
     issues.push(err(presentation.error));
-  } else if (presentation.missionShareFoldedIntoOperations) {
-    issues.push(
-      warn(
-        `Team Expansion Mission Share (${formatUsdFromCents(presentation.missionShareCents)}) is included in ${presentation.operationsFunctionName} for the public chart (${OPERATIONS_STEWARDSHIP_FUNCTION_ID}).`,
-      ),
-    );
-  } else if (presentation.missionShareAlreadyInSourceTotals && snapshot.missionShare.amountCents > 0) {
-    issues.push(
-      warn(
-        "Mission Share appears already included in function totals; it will not be added again to Ministry Operations & Stewardship.",
-      ),
-    );
+  } else {
+    if (presentation.operationsSynthesized) {
+      issues.push(
+        info(
+          `Ministry Operations & Stewardship was omitted from the source (zero allocation). A $0 presentation row was added so Team Expansion Mission Share can be included (${OPERATIONS_STEWARDSHIP_FUNCTION_ID}). The original snapshot is unchanged.`,
+        ),
+      );
+    }
+    if (presentation.missionShareFoldedIntoOperations) {
+      issues.push(
+        info(
+          `Team Expansion Mission Share (${formatUsdFromCents(presentation.missionShareCents)}) is included in ${presentation.operationsFunctionName} for the public chart.`,
+        ),
+      );
+    } else if (
+      presentation.missionShareAlreadyInSourceTotals &&
+      snapshot.missionShare.amountCents > 0
+    ) {
+      issues.push(
+        warn(
+          "Mission Share appears already included in function totals; it will not be added again to Ministry Operations & Stewardship.",
+        ),
+      );
+    }
   }
 
   const compare = buildCompare(snapshot, existing);
   if (compare.isIdenticalDuplicate) {
-    issues.push(err("This snapshot is identical to the current allocation. Nothing to import."));
+    issues.push(
+      info(
+        "This snapshot matches the current allocation. No reimport is needed — chart presentation (including Mission Share in Operations) updates automatically from the saved snapshot.",
+      ),
+    );
   }
   if (compare.isOlderThanCurrent) {
     issues.push(
@@ -541,58 +565,19 @@ export function validateZoamMinistryAllocationImport(
     issues.push(warn(`PD calculator: ${w}`));
   }
 
-  // Missing Operations mapping is a chart-publication blocker, but still allow Apply to Draft
-  // so the original snapshot can be stored. Soften the presentation error to keep import ok.
-  const chartBlocked =
-    !presentation.ok
-      ? presentation.error
-      : null;
-  const hardErrors = issues.filter(
-    (i) =>
-      i.severity === "error" &&
-      (!chartBlocked || i.message !== chartBlocked),
-  );
+  const hardErrors = issues.filter((i) => i.severity === "error");
   if (hardErrors.length > 0) {
     return { ok: false, issues, preview: null, snapshot: null, compare };
   }
-  // Keep chart mapping failure as a warning so Apply still works; publication stays blocked.
-  if (chartBlocked) {
-    const idx = issues.findIndex((i) => i.severity === "error" && i.message === chartBlocked);
-    if (idx >= 0) issues[idx] = warn(chartBlocked);
-  }
 
   if (!presentation.ok) {
-    // Preview still shows source function rows without a publishable chart.
-    const preview: ZoamImportPreview = {
-      reportingMonth: snapshot.reportingMonth,
-      reportingMonthLabel: snapshot.reportingMonthLabel,
-      exportedAt: snapshot.exportedAt,
-      sourceApplication: snapshot.sourceApplication,
-      schemaVersion: snapshot.schemaVersion,
-      functions: functions.map((f) => ({
-        name: f.name,
-        recordedTimeMinutes: f.recordedTimeMinutes,
-        directExpenseCents: f.directExpenseCents,
-        timeWeightedAllocatedExpenseCents: f.timeWeightedAllocatedExpenseCents,
-        sourceInvestmentCents: f.totalInvestmentCents,
-        totalInvestmentCents: f.totalInvestmentCents,
-        missionShareIncludedCents: 0,
-        percent: 0,
-      })),
-      chartSlices: [],
-      missionShareCents: snapshot.missionShare.amountCents,
-      missionShareIncludedInReportedFinancialTotal:
-        snapshot.missionShare.includedInReportedFinancialTotal,
-      missionShareFoldedIntoOperations: false,
-      chartTotalInvestmentCents: snapshot.totalAllocatedInvestmentCents,
-      totalAllocatedInvestmentCents: snapshot.totalAllocatedInvestmentCents,
-      reportedMonthlyFinancialTotalCents: snapshot.reportedMonthlyFinancialTotalCents,
-      reconciliationStatus: "reconciled",
-      calculationWarnings: snapshot.calculationWarnings,
-      methodology: snapshot.allocationMethodology,
-      chartPublicationBlockedReason: chartBlocked,
-    };
-    return { ok: true, snapshot, preview, issues, compare };
+    return { ok: false, issues, preview: null, snapshot: null, compare };
+  }
+
+  const sourceByCanonical = new Map<string, ZoamMinistryFunctionV1>();
+  for (const f of functions) {
+    const id = resolveCanonicalFunctionId({ name: f.name });
+    if (id) sourceByCanonical.set(id, f);
   }
 
   const preview: ZoamImportPreview = {
@@ -601,16 +586,17 @@ export function validateZoamMinistryAllocationImport(
     exportedAt: snapshot.exportedAt,
     sourceApplication: snapshot.sourceApplication,
     schemaVersion: snapshot.schemaVersion,
-    functions: presentation.functions.map((row, i) => {
-      const source = functions[i]!;
+    functions: presentation.functions.map((row) => {
+      const source = sourceByCanonical.get(row.canonicalId) ?? null;
       return {
         name: row.name,
-        recordedTimeMinutes: source.recordedTimeMinutes,
-        directExpenseCents: source.directExpenseCents,
-        timeWeightedAllocatedExpenseCents: source.timeWeightedAllocatedExpenseCents,
+        recordedTimeMinutes: source?.recordedTimeMinutes ?? 0,
+        directExpenseCents: source?.directExpenseCents ?? 0,
+        timeWeightedAllocatedExpenseCents: source?.timeWeightedAllocatedExpenseCents ?? 0,
         sourceInvestmentCents: row.sourceInvestmentCents,
         totalInvestmentCents: row.displayInvestmentCents,
         missionShareIncludedCents: row.missionShareIncludedCents,
+        synthesizedFromCanonical: row.synthesizedFromCanonical,
         percent: row.percent,
       };
     }),

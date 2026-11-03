@@ -46,7 +46,9 @@ export function MinistryAllocationImportPanel({
   };
 
   const canApply =
-    result?.ok === true && (!result.compare.requiresConfirmation || confirmReplace);
+    result?.ok === true &&
+    !result.compare.isIdenticalDuplicate &&
+    (!result.compare.requiresConfirmation || confirmReplace);
 
   const applyDraft = () => {
     if (!result || !result.ok) return;
@@ -194,6 +196,11 @@ export function MinistryAllocationImportPanel({
                               {formatUsdFromCents(fn.missionShareIncludedCents)}
                             </span>
                           ) : null}
+                          {fn.synthesizedFromCanonical ? (
+                            <span className="mt-0.5 block text-[9px] text-zinc-500">
+                              presentation row (omitted from source at $0)
+                            </span>
+                          ) : null}
                         </td>
                         <td className="px-2 py-1.5 tabular-nums">{fn.recordedTimeMinutes}</td>
                         <td className="px-2 py-1.5 tabular-nums">
@@ -233,6 +240,13 @@ export function MinistryAllocationImportPanel({
                 </p>
               </div>
 
+              {result.compare.isIdenticalDuplicate ? (
+                <p className="rounded border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-[11px] text-zinc-300">
+                  Snapshot already saved. Close this modal — the public chart uses the corrected
+                  Mission Share presentation automatically. No reimport required.
+                </p>
+              ) : null}
+
               {result.compare.requiresConfirmation ? (
                 <label className="flex items-start gap-2 text-[11px] text-amber-100">
                   <input
@@ -260,18 +274,20 @@ export function MinistryAllocationImportPanel({
                     className="w-full sm:w-auto"
                     onClick={onCancel}
                   >
-                    Cancel
+                    {result.compare.isIdenticalDuplicate ? "Close" : "Cancel"}
                   </Button>
                 ) : null}
-                <Button
-                  type="button"
-                  size="sm"
-                  className="w-full flex-1"
-                  disabled={!canApply}
-                  onClick={applyDraft}
-                >
-                  Apply to Draft
-                </Button>
+                {!result.compare.isIdenticalDuplicate ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="w-full flex-1"
+                    disabled={!canApply}
+                    onClick={applyDraft}
+                  >
+                    Apply to Draft
+                  </Button>
+                ) : null}
               </div>
             </>
           ) : null}
@@ -298,7 +314,7 @@ export function MinistryAllocationImportPanel({
 function IssueList({
   issues,
 }: {
-  issues: Array<{ severity: "error" | "warning"; message: string }>;
+  issues: Array<{ severity: "error" | "warning" | "info"; message: string }>;
 }) {
   if (issues.length === 0) {
     return (
@@ -310,9 +326,19 @@ function IssueList({
       {issues.map((issue, i) => (
         <li
           key={`${issue.severity}-${i}`}
-          className={issue.severity === "error" ? "text-red-300" : "text-amber-200"}
+          className={
+            issue.severity === "error"
+              ? "text-red-300"
+              : issue.severity === "warning"
+                ? "text-amber-200"
+                : "text-sky-200"
+          }
         >
-          {issue.severity === "error" ? "Error: " : "Warning: "}
+          {issue.severity === "error"
+            ? "Error: "
+            : issue.severity === "warning"
+              ? "Warning: "
+              : "Note: "}
           {issue.message}
         </li>
       ))}

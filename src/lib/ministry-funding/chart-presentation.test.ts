@@ -13,6 +13,7 @@ import {
   ZOAM_MINISTRY_ALLOCATION_SCHEMA,
   type ZoamMinistryAllocationV1,
 } from "./zoam-schema";
+import { MINISTRY_FUNDING_FUNCTIONS } from "@/data/ministry-funding-content";
 
 /** Example: functions $4,645 + Mission Share $350 → chart $4,995. */
 function sevenFunctionSnapshot(
@@ -113,6 +114,88 @@ function sevenFunctionSnapshot(
   };
 }
 
+/** Production-shaped October 2026 export: Ops omitted (zero), MS excluded from reported. */
+function october2026Snapshot(): ZoamMinistryAllocationV1 {
+  return {
+    schemaVersion: ZOAM_MINISTRY_ALLOCATION_SCHEMA,
+    sourceApplication: ZOAM_EXPORT_SOURCE_APPLICATION,
+    exportedAt: "2026-11-02T12:00:00.000Z",
+    reportingMonth: "2026-10",
+    reportingMonthLabel: "October 2026",
+    allocationMethodology: ZOAM_ALLOCATION_METHODOLOGY,
+    currency: ZOAM_EXPORT_CURRENCY,
+    scope: { household: "combined", label: "Combined" },
+    ministryFunctions: [
+      {
+        name: "Training & Equipping",
+        recordedTimeMinutes: 6720,
+        recordedTimePercentage: 46.67,
+        directExpenseCents: 0,
+        timeWeightedAllocatedExpenseCents: 216770,
+        totalInvestmentCents: 216770,
+        calculatedInvestmentPercentage: 46.67,
+      },
+      {
+        name: "Coaching & Development",
+        recordedTimeMinutes: 4095,
+        recordedTimePercentage: 28.43,
+        directExpenseCents: 0,
+        timeWeightedAllocatedExpenseCents: 132094,
+        totalInvestmentCents: 132094,
+        calculatedInvestmentPercentage: 28.44,
+      },
+      {
+        name: "Mobilization",
+        recordedTimeMinutes: 1380,
+        recordedTimePercentage: 9.58,
+        directExpenseCents: 0,
+        timeWeightedAllocatedExpenseCents: 44515,
+        totalInvestmentCents: 44515,
+        calculatedInvestmentPercentage: 9.58,
+      },
+      {
+        name: "Partnership Development & Support Raising",
+        recordedTimeMinutes: 1380,
+        recordedTimePercentage: 9.58,
+        directExpenseCents: 0,
+        timeWeightedAllocatedExpenseCents: 44515,
+        totalInvestmentCents: 44515,
+        calculatedInvestmentPercentage: 9.58,
+      },
+      {
+        name: "Leadership Development & Education",
+        recordedTimeMinutes: 705,
+        recordedTimePercentage: 4.89,
+        directExpenseCents: 0,
+        timeWeightedAllocatedExpenseCents: 22742,
+        totalInvestmentCents: 22742,
+        calculatedInvestmentPercentage: 4.9,
+      },
+      {
+        name: "Disciple-Making & Church Multiplication",
+        recordedTimeMinutes: 120,
+        recordedTimePercentage: 0.83,
+        directExpenseCents: 0,
+        timeWeightedAllocatedExpenseCents: 3871,
+        totalInvestmentCents: 3871,
+        calculatedInvestmentPercentage: 0.83,
+      },
+    ],
+    missionShare: {
+      amountCents: 35000,
+      includedInReportedFinancialTotal: false,
+    },
+    reportedMonthlyFinancialTotalCents: 464507,
+    totalAllocatedInvestmentCents: 464507,
+    reconciliation: {
+      status: "reconciled",
+      shortfallCents: 0,
+      unallocatedExpensePoolCents: 0,
+    },
+    calculationWarnings: [],
+  };
+}
+
 describe("resolveCanonicalFunctionId", () => {
   it("resolves Operations by id and by documented aliases", () => {
     expect(
@@ -122,6 +205,9 @@ describe("resolveCanonicalFunctionId", () => {
       resolveCanonicalFunctionId({ name: "Ministry Operations & Stewardship" }),
     ).toBe(OPERATIONS_STEWARDSHIP_FUNCTION_ID);
     expect(resolveCanonicalFunctionId({ name: "Ministry Operations" })).toBe(
+      OPERATIONS_STEWARDSHIP_FUNCTION_ID,
+    );
+    expect(resolveCanonicalFunctionId({ name: "Operations & Stewardship" })).toBe(
       OPERATIONS_STEWARDSHIP_FUNCTION_ID,
     );
   });
@@ -140,6 +226,7 @@ describe("derivePublicChartFromZoamSnapshot", () => {
     expect(result.slices).toHaveLength(7);
     expect(result.chartTotalCents).toBe(499500);
     expect(result.missionShareFoldedIntoOperations).toBe(true);
+    expect(result.operationsSynthesized).toBe(false);
 
     const ops = result.functions.find(
       (f) => f.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID,
@@ -151,14 +238,55 @@ describe("derivePublicChartFromZoamSnapshot", () => {
     const percentSum = result.slices.reduce((s, x) => s + x.percent, 0);
     expect(percentSum).toBeCloseTo(100, 5);
 
-    // Source snapshot must remain unchanged (no silent mutation).
     expect(JSON.stringify(snapshot)).toBe(originalJson);
-    expect(snapshot.missionShare.amountCents).toBe(35000);
-    expect(snapshot.totalAllocatedInvestmentCents).toBe(464500);
-    expect(
-      snapshot.ministryFunctions.find((f) => f.name.includes("Operations"))!
-        .totalInvestmentCents,
-    ).toBe(9500);
+  });
+
+  it("synthesizes Operations when absent from source and folds Mission Share once", () => {
+    const snapshot = october2026Snapshot();
+    const originalJson = JSON.stringify(snapshot);
+    const result = derivePublicChartFromZoamSnapshot(snapshot);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.functions).toHaveLength(7);
+    expect(result.functions.map((f) => f.canonicalId)).toEqual(
+      MINISTRY_FUNDING_FUNCTIONS.map((f) => f.id),
+    );
+    expect(result.operationsSynthesized).toBe(true);
+    expect(result.missionShareFoldedIntoOperations).toBe(true);
+    expect(result.chartTotalCents).toBe(499507);
+
+    const ops = result.functions.find(
+      (f) => f.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID,
+    )!;
+    expect(ops.synthesizedFromCanonical).toBe(true);
+    expect(ops.sourceInvestmentCents).toBe(0);
+    expect(ops.missionShareIncludedCents).toBe(35000);
+    expect(ops.displayInvestmentCents).toBe(35000);
+
+    expect(result.slices.reduce((s, x) => s + x.percent, 0)).toBeCloseTo(100, 5);
+    expect(JSON.stringify(snapshot)).toBe(originalJson);
+    expect(snapshot.ministryFunctions).toHaveLength(6);
+  });
+
+  it("uses Operations under a known alias and adds Mission Share once", () => {
+    const snapshot = sevenFunctionSnapshot({
+      ministryFunctions: sevenFunctionSnapshot().ministryFunctions.map((f) =>
+        f.name.includes("Operations")
+          ? { ...f, name: "Operations & Stewardship" }
+          : f,
+      ),
+    });
+    const result = derivePublicChartFromZoamSnapshot(snapshot);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.operationsSynthesized).toBe(false);
+    const ops = result.functions.find(
+      (f) => f.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID,
+    )!;
+    expect(ops.name).toBe("Operations & Stewardship");
+    expect(ops.displayInvestmentCents).toBe(44500);
   });
 
   it("does not double-count Mission Share when already embedded in function totals", () => {
@@ -192,20 +320,16 @@ describe("derivePublicChartFromZoamSnapshot", () => {
     expect(ops.displayInvestmentCents).toBe(ops.sourceInvestmentCents);
   });
 
-  it("blocks chart publication when Operations cannot be identified", () => {
+  it("treats Mission Share as additional when excluded from the reported total", () => {
     const snapshot = sevenFunctionSnapshot({
-      ministryFunctions: sevenFunctionSnapshot().ministryFunctions.filter(
-        (f) => !f.name.includes("Operations"),
-      ),
-      totalAllocatedInvestmentCents: 455000,
-      reportedMonthlyFinancialTotalCents: 490000,
+      missionShare: { amountCents: 35000, includedInReportedFinancialTotal: false },
+      reportedMonthlyFinancialTotalCents: 464500,
     });
-
     const result = derivePublicChartFromZoamSnapshot(snapshot);
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toMatch(/operations/i);
-    expect(result.slices).toHaveLength(0);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.missionShareFoldedIntoOperations).toBe(true);
+    expect(result.chartTotalCents).toBe(499500);
   });
 });
 
@@ -224,16 +348,24 @@ describe("derivePublicChartFromManualFunctions", () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.functions).toHaveLength(7);
     expect(result.chartTotalCents).toBe(50000);
-    expect(result.functions[1]!.displayInvestmentCents).toBe(40000);
-    expect(result.functions[1]!.missionShareIncludedCents).toBe(35000);
+    const ops = result.functions.find(
+      (f) => f.canonicalId === OPERATIONS_STEWARDSHIP_FUNCTION_ID,
+    )!;
+    expect(ops.displayInvestmentCents).toBe(40000);
+    expect(ops.missionShareIncludedCents).toBe(35000);
   });
 
-  it("blocks when Operations is missing from manual cards", () => {
+  it("synthesizes Operations when missing from manual cards", () => {
     const result = derivePublicChartFromManualFunctions({
       functions: [{ id: "mobilization", name: "Mobilization", amountCents: 10000 }],
       missionShareCents: 35000,
     });
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.operationsSynthesized).toBe(true);
+    expect(result.chartTotalCents).toBe(45000);
+    expect(result.functions).toHaveLength(7);
   });
 });
