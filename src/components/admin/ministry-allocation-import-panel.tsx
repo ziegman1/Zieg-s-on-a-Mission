@@ -142,15 +142,21 @@ export function MinistryAllocationImportPanel({
                   {result.preview.reportingMonthLabel} ({result.preview.reportingMonth})
                 </p>
                 <p>
-                  <span className="text-zinc-500">Total estimated investment:</span>{" "}
+                  <span className="text-zinc-500">Chart total (7 functions, incl. Mission Share):</span>{" "}
+                  {formatUsdFromCents(result.preview.chartTotalInvestmentCents)}
+                </p>
+                <p>
+                  <span className="text-zinc-500">Source allocated investment:</span>{" "}
                   {formatUsdFromCents(result.preview.totalAllocatedInvestmentCents)}
                 </p>
                 <p>
                   <span className="text-zinc-500">Mission Share:</span>{" "}
                   {formatUsdFromCents(result.preview.missionShareCents)}
-                  {result.preview.missionShareIncludedInReportedFinancialTotal
-                    ? " (included in reported total)"
-                    : " (excluded from reported total)"}
+                  {result.preview.missionShareFoldedIntoOperations
+                    ? " (included in Ministry Operations & Stewardship)"
+                    : result.preview.missionShareIncludedInReportedFinancialTotal
+                      ? " (in reported total; see notes)"
+                      : " (see notes)"}
                 </p>
                 <p>
                   <span className="text-zinc-500">Reported expenses:</span>{" "}
@@ -173,14 +179,22 @@ export function MinistryAllocationImportPanel({
                       <th className="px-2 py-1.5 font-medium">Minutes</th>
                       <th className="px-2 py-1.5 font-medium">Direct</th>
                       <th className="px-2 py-1.5 font-medium">Time-weighted</th>
-                      <th className="px-2 py-1.5 font-medium">Total</th>
+                      <th className="px-2 py-1.5 font-medium">Chart total</th>
                       <th className="px-2 py-1.5 font-medium">%</th>
                     </tr>
                   </thead>
                   <tbody>
                     {result.preview.functions.map((fn) => (
                       <tr key={fn.name} className="border-t border-zinc-800">
-                        <td className="px-2 py-1.5">{fn.name}</td>
+                        <td className="px-2 py-1.5">
+                          {fn.name}
+                          {fn.missionShareIncludedCents > 0 ? (
+                            <span className="mt-0.5 block text-[9px] text-zinc-500">
+                              includes Mission Share{" "}
+                              {formatUsdFromCents(fn.missionShareIncludedCents)}
+                            </span>
+                          ) : null}
+                        </td>
                         <td className="px-2 py-1.5 tabular-nums">{fn.recordedTimeMinutes}</td>
                         <td className="px-2 py-1.5 tabular-nums">
                           {formatUsdFromCents(fn.directExpenseCents)}
@@ -202,12 +216,20 @@ export function MinistryAllocationImportPanel({
                 <p className="mb-2 text-[11px] font-medium text-zinc-300">
                   Chart preview (public after publish)
                 </p>
-                <AllocationDoughnut
-                  slices={coloredSlices}
-                  title="Estimated Ministry Investment by Function"
-                />
+                {coloredSlices.length > 0 ? (
+                  <AllocationDoughnut
+                    slices={coloredSlices}
+                    title="Estimated Ministry Investment by Function"
+                  />
+                ) : (
+                  <p className="text-[11px] text-amber-200">
+                    {result.preview.chartPublicationBlockedReason ||
+                      "Chart cannot be published until Ministry Operations & Stewardship is identified."}
+                  </p>
+                )}
                 <p className="mt-3 text-[10px] text-zinc-500">
-                  Mission Share is shown separately and is not a pie slice.
+                  Seven functions only. Team Expansion Mission Share is included in Ministry
+                  Operations &amp; Stewardship — not a separate slice.
                 </p>
               </div>
 

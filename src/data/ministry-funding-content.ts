@@ -31,12 +31,18 @@ export const MINISTRY_FUNDING_FUNCTIONS_HEADING = "How Your Partnership Supports
 export const MINISTRY_FUNDING_CHART = {
   title: "Estimated Ministry Investment by Function",
   explanation:
-    "These figures represent an allocation of ministry expenses across our areas of service. Shared expenses are distributed according to recorded ministry time, while direct expenses are assigned to their respective functions.",
+    "These figures illustrate how ministry expenses are allocated across our seven areas of service. Direct expenses are assigned to their respective functions, while shared expenses are distributed according to recorded ministry time. Team Expansion Mission Share is included in Ministry Operations & Stewardship.",
   distinction:
     "This chart shows estimated ministry expense allocation. It is not a report of how individual donations were designated, and it is separate from our recurring financial partnership income progress above.",
   awaitingCopy:
     "Ministry function descriptions are shown below. A numerical investment chart will appear once a reconciled allocation for the reporting period is published.",
 } as const;
+
+/** Prior explanation strings replaced by migration when still present in saved CMS content. */
+export const MINISTRY_FUNDING_CHART_EXPLANATION_LEGACY = [
+  "These figures represent an allocation of ministry expenses across our areas of service. Shared expenses are distributed according to recorded ministry time, while direct expenses are assigned to their respective functions.",
+  "These figures represent an allocation of ministry expenses across our areas of service. Shared ministry expenses may be distributed according to recorded ministry time, while direct expenses are assigned to their respective functions.",
+] as const;
 
 export const MINISTRY_FUNDING_INVITATION = {
   title: "YOUR PARTNERSHIP MAKES THIS POSSIBLE.",
@@ -145,15 +151,15 @@ export const MINISTRY_FUNDING_FUNCTIONS: readonly MinistryFundingFunctionDef[] =
 ] as const;
 
 /**
- * Mission Share is listed among Operations programs for narrative context, but when
- * reporting financial allocation it is a separate category — never auto-spread across
- * the seven functions or double-counted.
+ * Mission Share remains a distinct line in the PD Coaching OS source snapshot.
+ * For public chart presentation it is folded into Ministry Operations & Stewardship
+ * (see chart-presentation.ts) — never shown as an 8th slice.
  */
 export const MISSION_SHARE_CATEGORY = {
   id: "mission-share",
   name: "Team Expansion Mission Share",
   description:
-    "A designated organizational share supporting Team Expansion. It is tracked separately from the seven ministry functions and is never automatically redistributed among them.",
+    "A designated organizational share supporting Team Expansion. On the public ministry investment chart it is included in Ministry Operations & Stewardship.",
   defaultColor: "#6b7280",
 } as const;
 

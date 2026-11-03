@@ -121,9 +121,8 @@ export function SectionPropertiesPanel({
           <p className="text-[11px] text-zinc-500 leading-relaxed">
             Import monthly allocation data from the{" "}
             <span className="text-zinc-300">Ministry Allocation Data</span> toolbar above. Manual
-            amount fields remain for corrections.
-            Percentages are always calculated from amounts. Mission Share is never auto-spread
-            across functions.
+            amount fields remain for corrections. Percentages are calculated from amounts. Mission
+            Share is included in Ministry Operations &amp; Stewardship on the public chart.
           </p>
           {(
             [

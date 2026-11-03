@@ -369,36 +369,23 @@ export function AllocationEditable({ section }: { section: PageSection }) {
           </EditableElement>
         ) : null}
 
-        {showChart && derived.missionShareAmount !== null ? (
-          <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-brand-primary/15 bg-[#eae5e1]/55 px-5 py-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-primary">
-              Separate from the chart
-            </p>
-            <p className="mt-1 font-serif text-lg text-brand-ink tracking-wide">
-              {view.missionShareLabel}
-            </p>
-            <p className="mt-1 text-brand-ink/80 tabular-nums">
-              {formatUsd(derived.missionShareAmount)}
-            </p>
-            <p className="mt-2 text-sm text-brand-ink/70 leading-relaxed">
-              {view.missionShareDescription}
-            </p>
-          </div>
-        ) : ctx?.editMode ? (
-          <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-dashed border-brand-primary/20 bg-white/50 px-5 py-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-primary">
-              Mission Share (separate category)
-            </p>
-            <p className="mt-2 text-sm text-brand-ink/70">
-              {derived.missionShareAmount !== null
-                ? formatUsd(derived.missionShareAmount)
-                : "Not set — import a snapshot or enter Mission Share in properties."}
-            </p>
-          </div>
-        ) : null}
-
         {ctx?.editMode ? (
-          <AdminReconciliationNote derived={derived} />
+          <>
+            <AdminReconciliationNote derived={derived} />
+            {view.chartPresentation && !view.chartPresentation.ok ? (
+              <div className="mx-auto mt-4 max-w-3xl rounded-lg border border-amber-500/40 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                {view.chartPresentation.error}
+              </div>
+            ) : null}
+            {view.chartPresentation?.ok &&
+            view.chartPresentation.missionShareFoldedIntoOperations ? (
+              <p className="mx-auto mt-4 max-w-3xl text-center text-xs text-brand-ink/60">
+                Chart includes Mission Share (
+                {formatUsd(view.chartPresentation.missionShareCents / 100)}) in{" "}
+                {view.chartPresentation.operationsFunctionName}. Source snapshot is unchanged.
+              </p>
+            ) : null}
+          </>
         ) : null}
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2">

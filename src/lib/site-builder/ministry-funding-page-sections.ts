@@ -5,6 +5,7 @@
 
 import {
   MINISTRY_FUNDING_CHART,
+  MINISTRY_FUNDING_CHART_EXPLANATION_LEGACY,
   MINISTRY_FUNDING_FUNCTIONS,
   MINISTRY_FUNDING_FUNCTIONS_HEADING,
   MINISTRY_FUNDING_GOALS,
@@ -178,6 +179,20 @@ export function migrateMinistryFundingSections(sections: PageSection[]): {
         settings: { ...row.settings, [MINISTRY_FUNDING_ALLOCATION_SETTING]: true },
       };
       changed = true;
+    }
+    // Refresh legacy chart explanation that said Mission Share was excluded.
+    if (row.sectionKey === "allocation") {
+      const intro = typeof row.content.intro === "string" ? row.content.intro.trim() : "";
+      if (
+        MINISTRY_FUNDING_CHART_EXPLANATION_LEGACY.some((legacy) => legacy === intro) ||
+        /Mission Share is (excluded|tracked separately|shown separately)/i.test(intro)
+      ) {
+        row = {
+          ...row,
+          content: { ...row.content, intro: MINISTRY_FUNDING_CHART.explanation },
+        };
+        changed = true;
+      }
     }
     return row;
   });

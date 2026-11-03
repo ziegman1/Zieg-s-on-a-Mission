@@ -8,73 +8,161 @@ import {
   validateZoamMinistryAllocationImport,
 } from "./zoam-import";
 import {
+  ZOAM_ALLOCATION_METHODOLOGY,
   ZOAM_EXPORT_CURRENCY,
   ZOAM_EXPORT_SOURCE_APPLICATION,
   ZOAM_MINISTRY_ALLOCATION_SCHEMA,
   type ZoamMinistryAllocationV1,
 } from "./zoam-schema";
 import { assertMinistryFundingAllocationSavable } from "./assert-allocation-savable";
+import { derivePublicChartFromZoamSnapshot } from "./chart-presentation";
+import { MINISTRY_FUNDING_CHART } from "@/data/ministry-funding-content";
 
-const validSnapshot: ZoamMinistryAllocationV1 = {
-  schemaVersion: ZOAM_MINISTRY_ALLOCATION_SCHEMA,
-  sourceApplication: ZOAM_EXPORT_SOURCE_APPLICATION,
-  exportedAt: "2025-11-02T18:00:00.000Z",
-  reportingMonth: "2025-10",
-  reportingMonthLabel: "October 2025",
-  allocationMethodology:
-    "pool = reported monthly total − Mission Share (only when the reported total includes it) − direct ministry expenses; time-weighted allocated expense(f) = pool × recorded minutes(f) ÷ household minutes (exact minutes, largest-remainder cents); total investment(f) = time-weighted allocated expense(f) + direct expense(f). Mission Share is never reassigned to ministry functions.",
-  currency: ZOAM_EXPORT_CURRENCY,
-  scope: { household: "combined", label: "Combined" },
-  ministryFunctions: [
+/** Seven functions totaling $4,645 + Mission Share $350 → chart $4,995. */
+const validSnapshot: ZoamMinistryAllocationV1 = (() => {
+  const ministryFunctions = [
     {
       name: "Mobilization",
-      recordedTimeMinutes: 700,
-      recordedTimePercentage: 70,
-      directExpenseCents: 100000,
-      timeWeightedAllocatedExpenseCents: 560000,
-      totalInvestmentCents: 660000,
-      calculatedInvestmentPercentage: 69.47,
+      recordedTimeMinutes: 200,
+      recordedTimePercentage: 20,
+      directExpenseCents: 50000,
+      timeWeightedAllocatedExpenseCents: 60000,
+      totalInvestmentCents: 110000,
+      calculatedInvestmentPercentage: 23.68,
     },
     {
       name: "Training & Equipping",
-      recordedTimeMinutes: 300,
-      recordedTimePercentage: 30,
-      directExpenseCents: 50000,
-      timeWeightedAllocatedExpenseCents: 240000,
-      totalInvestmentCents: 290000,
-      calculatedInvestmentPercentage: 30.53,
+      recordedTimeMinutes: 100,
+      recordedTimePercentage: 10,
+      directExpenseCents: 40000,
+      timeWeightedAllocatedExpenseCents: 30000,
+      totalInvestmentCents: 70000,
+      calculatedInvestmentPercentage: 15.07,
     },
-  ],
-  missionShare: {
-    amountCents: 50000,
-    includedInReportedFinancialTotal: true,
-  },
-  reportedMonthlyFinancialTotalCents: 1000000,
-  totalAllocatedInvestmentCents: 950000,
-  reconciliation: {
-    status: "reconciled",
-    shortfallCents: 0,
-    unallocatedExpensePoolCents: 0,
-  },
-  calculationWarnings: [],
-};
+    {
+      name: "Coaching & Development",
+      recordedTimeMinutes: 150,
+      recordedTimePercentage: 15,
+      directExpenseCents: 30000,
+      timeWeightedAllocatedExpenseCents: 45000,
+      totalInvestmentCents: 75000,
+      calculatedInvestmentPercentage: 16.15,
+    },
+    {
+      name: "Leadership Development & Education",
+      recordedTimeMinutes: 80,
+      recordedTimePercentage: 8,
+      directExpenseCents: 20000,
+      timeWeightedAllocatedExpenseCents: 24000,
+      totalInvestmentCents: 44000,
+      calculatedInvestmentPercentage: 9.47,
+    },
+    {
+      name: "Disciple-Making & Church Multiplication",
+      recordedTimeMinutes: 120,
+      recordedTimePercentage: 12,
+      directExpenseCents: 25000,
+      timeWeightedAllocatedExpenseCents: 36000,
+      totalInvestmentCents: 61000,
+      calculatedInvestmentPercentage: 13.13,
+    },
+    {
+      name: "Partnership Development & Support Raising",
+      recordedTimeMinutes: 200,
+      recordedTimePercentage: 20,
+      directExpenseCents: 35000,
+      timeWeightedAllocatedExpenseCents: 60000,
+      totalInvestmentCents: 95000,
+      calculatedInvestmentPercentage: 20.45,
+    },
+    {
+      name: "Ministry Operations & Stewardship",
+      recordedTimeMinutes: 150,
+      recordedTimePercentage: 15,
+      directExpenseCents: 9500,
+      timeWeightedAllocatedExpenseCents: 0,
+      totalInvestmentCents: 9500,
+      calculatedInvestmentPercentage: 2.05,
+    },
+  ];
+  return {
+    schemaVersion: ZOAM_MINISTRY_ALLOCATION_SCHEMA,
+    sourceApplication: ZOAM_EXPORT_SOURCE_APPLICATION,
+    exportedAt: "2025-11-02T18:00:00.000Z",
+    reportingMonth: "2025-10",
+    reportingMonthLabel: "October 2025",
+    allocationMethodology: ZOAM_ALLOCATION_METHODOLOGY,
+    currency: ZOAM_EXPORT_CURRENCY,
+    scope: { household: "combined" as const, label: "Combined" as const },
+    ministryFunctions,
+    missionShare: {
+      amountCents: 35000,
+      includedInReportedFinancialTotal: true,
+    },
+    reportedMonthlyFinancialTotalCents: 499500,
+    totalAllocatedInvestmentCents: 464500,
+    reconciliation: {
+      status: "reconciled" as const,
+      shortfallCents: 0 as const,
+      unallocatedExpensePoolCents: 0 as const,
+    },
+    calculationWarnings: [],
+  };
+})();
 
 function json(value: unknown = validSnapshot) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
 describe("validateZoamMinistryAllocationImport", () => {
-  it("accepts a valid PD Coaching OS export and recalculates percentages", () => {
+  it("accepts a valid PD Coaching OS export and folds Mission Share into Operations", () => {
     const result = validateZoamMinistryAllocationImport(json());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.preview.reportingMonth).toBe("2025-10");
-    expect(result.preview.missionShareCents).toBe(50000);
+    expect(result.preview.missionShareCents).toBe(35000);
+    expect(result.preview.functions).toHaveLength(7);
+    expect(result.preview.chartSlices).toHaveLength(7);
+    expect(result.preview.missionShareFoldedIntoOperations).toBe(true);
+    expect(result.preview.chartTotalInvestmentCents).toBe(499500);
+    expect(result.preview.totalAllocatedInvestmentCents).toBe(464500);
+
+    const ops = result.preview.functions.find((f) =>
+      f.name.includes("Operations"),
+    )!;
+    expect(ops.sourceInvestmentCents).toBe(9500);
+    expect(ops.totalInvestmentCents).toBe(44500);
+    expect(ops.missionShareIncludedCents).toBe(35000);
+
     expect(result.preview.functions.map((f) => f.percent).reduce((a, b) => a + b, 0)).toBeCloseTo(
       100,
       5,
     );
     expect(result.preview.chartSlices.every((s) => s.amount > 0)).toBe(true);
+
+    // Original snapshot preserved (Mission Share separate; ops not mutated).
+    expect(result.snapshot.missionShare.amountCents).toBe(35000);
+    expect(result.snapshot.totalAllocatedInvestmentCents).toBe(464500);
+    expect(
+      result.snapshot.ministryFunctions.find((f) => f.name.includes("Operations"))!
+        .totalInvestmentCents,
+    ).toBe(9500);
+  });
+
+  it("uses identical calculations for import preview and public chart presentation", () => {
+    const result = validateZoamMinistryAllocationImport(json());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const presentation = derivePublicChartFromZoamSnapshot(result.snapshot);
+    expect(presentation.ok).toBe(true);
+    if (!presentation.ok) return;
+    expect(result.preview.chartTotalInvestmentCents).toBe(presentation.chartTotalCents);
+    expect(result.preview.chartSlices.map((s) => s.percent)).toEqual(
+      presentation.slices.map((s) => s.percent),
+    );
+    expect(result.preview.chartSlices.map((s) => s.amount)).toEqual(
+      presentation.slices.map((s) => s.amount),
+    );
   });
 
   it("rejects invalid JSON", () => {
@@ -130,15 +218,37 @@ describe("validateZoamMinistryAllocationImport", () => {
     expect(unallocated.ok).toBe(false);
   });
 
-  it("accepts Mission Share excluded from the reported total", () => {
+  it("accepts Mission Share excluded from the reported total and still folds into Operations", () => {
     const result = validateZoamMinistryAllocationImport(
       json({
         ...validSnapshot,
-        missionShare: { amountCents: 50000, includedInReportedFinancialTotal: false },
-        reportedMonthlyFinancialTotalCents: 950000,
+        missionShare: { amountCents: 35000, includedInReportedFinancialTotal: false },
+        reportedMonthlyFinancialTotalCents: 464500,
       }),
     );
     expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.preview.missionShareFoldedIntoOperations).toBe(true);
+    expect(result.preview.chartTotalInvestmentCents).toBe(499500);
+  });
+
+  it("soft-blocks chart publication when Operations is missing (Apply still allowed)", () => {
+    const withoutOps = {
+      ...validSnapshot,
+      ministryFunctions: validSnapshot.ministryFunctions.filter(
+        (f) => !f.name.includes("Operations"),
+      ),
+      totalAllocatedInvestmentCents: 455000,
+      reportedMonthlyFinancialTotalCents: 490000,
+    };
+    const result = validateZoamMinistryAllocationImport(json(withoutOps));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.preview.chartSlices).toHaveLength(0);
+    expect(result.preview.chartPublicationBlockedReason).toMatch(/Operations/i);
+    expect(result.issues.some((i) => i.severity === "warning" && /Operations/i.test(i.message))).toBe(
+      true,
+    );
   });
 
   it("rejects duplicate function names", () => {
@@ -148,7 +258,9 @@ describe("validateZoamMinistryAllocationImport", () => {
         ministryFunctions: [
           validSnapshot.ministryFunctions[0],
           { ...validSnapshot.ministryFunctions[1], name: "Mobilization" },
+          ...validSnapshot.ministryFunctions.slice(2),
         ],
+        // totals intentionally wrong — duplicate check should fail first
       }),
     );
     expect(result.ok).toBe(false);
@@ -164,18 +276,29 @@ describe("validateZoamMinistryAllocationImport", () => {
             name: "Mobilization",
             recordedTimeMinutes: 0,
             recordedTimePercentage: 0,
-            directExpenseCents: 950000,
+            directExpenseCents: 455000,
             timeWeightedAllocatedExpenseCents: 0,
-            totalInvestmentCents: 950000,
-            calculatedInvestmentPercentage: 100,
+            totalInvestmentCents: 455000,
+            calculatedInvestmentPercentage: 98,
+          },
+          {
+            name: "Ministry Operations & Stewardship",
+            recordedTimeMinutes: 0,
+            recordedTimePercentage: 0,
+            directExpenseCents: 9500,
+            timeWeightedAllocatedExpenseCents: 0,
+            totalInvestmentCents: 9500,
+            calculatedInvestmentPercentage: 2,
           },
         ],
-        missionShare: { amountCents: 50000, includedInReportedFinancialTotal: true },
-        reportedMonthlyFinancialTotalCents: 1000000,
-        totalAllocatedInvestmentCents: 950000,
+        missionShare: { amountCents: 35000, includedInReportedFinancialTotal: true },
+        reportedMonthlyFinancialTotalCents: 499500,
+        totalAllocatedInvestmentCents: 464500,
       }),
     );
     expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.preview.chartTotalInvestmentCents).toBe(499500);
   });
 
   it("rejects private/forbidden fields", () => {
@@ -223,7 +346,7 @@ describe("recalculateInvestmentPercents", () => {
 });
 
 describe("applyZoamSnapshotToAllocationSection", () => {
-  it("applies amounts, preserves descriptions, and does not touch funding goals", () => {
+  it("applies amounts, preserves descriptions, folds Mission Share for chart, and does not touch funding goals", () => {
     const sections = defaultMinistryFundingSections();
     const goals = sections.find((s) => s.sectionKey === "funding-goals")!;
     const goalsWithValues = patchSectionContent(
@@ -232,6 +355,8 @@ describe("applyZoamSnapshotToAllocationSection", () => {
       "2500",
     );
     const allocation = sections.find((s) => s.sectionKey === "allocation")!;
+    expect(allocation.content.intro).toBe(MINISTRY_FUNDING_CHART.explanation);
+
     const validated = validateZoamMinistryAllocationImport(json());
     expect(validated.ok).toBe(true);
     if (!validated.ok) return;
@@ -241,10 +366,23 @@ describe("applyZoamSnapshotToAllocationSection", () => {
     expect(view.derived.canPublishChart).toBe(true);
     expect(view.reportingMonth).toBe("October 2025");
     expect(view.zoamSnapshot?.schemaVersion).toBe(ZOAM_MINISTRY_ALLOCATION_SCHEMA);
+    expect(view.chartPresentation?.ok).toBe(true);
+    expect(view.derived.slices).toHaveLength(7);
+    expect(view.derived.slices.reduce((s, x) => s + x.percent, 0)).toBeCloseTo(100, 5);
+
+    const opsSlice = view.derived.slices.find((s) => s.name.includes("Operations"));
+    expect(opsSlice?.amount).toBe(445);
+
+    // Source snapshot on the section is the original PD export (ops still $95).
+    expect(view.zoamSnapshot?.missionShare.amountCents).toBe(35000);
+    expect(
+      view.zoamSnapshot?.ministryFunctions.find((f) => f.name.includes("Operations"))
+        ?.totalInvestmentCents,
+    ).toBe(9500);
 
     const mobilization = view.functions.find((f) => f.name === "Mobilization");
     expect(mobilization?.description.length).toBeGreaterThan(20);
-    expect(mobilization?.amount).toBe(6600);
+    expect(mobilization?.amount).toBe(1100);
 
     // Funding goals untouched when allocation is applied in isolation.
     const funding = parseFundingGoalsSection(goalsWithValues)!;
@@ -255,6 +393,41 @@ describe("applyZoamSnapshotToAllocationSection", () => {
       s.sectionKey === "allocation" ? applied : s.sectionKey === "funding-goals" ? goalsWithValues : s,
     );
     expect(assertMinistryFundingAllocationSavable(all).ok).toBe(true);
+  });
+
+  it("renders existing snapshots with corrected chart calculation without reimport", () => {
+    const allocation = defaultMinistryFundingSections().find((s) => s.sectionKey === "allocation")!;
+    const withSnapshot = {
+      ...allocation,
+      content: {
+        ...allocation.content,
+        zoamSnapshot: validSnapshot,
+        reportingMonth: validSnapshot.reportingMonthLabel,
+        reportingMonthKey: validSnapshot.reportingMonth,
+      },
+    };
+    const view = parseAllocationSection(withSnapshot)!;
+    expect(view.derived.canPublishChart).toBe(true);
+    expect(view.derived.slices).toHaveLength(7);
+    expect(view.chartPresentation?.ok && view.chartPresentation.chartTotalCents).toBe(499500);
+  });
+
+  it("blocks chart publish when Operations mapping is missing on an otherwise valid snapshot", () => {
+    const withoutOps = {
+      ...validSnapshot,
+      ministryFunctions: validSnapshot.ministryFunctions.filter(
+        (f) => !f.name.includes("Operations"),
+      ),
+      totalAllocatedInvestmentCents: 455000,
+      reportedMonthlyFinancialTotalCents: 490000,
+    };
+    const allocation = defaultMinistryFundingSections().find((s) => s.sectionKey === "allocation")!;
+    const applied = applyZoamSnapshotToAllocationSection(allocation, withoutOps);
+    const view = parseAllocationSection(applied)!;
+    expect(view.zoamSnapshot).not.toBeNull();
+    expect(view.derived.reconciliationOk).toBe(true);
+    expect(view.chartPresentation?.ok).toBe(false);
+    expect(view.derived.canPublishChart).toBe(false);
   });
 
   it("keeps draft zoam data out of empty defaults (no invented chart)", () => {

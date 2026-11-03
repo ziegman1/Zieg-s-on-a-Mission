@@ -17,8 +17,13 @@ import {
   type FunctionAllocationInput,
 } from "./calculations";
 import { MISSION_SHARE_CATEGORY } from "@/data/ministry-funding-content";
-import { parseStoredZoamSnapshot, recalculateInvestmentPercents } from "./zoam-import";
+import { parseStoredZoamSnapshot } from "./zoam-import";
 import { centsToDollars, normalizeFunctionName, type ZoamMinistryAllocationV1 } from "./zoam-schema";
+import {
+  derivePublicChartFromManualFunctions,
+  derivePublicChartFromZoamSnapshot,
+  type ChartPresentationResult,
+} from "./chart-presentation";
 
 export type FundingGoalsView = {
   headline: string;
@@ -52,6 +57,8 @@ export type AllocationView = {
   /** Narrative cards (including those without chart amounts). */
   descriptionFunctions: FunctionCardView[];
   derived: AllocationDerived;
+  /** Public chart presentation (Mission Share folded into Operations). */
+  chartPresentation: ChartPresentationResult | null;
   zoamSnapshot: ZoamMinistryAllocationV1 | null;
   zoamExportedAt: string;
   zoamSchemaVersion: string;
@@ -122,16 +129,12 @@ export function parseAllocationSection(
   let missionShareAmount: ReturnType<typeof parseMoneyInput>;
   let expenseTotal: ReturnType<typeof parseMoneyInput>;
   let derived: AllocationDerived;
+  let chartPresentation: ChartPresentationResult | null = null;
 
   if (zoamSnapshot) {
-    const slices = recalculateInvestmentPercents(
-      zoamSnapshot.ministryFunctions.map((f) => ({
-        name: f.name,
-        totalInvestmentCents: f.totalInvestmentCents,
-      })),
-    );
+    // Source reconciliation stays on the original snapshot (Mission Share separate).
     allocationInputs = zoamSnapshot.ministryFunctions.map((f, i) => ({
-      id: slices[i]?.id ?? `fn-${i}`,
+      id: `fn-${i}`,
       name: f.name,
       amount: centsToDollars(f.totalInvestmentCents),
     }));
@@ -145,24 +148,18 @@ export function parseAllocationSection(
       expenseTotal,
       reportingMonth: zoamSnapshot.reportingMonthLabel || zoamSnapshot.reportingMonth,
     });
-    // Prefer recalculated slice percents from cents (authoritative).
+
+    chartPresentation = derivePublicChartFromZoamSnapshot(zoamSnapshot);
     derived = {
       ...derived,
-      slices: slices.map((s) => ({
-        ...s,
-        // amount already dollars from recalculateInvestmentPercents
-      })),
-      canPublishChart: derived.reconciliationOk && slices.some((s) => s.amount > 0),
+      // Public slices fold Mission Share into Operations (7 functions).
+      slices: chartPresentation.ok ? chartPresentation.slices : [],
+      canPublishChart:
+        derived.reconciliationOk &&
+        chartPresentation.ok &&
+        chartPresentation.slices.some((s) => s.amount > 0),
     };
   } else {
-    allocationInputs = functions
-      .filter((fn) => fn.inChart || fn.amount !== null)
-      .map((fn) => ({
-        id: fn.id,
-        name: fn.name,
-        amount: fn.amount,
-      }));
-    // If some cards are description-only (blank amount), only use cards with amounts for chart math.
     const withAmounts = functions.filter((fn) => fn.amount !== null);
     const chartFunctions =
       withAmounts.length > 0 && withAmounts.length < functions.length ? withAmounts : functions;
@@ -181,11 +178,32 @@ export function parseAllocationSection(
       expenseTotal,
       reportingMonth: contentStr(c, "reportingMonth"),
     });
+
+    if (derived.hasCompleteFunctionAmounts && missionShareAmount !== null) {
+      chartPresentation = derivePublicChartFromManualFunctions({
+        functions: chartFunctions.map((fn) => ({
+          id: fn.id,
+          name: fn.name,
+          amountCents: Math.round((fn.amount ?? 0) * 100),
+        })),
+        missionShareCents: Math.round(missionShareAmount * 100),
+      });
+      derived = {
+        ...derived,
+        slices: chartPresentation.ok ? chartPresentation.slices : [],
+        canPublishChart:
+          derived.reconciliationOk &&
+          chartPresentation.ok &&
+          chartPresentation.slices.some((s) => s.amount > 0),
+      };
+    }
   }
 
   const descriptionFunctions =
     functions.filter((f) => f.description.trim() || f.programs.length > 0 || f.inChart).length > 0
-      ? functions.filter((f) => f.description.trim() || f.programs.length > 0 || !zoamSnapshot || f.inChart)
+      ? functions.filter(
+          (f) => f.description.trim() || f.programs.length > 0 || !zoamSnapshot || f.inChart,
+        )
       : functions;
 
   return {
@@ -199,19 +217,17 @@ export function parseAllocationSection(
       zoamSnapshot?.reportingMonth ||
       "",
     reportingMonthKey:
-      zoamSnapshot?.reportingMonth ||
-      contentStr(c, "reportingMonthKey") ||
-      "",
+      zoamSnapshot?.reportingMonth || contentStr(c, "reportingMonthKey") || "",
     missionShareLabel: contentStr(c, "missionShareLabel") || MISSION_SHARE_CATEGORY.name,
     missionShareDescription:
       contentStr(c, "missionShareDescription") || MISSION_SHARE_CATEGORY.description,
     functions,
     descriptionFunctions,
     derived,
+    chartPresentation,
     zoamSnapshot,
     zoamExportedAt: contentStr(c, "zoamExportedAt") || zoamSnapshot?.exportedAt || "",
-    zoamSchemaVersion:
-      contentStr(c, "zoamSchemaVersion") || zoamSnapshot?.schemaVersion || "",
+    zoamSchemaVersion: contentStr(c, "zoamSchemaVersion") || zoamSnapshot?.schemaVersion || "",
   };
 }
 

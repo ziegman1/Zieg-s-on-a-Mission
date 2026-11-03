@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  MINISTRY_FUNDING_CHART,
   MINISTRY_FUNDING_FUNCTIONS,
   MINISTRY_FUNDING_HERO,
   MINISTRY_FUNDING_INVITATION,
@@ -29,9 +30,14 @@ describe("ministry funding content defaults", () => {
     ]);
   });
 
-  it("keeps Mission Share as a separate reporting category", () => {
+  it("keeps Mission Share as a source reporting category folded into Operations on the chart", () => {
     expect(MISSION_SHARE_CATEGORY.name).toBe("Team Expansion Mission Share");
+    expect(MISSION_SHARE_CATEGORY.description).toMatch(/Ministry Operations & Stewardship/);
     expect(MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION).toBe("zoam-ministry-allocation/v1");
+    expect(MINISTRY_FUNDING_CHART.explanation).toContain(
+      "Team Expansion Mission Share is included in Ministry Operations & Stewardship",
+    );
+    expect(MINISTRY_FUNDING_CHART.explanation).not.toMatch(/excluded/i);
   });
 
   it("does not hardcode verified funding figures in defaults", () => {

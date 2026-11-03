@@ -254,3 +254,53 @@ export function formatUsd(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+/**
+ * Recalculate investment percentages from cents.
+ * Largest-remainder so displayed percents sum to 100 when total > 0.
+ */
+export function recalculateInvestmentPercents(
+  functions: Array<{ name: string; totalInvestmentCents: number }>,
+): AllocationSlice[] {
+  const total = functions.reduce((s, f) => s + f.totalInvestmentCents, 0);
+  if (total <= 0) {
+    return functions.map((f, i) => ({
+      id: `fn-${i}`,
+      name: f.name,
+      amount: f.totalInvestmentCents / 100,
+      percent: 0,
+    }));
+  }
+
+  const raw = functions.map((f, i) => {
+    const exact = (f.totalInvestmentCents / total) * 100;
+    const floored = Math.floor(exact * 10) / 10;
+    return {
+      id: `fn-${i}`,
+      name: f.name,
+      amount: f.totalInvestmentCents / 100,
+      percent: floored,
+      remainder: exact - floored,
+      cents: f.totalInvestmentCents,
+    };
+  });
+
+  let drift = Math.round((100 - raw.reduce((s, r) => s + r.percent, 0)) * 10) / 10;
+  const byRemainder = [...raw.keys()].sort((a, b) => raw[b]!.remainder - raw[a]!.remainder);
+  let idx = 0;
+  while (drift > 0.049 && idx < byRemainder.length) {
+    const i = byRemainder[idx]!;
+    raw[i]!.percent = Math.round((raw[i]!.percent + 0.1) * 10) / 10;
+    drift = Math.round((drift - 0.1) * 10) / 10;
+    idx++;
+  }
+
+  const sum = raw.reduce((s, r) => s + r.percent, 0);
+  const finalDrift = Math.round((100 - sum) * 10) / 10;
+  if (finalDrift !== 0 && raw.length > 0) {
+    const largest = raw.reduce((best, r, i) => (r.cents > raw[best]!.cents ? i : best), 0);
+    raw[largest]!.percent = Math.round((raw[largest]!.percent + finalDrift) * 10) / 10;
+  }
+
+  return raw.map(({ id, name, amount, percent }) => ({ id, name, amount, percent }));
+}

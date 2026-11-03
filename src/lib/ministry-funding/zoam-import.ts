@@ -3,18 +3,26 @@
  * Percentages are always recalculated from cents — never trusted from the payload.
  */
 
-import type { AllocationSlice } from "./calculations";
+import {
+  recalculateInvestmentPercents,
+  type AllocationSlice,
+} from "./calculations";
+import {
+  derivePublicChartFromZoamSnapshot,
+  OPERATIONS_STEWARDSHIP_FUNCTION_ID,
+} from "./chart-presentation";
 import {
   ZOAM_EXPORT_CURRENCY,
   ZOAM_EXPORT_SOURCE_APPLICATION,
   ZOAM_MINISTRY_ALLOCATION_SCHEMA,
   ZOAM_PRIVACY_FORBIDDEN_KEYS,
-  centsToDollars,
   formatUsdFromCents,
   normalizeFunctionName,
   type ZoamMinistryAllocationV1,
   type ZoamMinistryFunctionV1,
 } from "./zoam-schema";
+
+export { recalculateInvestmentPercents };
 
 export type ZoamImportIssue = {
   severity: "error" | "warning";
@@ -26,8 +34,12 @@ export type ZoamImportPreviewFunction = {
   recordedTimeMinutes: number;
   directExpenseCents: number;
   timeWeightedAllocatedExpenseCents: number;
+  /** Original source investment from the PD snapshot (before Mission Share fold-in). */
+  sourceInvestmentCents: number;
+  /** Display investment after Mission Share is included in Operations. */
   totalInvestmentCents: number;
-  /** Recalculated from totalInvestmentCents; not the payload percentage. */
+  missionShareIncludedCents: number;
+  /** Recalculated from display totals; not the payload percentage. */
   percent: number;
 };
 
@@ -41,11 +53,16 @@ export type ZoamImportPreview = {
   chartSlices: AllocationSlice[];
   missionShareCents: number;
   missionShareIncludedInReportedFinancialTotal: boolean;
+  missionShareFoldedIntoOperations: boolean;
+  /** Public chart total including Mission Share in Operations. */
+  chartTotalInvestmentCents: number;
+  /** Original allocated investment from the snapshot (excludes Mission Share). */
   totalAllocatedInvestmentCents: number;
   reportedMonthlyFinancialTotalCents: number;
   reconciliationStatus: "reconciled";
   calculationWarnings: string[];
   methodology: string;
+  chartPublicationBlockedReason: string | null;
 };
 
 export type ZoamImportCompare = {
@@ -119,54 +136,6 @@ export function zoamSnapshotContainsForbiddenPrivacyKeys(json: string): string[]
     if (re.test(json)) found.push(key);
   }
   return found;
-}
-
-/** Recalculate investment percentages from cents; largest-remainder so they sum to 100 when total > 0. */
-export function recalculateInvestmentPercents(
-  functions: Array<{ name: string; totalInvestmentCents: number }>,
-): AllocationSlice[] {
-  const total = functions.reduce((s, f) => s + f.totalInvestmentCents, 0);
-  if (total <= 0) {
-    return functions.map((f, i) => ({
-      id: `fn-${i}`,
-      name: f.name,
-      amount: centsToDollars(f.totalInvestmentCents),
-      percent: 0,
-    }));
-  }
-
-  const raw = functions.map((f, i) => {
-    const exact = (f.totalInvestmentCents / total) * 100;
-    const floored = Math.floor(exact * 10) / 10;
-    return {
-      id: `fn-${i}`,
-      name: f.name,
-      amount: centsToDollars(f.totalInvestmentCents),
-      percent: floored,
-      remainder: exact - floored,
-      cents: f.totalInvestmentCents,
-    };
-  });
-
-  let drift = Math.round((100 - raw.reduce((s, r) => s + r.percent, 0)) * 10) / 10;
-  const byRemainder = [...raw.keys()].sort((a, b) => raw[b]!.remainder - raw[a]!.remainder);
-  let idx = 0;
-  while (drift > 0.049 && idx < byRemainder.length) {
-    const i = byRemainder[idx]!;
-    raw[i]!.percent = Math.round((raw[i]!.percent + 0.1) * 10) / 10;
-    drift = Math.round((drift - 0.1) * 10) / 10;
-    idx++;
-  }
-
-  // Prefer adjusting the largest slice for any leftover rounding.
-  const sum = raw.reduce((s, r) => s + r.percent, 0);
-  const finalDrift = Math.round((100 - sum) * 10) / 10;
-  if (finalDrift !== 0 && raw.length > 0) {
-    const largest = raw.reduce((best, r, i) => (r.cents > raw[best]!.cents ? i : best), 0);
-    raw[largest]!.percent = Math.round((raw[largest]!.percent + finalDrift) * 10) / 10;
-  }
-
-  return raw.map(({ id, name, amount, percent }) => ({ id, name, amount, percent }));
 }
 
 function canonicalFinancialFingerprint(snapshot: ZoamMinistryAllocationV1): string {
@@ -514,17 +483,16 @@ export function validateZoamMinistryAllocationImport(
     calculationWarnings: (parsed.calculationWarnings as string[]).map(String),
   };
 
-  const chartSlices = recalculateInvestmentPercents(
+  // Source percentages vs payload (informational) — public chart uses presentation fold-in.
+  const sourceSlices = recalculateInvestmentPercents(
     functions.map((f) => ({
       name: f.name,
       totalInvestmentCents: f.totalInvestmentCents,
     })),
   );
-
-  // Warn when payload percentages disagree with recalculated values (informational).
   for (let i = 0; i < functions.length; i++) {
     const supplied = functions[i]!.calculatedInvestmentPercentage;
-    const recalc = chartSlices[i]!.percent;
+    const recalc = sourceSlices[i]!.percent;
     if (Math.abs(supplied - recalc) > 0.6) {
       issues.push(
         warn(
@@ -532,6 +500,23 @@ export function validateZoamMinistryAllocationImport(
         ),
       );
     }
+  }
+
+  const presentation = derivePublicChartFromZoamSnapshot(snapshot);
+  if (!presentation.ok) {
+    issues.push(err(presentation.error));
+  } else if (presentation.missionShareFoldedIntoOperations) {
+    issues.push(
+      warn(
+        `Team Expansion Mission Share (${formatUsdFromCents(presentation.missionShareCents)}) is included in ${presentation.operationsFunctionName} for the public chart (${OPERATIONS_STEWARDSHIP_FUNCTION_ID}).`,
+      ),
+    );
+  } else if (presentation.missionShareAlreadyInSourceTotals && snapshot.missionShare.amountCents > 0) {
+    issues.push(
+      warn(
+        "Mission Share appears already included in function totals; it will not be added again to Ministry Operations & Stewardship.",
+      ),
+    );
   }
 
   const compare = buildCompare(snapshot, existing);
@@ -556,8 +541,58 @@ export function validateZoamMinistryAllocationImport(
     issues.push(warn(`PD calculator: ${w}`));
   }
 
-  if (issues.some((i) => i.severity === "error")) {
+  // Missing Operations mapping is a chart-publication blocker, but still allow Apply to Draft
+  // so the original snapshot can be stored. Soften the presentation error to keep import ok.
+  const chartBlocked =
+    !presentation.ok
+      ? presentation.error
+      : null;
+  const hardErrors = issues.filter(
+    (i) =>
+      i.severity === "error" &&
+      (!chartBlocked || i.message !== chartBlocked),
+  );
+  if (hardErrors.length > 0) {
     return { ok: false, issues, preview: null, snapshot: null, compare };
+  }
+  // Keep chart mapping failure as a warning so Apply still works; publication stays blocked.
+  if (chartBlocked) {
+    const idx = issues.findIndex((i) => i.severity === "error" && i.message === chartBlocked);
+    if (idx >= 0) issues[idx] = warn(chartBlocked);
+  }
+
+  if (!presentation.ok) {
+    // Preview still shows source function rows without a publishable chart.
+    const preview: ZoamImportPreview = {
+      reportingMonth: snapshot.reportingMonth,
+      reportingMonthLabel: snapshot.reportingMonthLabel,
+      exportedAt: snapshot.exportedAt,
+      sourceApplication: snapshot.sourceApplication,
+      schemaVersion: snapshot.schemaVersion,
+      functions: functions.map((f) => ({
+        name: f.name,
+        recordedTimeMinutes: f.recordedTimeMinutes,
+        directExpenseCents: f.directExpenseCents,
+        timeWeightedAllocatedExpenseCents: f.timeWeightedAllocatedExpenseCents,
+        sourceInvestmentCents: f.totalInvestmentCents,
+        totalInvestmentCents: f.totalInvestmentCents,
+        missionShareIncludedCents: 0,
+        percent: 0,
+      })),
+      chartSlices: [],
+      missionShareCents: snapshot.missionShare.amountCents,
+      missionShareIncludedInReportedFinancialTotal:
+        snapshot.missionShare.includedInReportedFinancialTotal,
+      missionShareFoldedIntoOperations: false,
+      chartTotalInvestmentCents: snapshot.totalAllocatedInvestmentCents,
+      totalAllocatedInvestmentCents: snapshot.totalAllocatedInvestmentCents,
+      reportedMonthlyFinancialTotalCents: snapshot.reportedMonthlyFinancialTotalCents,
+      reconciliationStatus: "reconciled",
+      calculationWarnings: snapshot.calculationWarnings,
+      methodology: snapshot.allocationMethodology,
+      chartPublicationBlockedReason: chartBlocked,
+    };
+    return { ok: true, snapshot, preview, issues, compare };
   }
 
   const preview: ZoamImportPreview = {
@@ -566,23 +601,31 @@ export function validateZoamMinistryAllocationImport(
     exportedAt: snapshot.exportedAt,
     sourceApplication: snapshot.sourceApplication,
     schemaVersion: snapshot.schemaVersion,
-    functions: functions.map((f, i) => ({
-      name: f.name,
-      recordedTimeMinutes: f.recordedTimeMinutes,
-      directExpenseCents: f.directExpenseCents,
-      timeWeightedAllocatedExpenseCents: f.timeWeightedAllocatedExpenseCents,
-      totalInvestmentCents: f.totalInvestmentCents,
-      percent: chartSlices[i]!.percent,
-    })),
-    chartSlices,
+    functions: presentation.functions.map((row, i) => {
+      const source = functions[i]!;
+      return {
+        name: row.name,
+        recordedTimeMinutes: source.recordedTimeMinutes,
+        directExpenseCents: source.directExpenseCents,
+        timeWeightedAllocatedExpenseCents: source.timeWeightedAllocatedExpenseCents,
+        sourceInvestmentCents: row.sourceInvestmentCents,
+        totalInvestmentCents: row.displayInvestmentCents,
+        missionShareIncludedCents: row.missionShareIncludedCents,
+        percent: row.percent,
+      };
+    }),
+    chartSlices: presentation.slices,
     missionShareCents: snapshot.missionShare.amountCents,
     missionShareIncludedInReportedFinancialTotal:
       snapshot.missionShare.includedInReportedFinancialTotal,
+    missionShareFoldedIntoOperations: presentation.missionShareFoldedIntoOperations,
+    chartTotalInvestmentCents: presentation.chartTotalCents,
     totalAllocatedInvestmentCents: snapshot.totalAllocatedInvestmentCents,
     reportedMonthlyFinancialTotalCents: snapshot.reportedMonthlyFinancialTotalCents,
     reconciliationStatus: "reconciled",
     calculationWarnings: snapshot.calculationWarnings,
     methodology: snapshot.allocationMethodology,
+    chartPublicationBlockedReason: null,
   };
 
   return { ok: true, snapshot, preview, issues, compare };
