@@ -40,22 +40,44 @@ export default async function PrivacyPage() {
         </li>
         <li>
           <strong>Device/usage:</strong> Hosting provider may collect basic server logs. We collect
-          page view data (path, referrer, hashed IP) for internal traffic stats. We do not use
-          third-party analytics or marketing cookies.
+          first-party analytics for internal ministry and site improvement: page paths, referrer
+          (when present), a salted hash of IP address (for approximate unique-visitor estimates —
+          not a personal identity), short-lived tab session identifiers stored in browser
+          session storage (not a persistent cookie), coarse engagement signals (scroll depth
+          thresholds and active-time buckets while the tab is visible and focused), and
+          allowlisted ministry CTA events (for example Partner With Us or giving-link clicks).
+          We may label traffic as likely human, unverified, or likely bot using request and
+          engagement signals; these labels are estimates, not proof of personhood. We do not use
+          third-party analytics, marketing pixels, session replay, keystroke logging, precise
+          mouse tracking, fingerprints, or payment/donation amounts in analytics.
         </li>
       </ul>
 
       <h2>How We Use Your Information</h2>
-      <p>To process orders, communicate with you, provide support, prevent fraud, and comply with law.</p>
+      <p>
+        To process orders, communicate with you, provide support, prevent fraud, understand
+        aggregate storefront traffic and ministry CTA interest, and comply with law.
+      </p>
 
       <h2>Service Providers</h2>
       <p>We share data with Stripe (payments), Printify (fulfillment), Vercel (hosting), and Resend (email). See their privacy policies for details. We do not sell your information.</p>
 
-      <h2>Cookies</h2>
-      <p>We use essential cookies for sessions and cart persistence. No marketing cookies.</p>
+      <h2>Cookies &amp; local storage</h2>
+      <p>
+        We use essential cookies for sessions and cart persistence. Short-lived analytics session
+        identifiers use browser session storage (cleared when the tab/session ends) and are not
+        marketing cookies. No third-party analytics or marketing cookies. If your browser sends a
+        Do Not Track signal, we skip engagement and CTA analytics events; basic first-party page
+        view recording for site operations may still occur and is labeled unverified unless other
+        server-side signals apply.
+      </p>
 
       <h2>Data Retention</h2>
-      <p>We retain data as needed for orders, support, and legal compliance. Request deletion at {supportEmail}.</p>
+      <p>
+        We retain order and account data as needed for orders, support, and legal compliance.
+        First-party analytics events and sessions are kept only as long as operationally useful
+        (target about 90 days) and then deleted. Request deletion at {supportEmail}.
+      </p>
 
       <h2>Your Rights</h2>
       <p>Contact {supportEmail} for access, correction, or deletion requests.</p>

@@ -111,6 +111,7 @@ function PartnerWithUsCta({
     >
       <GivingLink
         href={href}
+        analyticsEvent="partner_with_us_click"
         className={cn(
           storefrontButtonClasses("primary"),
           "gap-2 px-8 sm:px-10 max-w-full text-center whitespace-normal sm:whitespace-nowrap",

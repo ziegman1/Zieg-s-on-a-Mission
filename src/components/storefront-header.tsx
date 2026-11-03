@@ -24,6 +24,7 @@ import {
   type NavLabelOverrides,
   type GetInvolvedNavItem,
 } from "@/data/storefront-navigation";
+import { trackStorefrontNavCta } from "@/lib/analytics/nav-cta";
 import { MERCH_STORE_ENABLED } from "@/data/shop-config";
 import { cn } from "@/lib/utils";
 
@@ -205,7 +206,12 @@ export function StorefrontHeader({
       ))}
       {getInvolvedDropdownDesktop}
       {navAfterGetInvolved.map((item) => (
-        <Link key={item.href} href={item.href} className={NAV_LINK_CLASS}>
+        <Link
+          key={item.href}
+          href={item.href}
+          className={NAV_LINK_CLASS}
+          onClick={() => trackStorefrontNavCta(item.href)}
+        >
           {navLabel(item.href, item.label, labelOverrides)}
         </Link>
       ))}
@@ -291,7 +297,10 @@ export function StorefrontHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={closeMobile}
+                onClick={() => {
+                  trackStorefrontNavCta(item.href);
+                  closeMobile();
+                }}
                 className="rounded-lg px-3 py-2.5 text-white hover:bg-white/10"
               >
                 {navLabel(item.href, item.label, labelOverrides)}

@@ -347,9 +347,62 @@ model PageView {
   referrer  String?  // full referrer URL or null
   visitorId String?  // hashed identifier for unique visitor count (privacy-safe)
   createdAt DateTime @default(now())
+  /// Ephemeral tab session id (UUID). Null on legacy rows.
+  sessionId String?
+  /// likely_human | likely_bot | unverified. Null = historical unverified.
+  trafficClass String?
+  /// ua | engagement | combined
+  classSource String?
+  /// Short signal codes, e.g. "ua:googlebot,eng:scroll50"
+  classSignals String?
+  /// browser | bot | automation | unknown — never a raw User-Agent string
+  uaCategory String?
 
   @@index([createdAt])
   @@index([path])
+  @@index([createdAt, trafficClass])
+  @@index([sessionId, createdAt])
+}
+
+/// Short-lived first-party analytics session (tab-scoped client UUID).
+model AnalyticsSession {
+  id             String   @id @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt     DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  trafficClass   String   @default("unverified") @map("traffic_class")
+  classSource    String?  @map("class_source")
+  classSignals   String?  @map("class_signals")
+  uaCategory     String?  @map("ua_category")
+  engaged        Boolean  @default(false)
+  maxScrollDepth Int      @default(0) @map("max_scroll_depth")
+  activeMs       Int      @default(0) @map("active_ms")
+  landingPath    String?  @map("landing_path")
+
+  events AnalyticsEvent[]
+
+  @@index([createdAt])
+  @@index([lastSeenAt])
+  @@index([trafficClass, createdAt])
+  @@map("analytics_sessions")
+}
+
+/// Allowlisted engagement / CTA events for a session.
+model AnalyticsEvent {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId    String   @map("session_id") @db.Uuid
+  eventType    String   @map("event_type")
+  path         String
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  trafficClass String?  @map("traffic_class")
+
+  session AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([path, createdAt])
+  @@map("analytics_events")
 }
 
 // ——— Editable storefront copy (admin) ———

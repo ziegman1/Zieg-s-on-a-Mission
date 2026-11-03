@@ -12,7 +12,7 @@ export const LEGAL_CONFIG = {
     "Zieg's on a Mission <orders@ziegsonamission.com>",
 
   /** Privacy Policy effective date (YYYY-MM-DD) */
-  privacyEffectiveDate: "2026-03-09",
+  privacyEffectiveDate: "2026-11-03",
 
   /** Terms of Service effective date (YYYY-MM-DD) */
   termsEffectiveDate: "2026-03-09",
@@ -37,7 +37,10 @@ export const LEGAL_CONFIG = {
 } as const;
 
 /**
- * TODO: If you add analytics (e.g., Google Analytics, Plausible) or marketing cookies,
- * implement a cookie consent banner and update the Privacy Policy accordingly.
- * Currently the site uses only essential session/cart cookies.
+ * Analytics note: first-party page views use short-lived sessionStorage session IDs
+ * (disclosed in Privacy Policy). Optional engagement/CTA tracking is gated by
+ * NEXT_PUBLIC_ANALYTICS_ENGAGEMENT_ENABLED and must not be enabled until a consent
+ * posture is decided for applicable jurisdictions. No consent banner is implemented.
+ * If you add third-party marketing/analytics cookies, implement a consent banner and
+ * update the Privacy Policy. Essential session/cart cookies remain unchanged.
  */

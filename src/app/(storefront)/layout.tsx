@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { GivingLink } from "@/components/giving-link";
+import { GivingLink, StorefrontHrefLink } from "@/components/giving-link";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { StorefrontHeader } from "@/components/storefront-header";
 import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
@@ -71,9 +71,13 @@ export default async function StorefrontLayout({
                   );
                 }
                 return (
-                  <Link key={`${href}-${label}`} href={resolvedHref} className={className}>
+                  <StorefrontHrefLink
+                    key={`${href}-${label}`}
+                    href={resolvedHref}
+                    className={className}
+                  >
                     {label}
-                  </Link>
+                  </StorefrontHrefLink>
                 );
               })}
               {FOOTER_LEGAL.map(({ href, label }) => (
