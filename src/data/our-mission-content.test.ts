@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   OUR_MISSION_AVENUES,
   OUR_MISSION_BEYOND,
+  OUR_MISSION_CLOSING_CTA,
   OUR_MISSION_CTAS,
   OUR_MISSION_FUNCTIONS,
   OUR_MISSION_HERO,
@@ -60,8 +61,13 @@ describe("our mission framework", () => {
     expect(JSON.stringify(OUR_MISSION_AVENUES)).not.toMatch(/\b(email|database|ministry_people)\b/i);
   });
 
-  it("uses existing destinations and the canonical tracker", () => {
-    expect(OUR_MISSION_CTAS.map((cta) => cta.href)).toEqual(["/ministry-funding", "/contact"]);
+  it("uses a single Ministry Funding closing CTA and the canonical tracker", () => {
+    expect(OUR_MISSION_CLOSING_CTA).toEqual({
+      href: "/ministry-funding",
+      label: "See How You Can Make a Difference",
+    });
+    expect(OUR_MISSION_CTAS).toHaveLength(1);
+    expect(OUR_MISSION_CTAS[0]).toEqual(OUR_MISSION_CLOSING_CTA);
     const page = readFileSync(
       resolve(process.cwd(), "src/app/(storefront)/our-mission/page.tsx"),
       "utf8",
@@ -78,6 +84,8 @@ describe("our mission framework", () => {
     expect(view).toContain("trainedLabel={trainedLabel}");
     expect(view).toContain("Progress totals are temporarily unavailable.");
     expect(view).toContain("intentionally not EditableElements");
+    expect(view).toContain('"/ministry-funding"');
+    expect(view).toContain("ArrowRight");
     expect(view).not.toContain("How We Measure Progress");
     expect(view).not.toContain("<details");
     expect(view).not.toContain("/our-impact");

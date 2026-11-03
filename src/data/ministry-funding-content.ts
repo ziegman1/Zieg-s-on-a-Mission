@@ -6,6 +6,8 @@
  * Future PD Coaching OS imports should map into this shape (see transfer schema types).
  */
 
+import { CANONICAL_GIVING_URL } from "@/data/giving";
+
 export const MINISTRY_FUNDING_META = {
   title: "Ministry Funding & Partnership",
   description:
@@ -58,7 +60,7 @@ export const MINISTRY_FUNDING_INVITATION = {
   title: "YOUR PARTNERSHIP MAKES THIS POSSIBLE.",
   body: "Together, we're mobilizing, training, and sending 300 more workers by August 31, 2031, for the sake of reaching the unreached.",
   primaryCtaLabel: "Become a Financial Partner",
-  primaryCtaUrl: "/give",
+  primaryCtaUrl: CANONICAL_GIVING_URL,
 } as const;
 
 export const MINISTRY_FUNDING_INVITATION_BODY_LEGACY = [

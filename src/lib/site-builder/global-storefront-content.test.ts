@@ -139,6 +139,9 @@ describe("resolveStorefrontShellContent", () => {
     expect(shell.footerBlurb.value).toContain("Serving with Team Expansion");
     expect(shell.siteName.value).toBe("Custom Site Name");
     expect(shell.giveNow.value.label).toBe("Give Today");
+    expect(shell.giveNow.value.href).toBe(
+      "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
+    );
     expect(shell.getInvolved.value.label).toBe("Join Us");
     expect(shell.footerNavLinks.value[0]?.label).toBe("Custom Home");
     expect(shell.footerNavLinks.value.some((link) => link.href === "/our-mission")).toBe(true);

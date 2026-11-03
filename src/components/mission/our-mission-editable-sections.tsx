@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import type { PageSection } from "@/lib/site-builder/types";
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import {
@@ -270,9 +271,9 @@ export function OurMissionTextEditable({
     ? sortedListItems(c.bullets, { includeHidden: true })
     : visibleListItems(c.bullets);
   const primary = contentStr(c, "primaryCtaLabel");
-  const primaryUrl = contentStr(c, "primaryCtaUrl") || "/partner";
+  const primaryUrl = contentStr(c, "primaryCtaUrl") || "/ministry-funding";
   const secondary = contentStr(c, "secondaryCtaLabel");
-  const secondaryUrl = contentStr(c, "secondaryCtaUrl") || "/contact";
+  const secondaryUrl = contentStr(c, "secondaryCtaUrl");
 
   const isAvenue = Boolean(section.settings?.ourMissionAvenue);
   const isInvitation = variant === "invitation" || section.sectionType === "cta";
@@ -380,7 +381,7 @@ export function OurMissionTextEditable({
       ) : null}
 
       {isInvitation && (primary.trim() || secondary.trim() || ctx?.editMode) ? (
-        <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+        <div className="mt-10 flex flex-col items-center justify-center gap-3">
           {(primary.trim() || ctx?.editMode) && (
             <EditableElement
               sectionId={section.id}
@@ -389,12 +390,19 @@ export function OurMissionTextEditable({
               layout="inline"
               styleOnWrapper={false}
             >
-              <Link href={primaryUrl} className={storefrontButtonClasses("primary")}>
-                {primary.trim() || (ctx?.editMode ? "Primary CTA" : "")}
+              <Link
+                href={primaryUrl}
+                className={cn(
+                  storefrontButtonClasses("primary"),
+                  "gap-2 px-8 sm:px-10 max-w-full text-center whitespace-normal sm:whitespace-nowrap",
+                )}
+              >
+                <span>{primary.trim() || (ctx?.editMode ? "Primary CTA" : "")}</span>
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
               </Link>
             </EditableElement>
           )}
-          {(secondary.trim() || ctx?.editMode) && (
+          {secondary.trim() ? (
             <EditableElement
               sectionId={section.id}
               elementId="cta:secondary"
@@ -402,11 +410,14 @@ export function OurMissionTextEditable({
               layout="inline"
               styleOnWrapper={false}
             >
-              <Link href={secondaryUrl} className={storefrontButtonClasses("secondary")}>
-                {secondary.trim() || (ctx?.editMode ? "Secondary CTA" : "")}
+              <Link
+                href={secondaryUrl || "/contact"}
+                className={storefrontButtonClasses("secondary")}
+              >
+                {secondary.trim()}
               </Link>
             </EditableElement>
-          )}
+          ) : null}
         </div>
       ) : null}
 

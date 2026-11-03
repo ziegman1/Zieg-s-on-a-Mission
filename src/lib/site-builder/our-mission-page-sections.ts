@@ -10,7 +10,8 @@ import {
   OUR_MISSION_AVENUES,
   OUR_MISSION_AVENUES_TITLE,
   OUR_MISSION_BEYOND,
-  OUR_MISSION_CTAS,
+  OUR_MISSION_CLOSING_CTA,
+  OUR_MISSION_CTA_LEGACY,
   OUR_MISSION_FUNCTIONS,
   OUR_MISSION_FUNCTIONS_TITLE,
   OUR_MISSION_HERO,
@@ -200,10 +201,10 @@ export function defaultOurMissionEditableSections(): PageSection[] {
     sec("invitation", "cta", "Invitation & CTAs", {
       headline: OUR_MISSION_INVITATION.title,
       body: OUR_MISSION_INVITATION.paragraphs.join("\n\n"),
-      primaryCtaLabel: OUR_MISSION_CTAS[0]?.label ?? "Partner With Us",
-      primaryCtaUrl: OUR_MISSION_CTAS[0]?.href ?? "/partner",
-      secondaryCtaLabel: OUR_MISSION_CTAS[1]?.label ?? "Explore Opportunities to Serve",
-      secondaryCtaUrl: OUR_MISSION_CTAS[1]?.href ?? "/contact",
+      primaryCtaLabel: OUR_MISSION_CLOSING_CTA.label,
+      primaryCtaUrl: OUR_MISSION_CLOSING_CTA.href,
+      secondaryCtaLabel: "",
+      secondaryCtaUrl: "",
     }),
   ].map((section, index) => ({ ...section, sortOrder: index }));
 }
@@ -254,16 +255,36 @@ export function migrateOurMissionFullEditSections(sections: PageSection[]): {
       };
       changed = true;
     }
-    // Retarget default Partner CTA to Ministry Funding (preserve custom destinations).
-    if (
-      (row.sectionKey === "invitation" || row.sectionType === "cta") &&
-      String(row.content?.primaryCtaUrl ?? "").trim() === "/partner"
-    ) {
-      row = {
-        ...row,
-        content: { ...row.content, primaryCtaUrl: "/ministry-funding" },
-      };
-      changed = true;
+    // Simplify legacy dual closing CTAs → single Ministry Funding CTA (preserve custom copy/URLs).
+    if (row.sectionKey === "invitation" || row.sectionType === "cta") {
+      let nextContent = row.content;
+      const primaryLabel = String(row.content?.primaryCtaLabel ?? "").trim();
+      const primaryUrl = String(row.content?.primaryCtaUrl ?? "").trim();
+      const secondaryLabel = String(row.content?.secondaryCtaLabel ?? "").trim();
+      const secondaryUrl = String(row.content?.secondaryCtaUrl ?? "").trim();
+
+      if (primaryUrl === "/partner") {
+        nextContent = { ...nextContent, primaryCtaUrl: OUR_MISSION_CLOSING_CTA.href };
+        changed = true;
+      }
+      if (primaryLabel === OUR_MISSION_CTA_LEGACY.primaryLabel) {
+        nextContent = { ...nextContent, primaryCtaLabel: OUR_MISSION_CLOSING_CTA.label };
+        changed = true;
+      }
+      if (secondaryLabel === OUR_MISSION_CTA_LEGACY.secondaryLabel) {
+        nextContent = { ...nextContent, secondaryCtaLabel: "", secondaryCtaUrl: "" };
+        changed = true;
+      } else if (
+        !secondaryLabel &&
+        secondaryUrl === OUR_MISSION_CTA_LEGACY.secondaryUrl
+      ) {
+        // Orphan legacy URL with no custom label.
+        nextContent = { ...nextContent, secondaryCtaUrl: "" };
+        changed = true;
+      }
+      if (nextContent !== row.content) {
+        row = { ...row, content: nextContent };
+      }
     }
     next.push(row);
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { GivingLink } from "@/components/giving-link";
 import { contentStr, fieldVisible, sortedListItems, visibleListItems } from "@/lib/site-builder/content-utils";
 import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
@@ -182,9 +183,9 @@ export function TextSectionNavLinks() {
       <Link href="/partner" className="text-brand-primary font-medium hover:underline">
         Become a partner →
       </Link>
-      <Link href="/give" className="text-brand-primary font-medium hover:underline">
+      <GivingLink className="text-brand-primary font-medium hover:underline">
         Give
-      </Link>
+      </GivingLink>
     </nav>
   );
 }

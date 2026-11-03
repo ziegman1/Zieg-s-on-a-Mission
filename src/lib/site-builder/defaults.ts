@@ -1,5 +1,7 @@
 import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
 import { DEFAULT_GIVE_TIERS } from "@/data/give-page-tiers";
+import { CANONICAL_GIVING_URL } from "@/data/giving";
+import { getMonthlyGivingHref, getOneTimeGivingHref } from "@/data/partnership-content";
 import { giveTierCardItems } from "@/lib/site-builder/give-page-sections";
 import {
   ADVOCACY_TEAM_BENEFITS,
@@ -209,7 +211,7 @@ function defaultHomeSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       primaryCtaLabel: "Partner",
       primaryCtaUrl: "/partner",
       secondaryCtaLabel: "Give",
-      secondaryCtaUrl: "/give",
+      secondaryCtaUrl: CANONICAL_GIVING_URL,
     }),
     sec("home", "pathways", "card_grid", "Pathway cards", {
       headline: c.home.featuredTitle,
@@ -490,8 +492,8 @@ function defaultAdvocacyTeamSections(): PageSection[] {
 
 function defaultGiveSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
   const p = c.givePage;
-  const monthlyHref = "/contact";
-  const oneTimeHref = "/contact";
+  const monthlyHref = getMonthlyGivingHref();
+  const oneTimeHref = getOneTimeGivingHref();
   return [
     sec("give", "header", "text_section", "Header", {
       eyebrow: p.kicker,
@@ -551,7 +553,7 @@ function defaultMerchSections(c: typeof DEFAULT_SITE_COPY): PageSection[] {
       primaryCtaLabel: p.ctaPartner,
       primaryCtaUrl: "/partner",
       secondaryCtaLabel: p.ctaGive,
-      secondaryCtaUrl: "/give",
+      secondaryCtaUrl: CANONICAL_GIVING_URL,
     }),
   ];
 }

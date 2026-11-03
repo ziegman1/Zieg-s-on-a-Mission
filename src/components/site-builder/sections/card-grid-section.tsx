@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import type { CSSProperties } from "react";
+import { StorefrontHrefLink } from "@/components/giving-link";
 import { Card, CardContent } from "@/components/ui/card";
 import { contentStr, sortedListItems, visibleListItems } from "@/lib/site-builder/content-utils";
 import { getFieldStyle } from "@/lib/site-builder/content-utils";
@@ -75,12 +75,12 @@ function renderGiveAmountCard(
 
   if (!editMode && href) {
     return (
-      <Link
+      <StorefrontHrefLink
         href={href}
         className="block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
       >
         {cardInner}
-      </Link>
+      </StorefrontHrefLink>
     );
   }
 
@@ -169,12 +169,12 @@ export function CardGridSection({ section }: { section: PageSection }) {
           className="mt-2 text-sm text-brand-ink/75"
         />
         {card.metadata?.href && card.metadata?.cta ? (
-          <Link
+          <StorefrontHrefLink
             href={String(card.metadata.href)}
             className="mt-3 inline-block text-sm text-brand-primary font-medium"
           >
             {String(card.metadata.cta)}
-          </Link>
+          </StorefrontHrefLink>
         ) : null}
       </div>
     );

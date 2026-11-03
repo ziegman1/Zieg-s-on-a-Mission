@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { StorefrontHrefLink } from "@/components/giving-link";
 import { contentStr, fieldVisible, getFieldStyle } from "@/lib/site-builder/content-utils";
 import { buttonClassesFromStyle } from "@/lib/site-builder/element-style-utils";
 import type { PageSection } from "@/lib/site-builder/types";
@@ -45,9 +45,9 @@ function TextSectionCtaButton({
       layout="inline"
       styleOnWrapper={false}
     >
-      <Link href={url} data-slot="button" className={className}>
+      <StorefrontHrefLink href={url} data-slot="button" className={className}>
         {label}
-      </Link>
+      </StorefrontHrefLink>
     </EditableElement>
   );
 }

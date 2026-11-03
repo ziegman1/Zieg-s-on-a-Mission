@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Gift, HandHeart, Heart, Users } from "lucide-react";
+import { GivingLink, StorefrontHrefLink } from "@/components/giving-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getMonthlyGivingHref, getOneTimeGivingHref } from "@/data/partnership-content";
@@ -43,7 +44,7 @@ async function LegacyPartnerPage() {
               asChild
               className="rounded-full px-8 h-12 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold shadow-md"
             >
-              <Link href={monthlyHref}>{p.primaryCtaLabel}</Link>
+              <GivingLink href={monthlyHref}>{p.primaryCtaLabel}</GivingLink>
             </Button>
             <Button
               asChild
@@ -101,7 +102,7 @@ async function LegacyPartnerPage() {
                       variant="outline"
                       className="mt-6 w-full rounded-full border-brand-primary/40"
                     >
-                      <Link href={way.href}>{way.ctaLabel}</Link>
+                      <StorefrontHrefLink href={way.href}>{way.ctaLabel}</StorefrontHrefLink>
                     </Button>
                   </CardContent>
                 </Card>
@@ -217,13 +218,13 @@ async function LegacyPartnerPage() {
               asChild
               className="rounded-full px-8 h-12 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold"
             >
-              <Link href={monthlyHref}>{p.finalPrimaryCtaLabel}</Link>
+              <GivingLink href={monthlyHref}>{p.finalPrimaryCtaLabel}</GivingLink>
             </Button>
             <Button asChild variant="outline" className="rounded-full px-8 h-12 border-brand-primary/50 bg-white/90">
               <Link href="/advocacy-team">{p.finalSecondaryCtaLabel}</Link>
             </Button>
             <Button asChild variant="ghost" className="rounded-full px-6 text-brand-ink/90">
-              <Link href={oneTimeHref}>{p.finalOneTimeCtaLabel}</Link>
+              <GivingLink href={oneTimeHref}>{p.finalOneTimeCtaLabel}</GivingLink>
             </Button>
             <Button asChild variant="ghost" className="rounded-full px-6 text-brand-ink">
               <Link href="/contact">{p.finalContactCtaLabel}</Link>

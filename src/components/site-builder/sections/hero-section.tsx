@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Dancing_Script } from "next/font/google";
+import { StorefrontHrefLink } from "@/components/giving-link";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
+import { CANONICAL_GIVING_URL } from "@/data/giving";
 import { contentStr, fieldVisible, getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
 import { cn } from "@/lib/utils";
@@ -58,9 +59,9 @@ function HeroButton({
       styleOnWrapper={false}
     >
       <div className={cn("inline-block", wrapCls)} style={wrapStyle}>
-        <Link href={url} data-slot="button" className={btnCls}>
+        <StorefrontHrefLink href={url} data-slot="button" className={btnCls}>
           {label}
-        </Link>
+        </StorefrontHrefLink>
       </div>
     </EditableElement>
   );
@@ -85,9 +86,11 @@ export function HeroSection({
   const primaryLabel = contentStr(c, "primaryCtaLabel");
   const primaryUrl = contentStr(c, "primaryCtaUrl") || "/partner";
   const secondaryLabel = contentStr(c, "secondaryCtaLabel");
-  const secondaryUrl = contentStr(c, "secondaryCtaUrl") || (section.pageKey === "home" ? "/mission" : "/give");
+  const secondaryUrl =
+    contentStr(c, "secondaryCtaUrl") ||
+    (section.pageKey === "home" ? "/mission" : CANONICAL_GIVING_URL);
   const tertiaryLabel = contentStr(c, "tertiaryCtaLabel");
-  const tertiaryUrl = contentStr(c, "tertiaryCtaUrl") || "/give";
+  const tertiaryUrl = contentStr(c, "tertiaryCtaUrl") || CANONICAL_GIVING_URL;
 
   const isHome = section.pageKey === "home";
   const imgStyle = getFieldStyle(c, "image");

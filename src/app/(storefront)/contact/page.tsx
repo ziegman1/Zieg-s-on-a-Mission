@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GivingLink } from "@/components/giving-link";
 import { LegalPageShell } from "../legal/page-shell";
 import { getSiteCopy } from "@/lib/site-copy";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
@@ -30,12 +31,9 @@ async function LegacyContactPage() {
         >
           Become a Monthly Partner
         </Link>
-        <Link
-          href="/give"
-          className="inline-flex rounded-full border border-brand-primary/40 px-5 py-2 text-sm font-medium text-brand-ink hover:border-brand-primary/60"
-        >
+        <GivingLink className="inline-flex rounded-full border border-brand-primary/40 px-5 py-2 text-sm font-medium text-brand-ink hover:border-brand-primary/60">
           Give
-        </Link>
+        </GivingLink>
       </p>
 
       <h2>Support Email</h2>

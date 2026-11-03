@@ -1,3 +1,5 @@
+import { CANONICAL_GIVING_URL } from "@/data/giving";
+
 export type HomeGuidedSectionRow = {
   id: string;
   href: string;
@@ -36,7 +38,7 @@ export const DEFAULT_HOME_GUIDED_SECTIONS: HomeGuidedSectionRow[] = [
   },
   {
     id: "give",
-    href: "/give",
+    href: CANONICAL_GIVING_URL,
     title: "Give",
     body: "Every step forward in this mission happens because people choose to be part of it. Whether it’s a one-time gift or something ongoing, each contribution helps us continue showing up where God is opening doors. No pressure — just a way to participate if and when it makes sense for you.",
     ctaLabel: "Make a gift →",

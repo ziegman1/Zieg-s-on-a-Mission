@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CANONICAL_GIVING_URL } from "@/data/giving";
 import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
 
 const navLen = DEFAULT_SITE_COPY.navLinks.length;
@@ -76,7 +77,7 @@ export const siteCopySaveSchema = z.object({
     closingPrimaryCtaLabel: z.string().max(120).optional().default(""),
     closingPrimaryCtaUrl: z.string().max(500).optional().default("/partner"),
     closingSecondaryCtaLabel: z.string().max(120).optional().default(""),
-    closingSecondaryCtaUrl: z.string().max(500).optional().default("/give"),
+    closingSecondaryCtaUrl: z.string().max(500).optional().default(CANONICAL_GIVING_URL),
     closingTertiaryCtaLabel: z.string().max(120).optional().default(""),
     closingTertiaryCtaUrl: z.string().max(500).optional().default("/contact"),
   }),

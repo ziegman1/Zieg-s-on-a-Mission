@@ -3,6 +3,8 @@
  * Header uses dropdown grouping; footer includes engagement and giving links.
  */
 
+import { CANONICAL_GIVING_URL } from "@/data/giving";
+
 export type StorefrontNavLink = {
   href: string;
   label: string;
@@ -57,7 +59,7 @@ export const GET_INVOLVED_NAV = {
 };
 
 export const GIVE_NOW_NAV: StorefrontNavLink = {
-  href: "/give",
+  href: CANONICAL_GIVING_URL,
   label: "Give Now",
 };
 
@@ -71,7 +73,7 @@ export const STOREFRONT_FOOTER_NAV: StorefrontNavLink[] = [
   { href: "/community", label: "Community" },
   { href: "/blog", label: "Blog" },
   { href: "/merch", label: "Merch" },
-  { href: "/give", label: "Give" },
+  { href: CANONICAL_GIVING_URL, label: "Give" },
   { href: "/contact", label: "Contact" },
 ];
 

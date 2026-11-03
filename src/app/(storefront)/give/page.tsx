@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GivingLink } from "@/components/giving-link";
 import { Button } from "@/components/ui/button";
 import { getMonthlyGivingHref, getOneTimeGivingHref } from "@/data/partnership-content";
 import { getSiteCopy } from "@/lib/site-copy";
@@ -39,7 +40,7 @@ async function LegacyGivePage() {
             asChild
             className="rounded-full px-8 h-12 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold shadow-md"
           >
-            <Link href={monthlyHref}>{g.startMonthlyCta}</Link>
+            <GivingLink href={monthlyHref}>{g.startMonthlyCta}</GivingLink>
           </Button>
           <Button asChild variant="outline" className="rounded-full px-6 border-brand-primary/45">
             <Link href="/partner">{g.learnPartnerCta}</Link>
@@ -65,7 +66,7 @@ async function LegacyGivePage() {
         </ul>
         <div className="mt-8 flex justify-center sm:justify-start">
           <Button asChild className="rounded-full bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold">
-            <Link href={monthlyHref}>{g.becomeMonthlyCta}</Link>
+            <GivingLink href={monthlyHref}>{g.becomeMonthlyCta}</GivingLink>
           </Button>
         </div>
       </section>
@@ -88,7 +89,7 @@ async function LegacyGivePage() {
           variant="outline"
           className="mt-8 rounded-full px-8 h-11 border-brand-primary/50 text-brand-ink"
         >
-          <Link href={oneTimeHref}>{g.oneTimeCta}</Link>
+          <GivingLink href={oneTimeHref}>{g.oneTimeCta}</GivingLink>
         </Button>
       </section>
 

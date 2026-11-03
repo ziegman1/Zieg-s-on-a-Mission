@@ -182,7 +182,7 @@ export function SiteCopyEditor({ initialCopy }: { initialCopy: SiteCopy }) {
                 }
               />
             </Field>
-            <Field label="Secondary button (→ /give)">
+            <Field label="Secondary button label">
               <Input
                 value={copy.homeHero.secondaryCtaLabel}
                 onChange={(e) =>

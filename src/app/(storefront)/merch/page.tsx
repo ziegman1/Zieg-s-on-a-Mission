@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GivingLink } from "@/components/giving-link";
 import { Button } from "@/components/ui/button";
 import { getSiteCopy } from "@/lib/site-copy";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
@@ -49,7 +50,7 @@ async function LegacyMerchPage() {
           <Link href="/partner">{m.ctaPartner}</Link>
         </Button>
         <Button asChild variant="outline" className="rounded-full px-7 h-12 border-brand-primary/45">
-          <Link href="/give">{m.ctaGive}</Link>
+          <GivingLink>{m.ctaGive}</GivingLink>
         </Button>
         <Button asChild variant="ghost" className="rounded-full text-brand-primary">
           <Link href="/contact">{m.ctaContact}</Link>

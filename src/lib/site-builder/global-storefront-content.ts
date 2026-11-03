@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { resolveGivingHref } from "@/data/giving";
 import { DEFAULT_SITE_COPY } from "@/data/site-copy-defaults";
 import {
   GET_INVOLVED_NAV,
@@ -328,7 +329,9 @@ export const resolveStorefrontShellContent = cache(async (): Promise<ResolvedSto
       "headline",
       contentStr(giveNowContent, "headline"),
     );
-  const giveNowHref = contentStr(giveNowContent, "primaryCtaUrl").trim() || GIVE_NOW_NAV.href;
+  const giveNowHref = resolveGivingHref(
+    contentStr(giveNowContent, "primaryCtaUrl").trim() || GIVE_NOW_NAV.href,
+  );
 
   const giveNow = resolveFromSources({
     hasCustomGlobalSections,

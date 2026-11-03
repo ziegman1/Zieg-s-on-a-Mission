@@ -3,6 +3,7 @@
  * Aligned with DEFAULT_SITE_COPY in site-copy-defaults; edit either when messaging changes.
  */
 
+import { CANONICAL_GIVING_URL } from "./giving";
 import { DEFAULT_SITE_COPY } from "./site-copy-defaults";
 
 export const HOME_STATIC = {
@@ -17,6 +18,6 @@ export function getStaticHomeHero() {
     body: h.body,
     primaryCta: { href: "/partner" as const, label: h.primaryCtaLabel },
     secondaryCta: { href: "/mission" as const, label: h.secondaryCtaLabel },
-    tertiaryCta: { href: "/give" as const, label: "Give" },
+    tertiaryCta: { href: CANONICAL_GIVING_URL, label: "Give" },
   };
 }

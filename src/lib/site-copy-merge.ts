@@ -1,3 +1,4 @@
+import { CANONICAL_GIVING_URL, isLegacyGivingHref } from "@/data/giving";
 import { DEFAULT_SITE_COPY, type NavLinkDef, type SiteCopy } from "@/data/site-copy-defaults";
 import type { PartnerMilestoneRow, PartnerTierRow, PartnerWayToGetInvolvedRow } from "@/data/marketing-pages-defaults";
 
@@ -75,10 +76,11 @@ function mergePartnerWaysRows(
   return fallback.map((def, i) => {
     const r = saved[i] as Partial<PartnerWayToGetInvolvedRow> | undefined;
     if (!r || typeof r !== "object") return { ...def };
+    const href = mergeRichText(r.href, def.href);
     return {
       title: mergeRichText(r.title, def.title),
       description: mergeRichText(r.description, def.description),
-      href: mergeRichText(r.href, def.href),
+      href: isLegacyGivingHref(href) ? CANONICAL_GIVING_URL : href,
       ctaLabel: mergeRichText(r.ctaLabel, def.ctaLabel),
     };
   });

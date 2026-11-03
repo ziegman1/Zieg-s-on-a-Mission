@@ -1,3 +1,5 @@
+import { CANONICAL_GIVING_URL } from "@/data/giving";
+
 export type AboutMissionBodySection = {
   sectionKey: string;
   label: string;
@@ -88,7 +90,7 @@ The sender is as vital as the one sent. No missionary goes alone. For every work
     primaryCtaLabel: "Become a Monthly Partner",
     primaryCtaUrl: "/partner",
     secondaryCtaLabel: "Give once",
-    secondaryCtaUrl: "/give",
+    secondaryCtaUrl: CANONICAL_GIVING_URL,
     tertiaryCtaLabel: "Want to talk first? Reach out",
     tertiaryCtaUrl: "/contact",
   },

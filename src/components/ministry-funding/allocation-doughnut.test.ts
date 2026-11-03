@@ -149,7 +149,9 @@ describe("ministry funding chart presentation contract", () => {
     );
     expect(MINISTRY_FUNDING_CHART.distinction).toBe("");
     expect(MINISTRY_FUNDING_INVITATION.body).toContain("Together, we're mobilizing");
-    expect(MINISTRY_FUNDING_INVITATION.primaryCtaUrl).toBe("/give");
+    expect(MINISTRY_FUNDING_INVITATION.primaryCtaUrl).toBe(
+      "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
+    );
     expect(MINISTRY_FUNDING_INVITATION.primaryCtaLabel).toBe("Become a Financial Partner");
   });
 });

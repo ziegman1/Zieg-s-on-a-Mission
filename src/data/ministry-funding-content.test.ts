@@ -16,7 +16,9 @@ describe("ministry funding content defaults", () => {
   it("uses the approved hero and invitation copy", () => {
     expect(MINISTRY_FUNDING_HERO.title).toBe("FUELING THE MISSION.");
     expect(MINISTRY_FUNDING_HERO.supporting).toBe("Investing in Workers. Advancing the Gospel.");
-    expect(MINISTRY_FUNDING_INVITATION.primaryCtaUrl).toBe("/give");
+    expect(MINISTRY_FUNDING_INVITATION.primaryCtaUrl).toBe(
+      "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
+    );
     expect(MINISTRY_FUNDING_INVITATION.title).toContain("YOUR PARTNERSHIP");
     expect(MINISTRY_FUNDING_INVITATION.body).toBe(
       "Together, we're mobilizing, training, and sending 300 more workers by August 31, 2031, for the sake of reaching the unreached.",

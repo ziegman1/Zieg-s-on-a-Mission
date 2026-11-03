@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { CartLink } from "@/components/cart-link";
+import { GivingLink } from "@/components/giving-link";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { resolveGivingHref } from "@/data/giving";
 import {
   GET_INVOLVED_NAV,
   GIVE_NOW_NAV,
@@ -35,11 +37,13 @@ export function StorefrontHeader({
   siteName: _siteName,
   labelOverrides = {},
   giveNowLabel,
+  giveNowHref,
   getInvolvedItems,
 }: {
   siteName: string;
   labelOverrides?: NavLabelOverrides;
   giveNowLabel?: string;
+  giveNowHref?: string;
   getInvolvedItems?: GetInvolvedNavItem[];
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -77,15 +81,17 @@ export function StorefrontHeader({
     giveNowLabel?.trim() ||
     navLabel(GIVE_NOW_NAV.href, GIVE_NOW_NAV.label, labelOverrides);
 
+  const resolvedGiveNowHref = resolveGivingHref(giveNowHref || GIVE_NOW_NAV.href);
+
   const giveNowButton = (
     <Button
       asChild
       size="sm"
       className="rounded-full h-9 px-3.5 sm:px-5 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold text-xs sm:text-sm shadow-sm shrink-0"
     >
-      <Link href={GIVE_NOW_NAV.href} onClick={closeMobile}>
+      <GivingLink href={resolvedGiveNowHref} onClick={closeMobile}>
         {resolvedGiveNowLabel}
-      </Link>
+      </GivingLink>
     </Button>
   );
 

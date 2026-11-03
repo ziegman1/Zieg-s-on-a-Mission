@@ -45,10 +45,12 @@ describe("ministry-funding site builder sections", () => {
     expect(view?.derived.isComplete).toBe(false);
   });
 
-  it("links invitation CTA to existing /give page", () => {
+  it("links invitation CTA to Mission Multiplied", () => {
     const invitation = defaultMinistryFundingSections().find((s) => s.sectionKey === "invitation");
     expect(invitation?.content.primaryCtaUrl).toBe(MINISTRY_FUNDING_INVITATION.primaryCtaUrl);
-    expect(invitation?.content.primaryCtaUrl).toBe("/give");
+    expect(invitation?.content.primaryCtaUrl).toBe(
+      "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
+    );
     expect(invitation?.content.primaryCtaLabel).toBe("Become a Financial Partner");
   });
 

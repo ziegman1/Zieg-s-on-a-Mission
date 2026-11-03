@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, HandHeart, Sparkles, Users } from "lucide-react";
+import { GivingLink } from "@/components/giving-link";
 
 function RailCard({
   title,
@@ -47,9 +48,9 @@ export function CommunityRightRail() {
             </Link>
           </li>
           <li>
-            <Link href="/give" className="text-brand-primary font-medium hover:underline">
+            <GivingLink className="text-brand-primary font-medium hover:underline">
               Give a one-time gift
-            </Link>
+            </GivingLink>
           </li>
           <li>
             <Link href="/contact" className="text-brand-primary font-medium hover:underline">

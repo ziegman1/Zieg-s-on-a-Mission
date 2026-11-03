@@ -1,12 +1,14 @@
 /**
- * Giving URLs: set NEXT_PUBLIC_GIVING_MONTHLY_URL and NEXT_PUBLIC_GIVING_ONE_TIME_URL
- * in Vercel when real processors are ready; otherwise CTAs fall back to /contact.
+ * Giving URLs: optional NEXT_PUBLIC_GIVING_MONTHLY_URL / NEXT_PUBLIC_GIVING_ONE_TIME_URL
+ * override the canonical Mission Multiplied campaign. Empty env falls back to
+ * CANONICAL_GIVING_URL.
  *
  * Tier / milestone / impact / compliance strings match code defaults in
  * `marketing-pages-defaults` (and admin Site Copy). Import from here for static pages
  * that do not call `getSiteCopy()`.
  */
 
+import { CANONICAL_GIVING_URL, resolveGivingHref } from "./giving";
 import { DEFAULT_PARTNER_PAGE } from "./marketing-pages-defaults";
 
 export type PartnershipTier = {
@@ -32,12 +34,12 @@ export const COMPLIANCE_PLACEHOLDER = DEFAULT_PARTNER_PAGE.complianceBoxBody;
 
 export function getMonthlyGivingHref(): string {
   const u = process.env.NEXT_PUBLIC_GIVING_MONTHLY_URL?.trim();
-  return u && u.length > 0 ? u : "/contact";
+  return resolveGivingHref(u && u.length > 0 ? u : CANONICAL_GIVING_URL);
 }
 
 export function getOneTimeGivingHref(): string {
   const u = process.env.NEXT_PUBLIC_GIVING_ONE_TIME_URL?.trim();
-  return u && u.length > 0 ? u : "/contact";
+  return resolveGivingHref(u && u.length > 0 ? u : CANONICAL_GIVING_URL);
 }
 
 /** Homepage — partnership model band (static). */

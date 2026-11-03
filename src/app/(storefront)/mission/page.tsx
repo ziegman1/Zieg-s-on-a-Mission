@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GivingLink } from "@/components/giving-link";
 import { MinistryPageShell } from "@/components/ministry-page-shell";
 import { getSiteCopy } from "@/lib/site-copy";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
@@ -45,12 +46,9 @@ async function LegacyMissionPage() {
         >
           Become a Monthly Partner
         </Link>
-        <Link
-          href="/give"
-          className="inline-flex items-center justify-center rounded-full px-6 py-3 bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
-        >
+        <GivingLink className="inline-flex items-center justify-center rounded-full px-6 py-3 bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors">
           Give
-        </Link>
+        </GivingLink>
         <Link
           href="/merch"
           className="inline-flex items-center rounded-full px-6 py-3 border border-brand-primary/40 text-brand-ink font-medium hover:border-brand-primary/60 transition-colors"

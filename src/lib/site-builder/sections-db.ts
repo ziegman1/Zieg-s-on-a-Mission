@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { unstable_noStore as noStore } from "next/cache";
+import { migrateGivingUrlsInSectionContent } from "@/data/giving";
 import { prisma } from "@/lib/db";
 import { defaultSectionsForPage } from "./defaults";
 import { migrateAboutMissionPageSections } from "./about-mission-migration";
@@ -63,6 +64,21 @@ export async function pageHasCustomSections(pageKey: string): Promise<boolean> {
   }
 }
 
+/** Rewrite legacy /give and Aplos URLs in CTA fields across any page. */
+function migrateGivingUrlsInSections(sections: PageSection[]): {
+  sections: PageSection[];
+  changed: boolean;
+} {
+  let changed = false;
+  const next = sections.map((row) => {
+    const content = { ...row.content };
+    if (!migrateGivingUrlsInSectionContent(content)) return row;
+    changed = true;
+    return { ...row, content };
+  });
+  return { sections: changed ? next : sections, changed };
+}
+
 /**
  * Apply one-shot page migrations in memory.
  * Persistence is opt-in so public GETs cannot race with admin saves and rewrite the DB.
@@ -71,27 +87,59 @@ function migrateLoadedPageSections(
   pageKey: string,
   sections: PageSection[],
 ): { sections: PageSection[]; changed: boolean; op: string | null } {
+  let current = sections;
+  let changed = false;
+  const ops: string[] = [];
+
   if (pageKey === "give") {
-    const migrated = migrateGivePageSections(sections);
-    return { ...migrated, op: migrated.changed ? "migrateGivePageSections" : null };
+    const migrated = migrateGivePageSections(current);
+    if (migrated.changed) {
+      current = migrated.sections;
+      changed = true;
+      ops.push("migrateGivePageSections");
+    }
+  } else if (pageKey === "about") {
+    const migrated = migrateAboutMissionPageSections(current);
+    if (migrated.changed) {
+      current = migrated.sections;
+      changed = true;
+      ops.push("migrateAboutMissionPageSections");
+    }
+  } else if (pageKey === "our-mission") {
+    const migrated = migrateOurMissionFullEditSections(current);
+    if (migrated.changed) {
+      current = migrated.sections;
+      changed = true;
+      ops.push("migrateOurMissionFullEditSections");
+    }
+  } else if (pageKey === "ministry-funding") {
+    const migrated = migrateMinistryFundingSections(current);
+    if (migrated.changed) {
+      current = migrated.sections;
+      changed = true;
+      ops.push("migrateMinistryFundingSections");
+    }
+  } else if (pageKey === "home") {
+    const migrated = insertHomeMissionCounterAfterHero(current);
+    if (migrated.changed) {
+      current = migrated.sections;
+      changed = true;
+      ops.push("insertHomeMissionCounterAfterHero");
+    }
   }
-  if (pageKey === "about") {
-    const migrated = migrateAboutMissionPageSections(sections);
-    return { ...migrated, op: migrated.changed ? "migrateAboutMissionPageSections" : null };
+
+  const giving = migrateGivingUrlsInSections(current);
+  if (giving.changed) {
+    current = giving.sections;
+    changed = true;
+    ops.push("migrateGivingUrlsInSections");
   }
-  if (pageKey === "our-mission") {
-    const migrated = migrateOurMissionFullEditSections(sections);
-    return { ...migrated, op: migrated.changed ? "migrateOurMissionFullEditSections" : null };
-  }
-  if (pageKey === "ministry-funding") {
-    const migrated = migrateMinistryFundingSections(sections);
-    return { ...migrated, op: migrated.changed ? "migrateMinistryFundingSections" : null };
-  }
-  if (pageKey === "home") {
-    const migrated = insertHomeMissionCounterAfterHero(sections);
-    return { ...migrated, op: migrated.changed ? "insertHomeMissionCounterAfterHero" : null };
-  }
-  return { sections, changed: false, op: null };
+
+  return {
+    sections: current,
+    changed,
+    op: ops.length > 0 ? ops.join("+") : null,
+  };
 }
 
 export async function loadPageSections(

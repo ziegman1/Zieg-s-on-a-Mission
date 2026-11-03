@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { headers } from "next/headers";
+import { GivingLink } from "@/components/giving-link";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { StorefrontHeader } from "@/components/storefront-header";
 import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
+import { isAbsoluteHttpUrl, isLegacyGivingHref, resolveGivingHref } from "@/data/giving";
 import { resolveStorefrontShellContent } from "@/lib/site-builder/global-storefront-content";
 
 const FOOTER_LEGAL = [
@@ -41,6 +43,7 @@ export default async function StorefrontLayout({
         siteName={shell.siteName.value}
         labelOverrides={shell.headerNavLabelOverrides.value}
         giveNowLabel={shell.giveNow.value.label}
+        giveNowHref={shell.giveNow.value.href}
         getInvolvedItems={shell.getInvolved.value.items}
       />
       <main className="flex-1">{children}</main>
@@ -55,11 +58,24 @@ export default async function StorefrontLayout({
               />
             ) : null}
             <nav className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-brand-ink/90">
-              {shell.footerNavLinks.value.map(({ href, label }) => (
-                <Link key={href} href={href} className="hover:text-brand-primary transition-colors">
-                  {label}
-                </Link>
-              ))}
+              {shell.footerNavLinks.value.map(({ href, label }) => {
+                const resolvedHref = isLegacyGivingHref(href)
+                  ? resolveGivingHref(href)
+                  : href;
+                const className = "hover:text-brand-primary transition-colors";
+                if (isAbsoluteHttpUrl(resolvedHref) || isLegacyGivingHref(href)) {
+                  return (
+                    <GivingLink key={`${href}-${label}`} href={resolvedHref} className={className}>
+                      {label}
+                    </GivingLink>
+                  );
+                }
+                return (
+                  <Link key={`${href}-${label}`} href={resolvedHref} className={className}>
+                    {label}
+                  </Link>
+                );
+              })}
               {FOOTER_LEGAL.map(({ href, label }) => (
                 <Link key={href} href={href} className="hover:text-brand-primary transition-colors">
                   {label}

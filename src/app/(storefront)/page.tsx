@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { Fragment } from "react";
 import { Dancing_Script } from "next/font/google";
+import { GivingLink, StorefrontHrefLink } from "@/components/giving-link";
 import { DEFAULT_HOME_HERO_IMAGE_PATH } from "@/data/home-guided-default-sections";
 import { getSiteCopy, homeHeroWithHrefs } from "@/lib/site-copy";
 import { renderStorefrontPage } from "@/lib/site-builder/render-page";
@@ -87,12 +88,12 @@ async function LegacyHomeContent() {
               <div className="col-span-2 md:col-span-1 border-l-2 border-blue-200/80 pl-4">
                 <h2 className="font-serif text-2xl text-brand-primary tracking-wide">{section.title}</h2>
                 <p className="mt-3 text-brand-ink/85 leading-relaxed">{section.body}</p>
-                <Link
+                <StorefrontHrefLink
                   href={section.href}
                   className="text-blue-600 hover:underline mt-4 inline-block font-medium"
                 >
                   {section.ctaLabel}
-                </Link>
+                </StorefrontHrefLink>
               </div>
             );
 
@@ -154,9 +155,9 @@ async function LegacyHomeContent() {
                 <Link href="/mission" className="text-blue-600 hover:underline font-medium">
                   Learn more
                 </Link>
-                <Link href="/give" className="text-blue-600 hover:underline font-medium">
+                <GivingLink className="text-blue-600 hover:underline font-medium">
                   Give
-                </Link>
+                </GivingLink>
                 <Button
                   asChild
                   className="rounded-full px-7 h-11 bg-brand-accent text-brand-ink hover:bg-brand-accent/90 font-semibold"

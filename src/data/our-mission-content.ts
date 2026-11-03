@@ -212,9 +212,20 @@ export const OUR_MISSION_INVITATION = {
   ],
 } as const;
 
-export const OUR_MISSION_CTAS = [
-  { href: "/ministry-funding", label: "Partner With Us" },
-  { href: "/contact", label: "Explore Opportunities to Serve" },
-] as const;
+/** Single closing CTA under the Harvest invitation — informational, not direct giving. */
+export const OUR_MISSION_CLOSING_CTA = {
+  href: "/ministry-funding",
+  label: "See How You Can Make a Difference",
+} as const;
+
+/** @deprecated Prefer OUR_MISSION_CLOSING_CTA — kept as a one-item list for callers. */
+export const OUR_MISSION_CTAS = [OUR_MISSION_CLOSING_CTA] as const;
+
+/** Legacy closing buttons replaced by the single Ministry Funding CTA. */
+export const OUR_MISSION_CTA_LEGACY = {
+  primaryLabel: "Partner With Us",
+  secondaryLabel: "Explore Opportunities to Serve",
+  secondaryUrl: "/contact",
+} as const;
 
 export const SUPPORT_RAISING_JOURNEY = "Support Raising Journey";

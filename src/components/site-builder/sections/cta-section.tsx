@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { StorefrontHrefLink } from "@/components/giving-link";
+import { CANONICAL_GIVING_URL } from "@/data/giving";
 import { contentStr, fieldVisible } from "@/lib/site-builder/content-utils";
 import { getFieldStyle } from "@/lib/site-builder/content-utils";
 import type { PageSection } from "@/lib/site-builder/types";
@@ -49,9 +50,9 @@ function CtaButton({
       layout="inline"
       styleOnWrapper={false}
     >
-      <Link href={url} data-slot="button" className={className}>
+      <StorefrontHrefLink href={url} data-slot="button" className={className}>
         {label}
-      </Link>
+      </StorefrontHrefLink>
     </EditableElement>
   );
 }
@@ -69,7 +70,7 @@ export function CtaSection({
   const primary = contentStr(c, "primaryCtaLabel");
   const primaryUrl = contentStr(c, "primaryCtaUrl") || "/partner";
   const secondary = contentStr(c, "secondaryCtaLabel");
-  const secondaryUrl = contentStr(c, "secondaryCtaUrl") || "/give";
+  const secondaryUrl = contentStr(c, "secondaryCtaUrl") || CANONICAL_GIVING_URL;
   const tertiary = contentStr(c, "tertiaryCtaLabel");
   const tertiaryUrl = contentStr(c, "tertiaryCtaUrl") || "/contact";
 

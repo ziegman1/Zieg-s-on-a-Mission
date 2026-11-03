@@ -2,6 +2,8 @@
  * Defaults for /partner, /give, /merch — merged with DB in SiteCopy (admin-editable).
  */
 
+import { CANONICAL_GIVING_URL } from "@/data/giving";
+
 export type PartnerTierRow = {
   amountLabel: string;
   name: string;
@@ -199,7 +201,7 @@ export const DEFAULT_PARTNER_PAGE: PartnerPageCopy = {
     {
       title: "Give",
       description: "Make a one-time gift to support the mission.",
-      href: "/give",
+      href: CANONICAL_GIVING_URL,
       ctaLabel: "Give now",
     },
   ],

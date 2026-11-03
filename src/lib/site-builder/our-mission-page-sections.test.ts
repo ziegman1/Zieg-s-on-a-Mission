@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { OUR_MISSION_AVENUES, OUR_MISSION_HERO } from "@/data/our-mission-content";
+import {
+  OUR_MISSION_AVENUES,
+  OUR_MISSION_CLOSING_CTA,
+  OUR_MISSION_CTA_LEGACY,
+  OUR_MISSION_HERO,
+} from "@/data/our-mission-content";
 import { defaultSectionsForPage } from "./defaults";
 import {
   defaultOurMissionEditableSections,
@@ -32,6 +37,40 @@ describe("our-mission site builder sections", () => {
     expect(sections.every((s) => !isOurMissionFrameworkEditorialSection(s))).toBe(true);
     expect(sections.every((s) => s.settings?.ministryFrameworkEditorial !== true)).toBe(true);
     expect(sections.every((s) => s.settings?.ministryFrameworkProtected !== true)).toBe(true);
+  });
+
+  it("defaults invitation to a single Ministry Funding CTA", () => {
+    const invitation = defaultOurMissionEditableSections().find((s) => s.sectionKey === "invitation");
+    expect(invitation?.content.primaryCtaLabel).toBe(OUR_MISSION_CLOSING_CTA.label);
+    expect(invitation?.content.primaryCtaUrl).toBe("/ministry-funding");
+    expect(invitation?.content.secondaryCtaLabel).toBe("");
+    expect(invitation?.content.secondaryCtaUrl).toBe("");
+  });
+
+  it("migrates legacy dual invitation CTAs to the single closing button", () => {
+    const full = defaultOurMissionEditableSections();
+    const legacy = full.map((section) =>
+      section.sectionKey === "invitation"
+        ? {
+            ...section,
+            content: {
+              ...section.content,
+              primaryCtaLabel: OUR_MISSION_CTA_LEGACY.primaryLabel,
+              primaryCtaUrl: "/partner",
+              secondaryCtaLabel: OUR_MISSION_CTA_LEGACY.secondaryLabel,
+              secondaryCtaUrl: OUR_MISSION_CTA_LEGACY.secondaryUrl,
+            },
+          }
+        : section,
+    );
+
+    const { sections, changed } = migrateOurMissionFullEditSections(legacy);
+    expect(changed).toBe(true);
+    const invitation = sections.find((s) => s.sectionKey === "invitation");
+    expect(invitation?.content.primaryCtaLabel).toBe(OUR_MISSION_CLOSING_CTA.label);
+    expect(invitation?.content.primaryCtaUrl).toBe("/ministry-funding");
+    expect(invitation?.content.secondaryCtaLabel).toBe("");
+    expect(invitation?.content.secondaryCtaUrl).toBe("");
   });
 
   it("seeds avenue cards without the measure-progress accordion fields", () => {

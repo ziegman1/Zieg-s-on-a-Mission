@@ -3,6 +3,8 @@
  * Remove this file and related routes when the campaign ends.
  */
 
+import { CANONICAL_GIVING_URL } from "@/data/giving";
+
 /** Fixed campaign window and goal — do not derive dates from Date.now() at runtime. */
 export const CAMPAIGN = {
   goal: 2000,
@@ -23,9 +25,8 @@ export const PARTNERSHIP_LEVELS = [25, 50, 100, 150, 200, 250] as const;
 
 export type PartnershipLevel = (typeof PARTNERSHIP_LEVELS)[number];
 
-/** Aplos monthly giving page for Jeremy & Lindsay Ziegenhorn. */
-export const CAMPAIGN_GIVING_URL =
-  "https://app.aplos.com/aws/give/TeamExpansion/jeremylindsayZiegenhorn";
+/** Secure giving destination for campaign pledge CTAs (Mission Multiplied). */
+export const CAMPAIGN_GIVING_URL = CANONICAL_GIVING_URL;
 
 export const CAMPAIGN_ROUTES = {
   primary: "/support-campaign",

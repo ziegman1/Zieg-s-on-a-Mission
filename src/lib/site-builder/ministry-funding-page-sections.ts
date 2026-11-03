@@ -3,6 +3,7 @@
  * Financial inputs and allocation amounts start empty — no fabricated progress.
  */
 
+import { isLegacyGivingHref } from "@/data/giving";
 import {
   MINISTRY_FUNDING_CHART,
   MINISTRY_FUNDING_CHART_DISTINCTION_LEGACY,
@@ -215,13 +216,23 @@ export function migrateMinistryFundingSections(sections: PageSection[]): {
       }
     }
     if (row.sectionKey === "invitation") {
+      let nextContent = row.content;
       const body = typeof row.content.body === "string" ? row.content.body.trim() : "";
       if (MINISTRY_FUNDING_INVITATION_BODY_LEGACY.some((legacy) => legacy === body)) {
-        row = {
-          ...row,
-          content: { ...row.content, body: MINISTRY_FUNDING_INVITATION.body },
+        nextContent = { ...nextContent, body: MINISTRY_FUNDING_INVITATION.body };
+        changed = true;
+      }
+      const primaryUrl =
+        typeof row.content.primaryCtaUrl === "string" ? row.content.primaryCtaUrl.trim() : "";
+      if (!primaryUrl || isLegacyGivingHref(primaryUrl)) {
+        nextContent = {
+          ...nextContent,
+          primaryCtaUrl: MINISTRY_FUNDING_INVITATION.primaryCtaUrl,
         };
         changed = true;
+      }
+      if (nextContent !== row.content) {
+        row = { ...row, content: nextContent };
       }
     }
     return row;

@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { GivingLink, StorefrontHrefLink } from "@/components/giving-link";
+import { CANONICAL_GIVING_URL } from "@/data/giving";
 import type { PageSection } from "@/lib/site-builder/types";
 import {
   contentStr,
@@ -506,7 +507,7 @@ export function InvitationEditable({ section }: { section: PageSection }) {
   const headline = contentStr(c, "headline");
   const body = contentStr(c, "body");
   const primary = contentStr(c, "primaryCtaLabel");
-  const primaryUrl = contentStr(c, "primaryCtaUrl") || "/give";
+  const primaryUrl = contentStr(c, "primaryCtaUrl") || CANONICAL_GIVING_URL;
   const secondary = contentStr(c, "secondaryCtaLabel");
   const secondaryUrl = contentStr(c, "secondaryCtaUrl") || "/contact";
 
@@ -548,9 +549,9 @@ export function InvitationEditable({ section }: { section: PageSection }) {
                 layout="inline"
                 styleOnWrapper={false}
               >
-                <Link href={primaryUrl} className={storefrontButtonClasses("primary")}>
+                <GivingLink href={primaryUrl} className={storefrontButtonClasses("primary")}>
                   {primary.trim() || (ctx?.editMode ? "Primary CTA" : "")}
-                </Link>
+                </GivingLink>
               </EditableElement>
             )}
             {(secondary.trim() || ctx?.editMode) && secondary.trim() ? (
@@ -561,9 +562,9 @@ export function InvitationEditable({ section }: { section: PageSection }) {
                 layout="inline"
                 styleOnWrapper={false}
               >
-                <Link href={secondaryUrl} className={storefrontButtonClasses("secondary")}>
+                <StorefrontHrefLink href={secondaryUrl} className={storefrontButtonClasses("secondary")}>
                   {secondary.trim()}
-                </Link>
+                </StorefrontHrefLink>
               </EditableElement>
             ) : null}
           </div>

@@ -1,4 +1,6 @@
 import type { SectionType } from "./types";
+import { CANONICAL_GIVING_URL } from "@/data/giving";
+import { DEFAULT_MISSION_COUNTER_CONTENT } from "@/data/mission-counter-defaults";
 
 export type SectionFieldDef =
   | { key: string; label: string; kind: "text" | "url" | "image" }
@@ -13,8 +15,6 @@ export type SectionRegistryEntry = {
   defaultContent: Record<string, unknown>;
   defaultSettings?: Record<string, unknown>;
 };
-
-import { DEFAULT_MISSION_COUNTER_CONTENT } from "@/data/mission-counter-defaults";
 
 const list = (items: string[] = [""]) =>
   items.map((text, i) => ({
@@ -53,7 +53,7 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryEntry> = {
       primaryCtaLabel: "",
       primaryCtaUrl: "/partner",
       secondaryCtaLabel: "",
-      secondaryCtaUrl: "/give",
+      secondaryCtaUrl: CANONICAL_GIVING_URL,
       tertiaryCtaLabel: "",
       tertiaryCtaUrl: "/mission",
     },
