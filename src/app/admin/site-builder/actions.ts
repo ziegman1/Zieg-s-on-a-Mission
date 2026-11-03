@@ -92,6 +92,16 @@ export async function saveBuilderPageAction(
   if (!session) return { ok: false, error: "Unauthorized" };
 
   try {
+    if (pageKey === "ministry-funding") {
+      const { assertMinistryFundingAllocationSavable } = await import(
+        "@/lib/ministry-funding/assert-allocation-savable"
+      );
+      const allocationCheck = assertMinistryFundingAllocationSavable(sections);
+      if (!allocationCheck.ok) {
+        return { ok: false, error: allocationCheck.error };
+      }
+    }
+
     logSavePayload(pageKey, sections);
     const result = await savePageSections(pageKey, sections);
     await revalidateForPage(pageKey);

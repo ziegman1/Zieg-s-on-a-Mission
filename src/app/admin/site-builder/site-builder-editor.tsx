@@ -37,6 +37,12 @@ import type { SiteCopy } from "@/data/site-copy-defaults";
 import type { StorefrontNavExtras } from "@/lib/site-copy-blocks/navigation-extras";
 import { BuilderPagesNav } from "@/components/admin/builder-pages-nav";
 import { StorefrontNavigationEditor } from "@/components/admin/storefront-navigation-editor";
+import {
+  MinistryFundingAllocationToolbar,
+  monthLabelFromAllocationSection,
+  type MinistryFundingMonthLabel,
+} from "@/components/admin/ministry-funding-allocation-toolbar";
+import { isMinistryFundingAllocationSection } from "@/lib/site-builder/ministry-funding-page-sections";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -108,6 +114,12 @@ export function SiteBuilderEditor({
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [pageSuccessMessage, setPageSuccessMessage] = useState<string | null>(null);
+  const [ministryFundingPublishedMonth, setMinistryFundingPublishedMonth] =
+    useState<MinistryFundingMonthLabel>(() =>
+      monthLabelFromAllocationSection(
+        initialPages["ministry-funding"]?.sections.find(isMinistryFundingAllocationSection),
+      ),
+    );
   const [blogSuccessMessage, setBlogSuccessMessage] = useState<string | null>(null);
   const [newsletterSuccessMessage, setNewsletterSuccessMessage] = useState<string | null>(null);
   const [saveDiagnostics, setSaveDiagnostics] = useState<string | null>(null);
@@ -318,6 +330,11 @@ export function SiteBuilderEditor({
     setError(null);
     setPageSuccessMessage(res.message);
     setBlogSuccessMessage(null);
+    if (activePage === "ministry-funding") {
+      const alloc =
+        (reload.ok ? reload.sections : sections).find(isMinistryFundingAllocationSection) ?? null;
+      setMinistryFundingPublishedMonth(monthLabelFromAllocationSection(alloc));
+    }
     const diag = res.diagnostics;
     setSaveDiagnostics(
       `page_key=${res.pageKey} · saved=${res.savedCount} · visible=${diag.visibleCount} · updated=${diag.latestUpdatedAt ?? "—"}`,
@@ -374,6 +391,14 @@ export function SiteBuilderEditor({
     setStatus("saved");
     setPageSuccessMessage(res.message);
     setBlogSuccessMessage(null);
+    if (activePage === "ministry-funding") {
+      const allocSecs = reload.ok ? reload.sections : sections;
+      setMinistryFundingPublishedMonth(
+        monthLabelFromAllocationSection(
+          allocSecs.find(isMinistryFundingAllocationSection) ?? null,
+        ),
+      );
+    }
     setSaveDiagnostics(`Revalidated ${res.revalidated.length} paths`);
     setTimeout(() => setStatus("idle"), 5000);
   }
@@ -562,6 +587,18 @@ export function SiteBuilderEditor({
       ) : null}
       {saveDiagnostics ? (
         <p className="px-4 pb-2 text-[11px] text-zinc-500 font-mono">{saveDiagnostics}</p>
+      ) : null}
+
+      {activePage === "ministry-funding" ? (
+        <MinistryFundingAllocationToolbar
+          sections={sections}
+          publishedMonth={ministryFundingPublishedMonth}
+          onAllocationSectionChange={(next) => patchSection(next.id, next)}
+          onAppliedMessage={(message) => {
+            setPageSuccessMessage(message);
+            setError(null);
+          }}
+        />
       ) : null}
 
       <div className="flex flex-1 min-h-0">

@@ -119,14 +119,16 @@ export function SectionPropertiesPanel({
       {fundingAllocation ? (
         <>
           <p className="text-[11px] text-zinc-500 leading-relaxed">
-            Enter allocated expense amounts on each function card. Percentages are calculated.
-            Chart publishes only when amounts are complete and reconcile to the expense total.
-            Mission Share is never auto-spread across functions.
+            Import monthly allocation data from the{" "}
+            <span className="text-zinc-300">Ministry Allocation Data</span> toolbar above. Manual
+            amount fields remain for corrections.
+            Percentages are always calculated from amounts. Mission Share is never auto-spread
+            across functions.
           </p>
           {(
             [
               ["awaitingCopy", "Awaiting-chart message"],
-              ["reportingMonth", "Reporting month"],
+              ["reportingMonth", "Reporting month label"],
               ["expenseTotal", "Expense total to reconcile (USD)"],
               ["missionShareAmount", "Mission Share amount (USD)"],
               [
@@ -159,6 +161,12 @@ export function SectionPropertiesPanel({
               {allocationPreview.derived.canPublishChart
                 ? "Chart ready — reconciled."
                 : "Chart blocked until complete & reconciled."}
+              {allocationPreview.zoamSnapshot ? (
+                <span className="mt-1 block">
+                  Snapshot {allocationPreview.zoamSnapshot.reportingMonth} ·{" "}
+                  {allocationPreview.zoamSchemaVersion || "zoam-ministry-allocation/v1"}
+                </span>
+              ) : null}
               {allocationPreview.derived.discrepancy !== null &&
               !allocationPreview.derived.reconciliationOk ? (
                 <span className="mt-1 block">

@@ -31,7 +31,7 @@ describe("ministry funding content defaults", () => {
 
   it("keeps Mission Share as a separate reporting category", () => {
     expect(MISSION_SHARE_CATEGORY.name).toBe("Team Expansion Mission Share");
-    expect(MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION).toBe("1.0.0");
+    expect(MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION).toBe("zoam-ministry-allocation/v1");
   });
 
   it("does not hardcode verified funding figures in defaults", () => {

@@ -17,6 +17,8 @@ import {
   type FunctionAllocationInput,
 } from "./calculations";
 import { MISSION_SHARE_CATEGORY } from "@/data/ministry-funding-content";
+import { parseStoredZoamSnapshot, recalculateInvestmentPercents } from "./zoam-import";
+import { centsToDollars, normalizeFunctionName, type ZoamMinistryAllocationV1 } from "./zoam-schema";
 
 export type FundingGoalsView = {
   headline: string;
@@ -33,6 +35,8 @@ export type FunctionCardView = {
   color: string;
   amount: ReturnType<typeof parseMoneyInput>;
   visible: boolean;
+  /** True when this card is part of the imported chart set. */
+  inChart: boolean;
 };
 
 export type AllocationView = {
@@ -41,10 +45,16 @@ export type AllocationView = {
   distinction: string;
   awaitingCopy: string;
   reportingMonth: string;
+  reportingMonthKey: string;
   missionShareLabel: string;
   missionShareDescription: string;
   functions: FunctionCardView[];
+  /** Narrative cards (including those without chart amounts). */
+  descriptionFunctions: FunctionCardView[];
   derived: AllocationDerived;
+  zoamSnapshot: ZoamMinistryAllocationV1 | null;
+  zoamExportedAt: string;
+  zoamSchemaVersion: string;
 };
 
 function parseBoolString(raw: unknown, fallback: boolean): boolean {
@@ -80,6 +90,11 @@ export function parseAllocationSection(
     ? sortedListItems(c.cards, { includeHidden: true })
     : visibleListItems(c.cards);
 
+  const zoamSnapshot = parseStoredZoamSnapshot(c.zoamSnapshot);
+  const chartNameSet = new Set(
+    (zoamSnapshot?.ministryFunctions ?? []).map((f) => normalizeFunctionName(f.name)),
+  );
+
   const functions: FunctionCardView[] = cards.map((card, i) => {
     const meta = card.metadata ?? {};
     const programsRaw = String(meta.programs ?? "");
@@ -87,42 +102,116 @@ export function parseAllocationSection(
       .split("\n")
       .map((line) => line.replace(/^[-•*]\s*/, "").trim())
       .filter(Boolean);
+    const name = card.text.trim() || `Function ${i + 1}`;
     return {
       id: card.id || `fn-${i}`,
-      name: card.text.trim() || `Function ${i + 1}`,
+      name,
       description: String(meta.body ?? ""),
       programs,
       color: String(meta.color ?? "#83b0da"),
       amount: parseMoneyInput(meta.amount),
       visible: card.visible,
+      inChart: zoamSnapshot
+        ? chartNameSet.has(normalizeFunctionName(name))
+        : parseMoneyInput(meta.amount) !== null,
     };
   });
 
-  const allocationInputs: FunctionAllocationInput[] = functions.map((fn) => ({
-    id: fn.id,
-    name: fn.name,
-    amount: fn.amount,
-  }));
+  let allocationInputs: FunctionAllocationInput[];
+  let missionShareIncluded: boolean;
+  let missionShareAmount: ReturnType<typeof parseMoneyInput>;
+  let expenseTotal: ReturnType<typeof parseMoneyInput>;
+  let derived: AllocationDerived;
 
-  const missionShareIncluded = parseBoolString(c.missionShareIncludedInExpenseTotal, true);
+  if (zoamSnapshot) {
+    const slices = recalculateInvestmentPercents(
+      zoamSnapshot.ministryFunctions.map((f) => ({
+        name: f.name,
+        totalInvestmentCents: f.totalInvestmentCents,
+      })),
+    );
+    allocationInputs = zoamSnapshot.ministryFunctions.map((f, i) => ({
+      id: slices[i]?.id ?? `fn-${i}`,
+      name: f.name,
+      amount: centsToDollars(f.totalInvestmentCents),
+    }));
+    missionShareIncluded = zoamSnapshot.missionShare.includedInReportedFinancialTotal;
+    missionShareAmount = centsToDollars(zoamSnapshot.missionShare.amountCents);
+    expenseTotal = centsToDollars(zoamSnapshot.reportedMonthlyFinancialTotalCents);
+    derived = deriveAllocation({
+      functions: allocationInputs,
+      missionShareAmount,
+      missionShareIncludedInExpenseTotal: missionShareIncluded,
+      expenseTotal,
+      reportingMonth: zoamSnapshot.reportingMonthLabel || zoamSnapshot.reportingMonth,
+    });
+    // Prefer recalculated slice percents from cents (authoritative).
+    derived = {
+      ...derived,
+      slices: slices.map((s) => ({
+        ...s,
+        // amount already dollars from recalculateInvestmentPercents
+      })),
+      canPublishChart: derived.reconciliationOk && slices.some((s) => s.amount > 0),
+    };
+  } else {
+    allocationInputs = functions
+      .filter((fn) => fn.inChart || fn.amount !== null)
+      .map((fn) => ({
+        id: fn.id,
+        name: fn.name,
+        amount: fn.amount,
+      }));
+    // If some cards are description-only (blank amount), only use cards with amounts for chart math.
+    const withAmounts = functions.filter((fn) => fn.amount !== null);
+    const chartFunctions =
+      withAmounts.length > 0 && withAmounts.length < functions.length ? withAmounts : functions;
+
+    missionShareIncluded = parseBoolString(c.missionShareIncludedInExpenseTotal, true);
+    missionShareAmount = parseMoneyInput(c.missionShareAmount);
+    expenseTotal = parseMoneyInput(c.expenseTotal);
+    derived = deriveAllocation({
+      functions: chartFunctions.map((fn) => ({
+        id: fn.id,
+        name: fn.name,
+        amount: fn.amount,
+      })),
+      missionShareAmount,
+      missionShareIncludedInExpenseTotal: missionShareIncluded,
+      expenseTotal,
+      reportingMonth: contentStr(c, "reportingMonth"),
+    });
+  }
+
+  const descriptionFunctions =
+    functions.filter((f) => f.description.trim() || f.programs.length > 0 || f.inChart).length > 0
+      ? functions.filter((f) => f.description.trim() || f.programs.length > 0 || !zoamSnapshot || f.inChart)
+      : functions;
 
   return {
     headline: contentStr(c, "headline") || "Estimated Ministry Investment by Function",
     explanation: contentStr(c, "intro"),
     distinction: contentStr(c, "body"),
     awaitingCopy: contentStr(c, "awaitingCopy"),
-    reportingMonth: contentStr(c, "reportingMonth"),
+    reportingMonth:
+      zoamSnapshot?.reportingMonthLabel ||
+      contentStr(c, "reportingMonth") ||
+      zoamSnapshot?.reportingMonth ||
+      "",
+    reportingMonthKey:
+      zoamSnapshot?.reportingMonth ||
+      contentStr(c, "reportingMonthKey") ||
+      "",
     missionShareLabel: contentStr(c, "missionShareLabel") || MISSION_SHARE_CATEGORY.name,
     missionShareDescription:
       contentStr(c, "missionShareDescription") || MISSION_SHARE_CATEGORY.description,
     functions,
-    derived: deriveAllocation({
-      functions: allocationInputs,
-      missionShareAmount: parseMoneyInput(c.missionShareAmount),
-      missionShareIncludedInExpenseTotal: missionShareIncluded,
-      expenseTotal: parseMoneyInput(c.expenseTotal),
-      reportingMonth: contentStr(c, "reportingMonth"),
-    }),
+    descriptionFunctions,
+    derived,
+    zoamSnapshot,
+    zoamExportedAt: contentStr(c, "zoamExportedAt") || zoamSnapshot?.exportedAt || "",
+    zoamSchemaVersion:
+      contentStr(c, "zoamSchemaVersion") || zoamSnapshot?.schemaVersion || "",
   };
 }
 

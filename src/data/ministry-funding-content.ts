@@ -31,7 +31,7 @@ export const MINISTRY_FUNDING_FUNCTIONS_HEADING = "How Your Partnership Supports
 export const MINISTRY_FUNDING_CHART = {
   title: "Estimated Ministry Investment by Function",
   explanation:
-    "These figures represent an allocation of ministry expenses across our areas of service. Shared ministry expenses may be distributed according to recorded ministry time, while direct expenses are assigned to their respective functions.",
+    "These figures represent an allocation of ministry expenses across our areas of service. Shared expenses are distributed according to recorded ministry time, while direct expenses are assigned to their respective functions.",
   distinction:
     "This chart shows estimated ministry expense allocation. It is not a report of how individual donations were designated, and it is separate from our recurring financial partnership income progress above.",
   awaitingCopy:
@@ -157,30 +157,5 @@ export const MISSION_SHARE_CATEGORY = {
   defaultColor: "#6b7280",
 } as const;
 
-/**
- * Schema shape for a future PD Coaching OS → Zieg's On A Mission paste import.
- * Not wired to UI yet; kept here so the page data model stays aligned.
- */
-export const MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION = "1.0.0" as const;
-
-export type MinistryFundingTransferSnapshot = {
-  schemaVersion: typeof MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION;
-  exportTimestamp: string;
-  sourceApplication: "pd-coaching-os";
-  reportingMonth: string;
-  allocationMeasurementType: "estimated_expense_allocation";
-  functions: Array<{
-    id: string;
-    name: string;
-    recordedMinistryMinutes?: number | null;
-    timePercent?: number | null;
-    directExpenses?: number | null;
-    timeWeightedAllocatedExpenses?: number | null;
-    investmentPercent?: number | null;
-  }>;
-  missionShare?: number | null;
-  totalEstimatedInvestment?: number | null;
-  reconciliationStatus?: "ok" | "mismatch" | "incomplete";
-  calculationMethodology?: string;
-  dataProvenance?: string;
-};
+/** @deprecated Prefer ZOAM_MINISTRY_ALLOCATION_SCHEMA from zoam-schema.ts */
+export const MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION = "zoam-ministry-allocation/v1" as const;

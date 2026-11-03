@@ -24,6 +24,8 @@ import {
   parseFundingGoalsSection,
 } from "@/lib/ministry-funding/from-sections";
 import { formatUsd, type AllocationDerived } from "@/lib/ministry-funding/calculations";
+import { DEFAULT_COLORS_FOR_IMPORT } from "@/lib/ministry-funding/chart-colors";
+import { normalizeFunctionName } from "@/lib/ministry-funding/zoam-schema";
 import { cn } from "@/lib/utils";
 
 function GoldRule() {
@@ -261,9 +263,19 @@ export function AllocationEditable({ section }: { section: PageSection }) {
   const { derived } = view;
   const showChart = derived.canPublishChart;
 
-  const coloredSlices = derived.slices.map((slice) => {
-    const match = view.functions.find((f) => f.id === slice.id);
-    return { ...slice, color: match?.color || "#83b0da" };
+  const coloredSlices = derived.slices.map((slice, i) => {
+    const match =
+      view.functions.find((f) => f.id === slice.id) ||
+      view.functions.find(
+        (f) => normalizeFunctionName(f.name) === normalizeFunctionName(slice.name),
+      );
+    return {
+      ...slice,
+      color:
+        match?.color ||
+        DEFAULT_COLORS_FOR_IMPORT[i % DEFAULT_COLORS_FOR_IMPORT.length] ||
+        "#83b0da",
+    };
   });
 
   return (
@@ -357,29 +369,40 @@ export function AllocationEditable({ section }: { section: PageSection }) {
           </EditableElement>
         ) : null}
 
-        {(derived.missionShareAmount !== null || ctx?.editMode) && (
-          <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-brand-primary/15 bg-white/60 px-5 py-5">
+        {showChart && derived.missionShareAmount !== null ? (
+          <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-brand-primary/15 bg-[#eae5e1]/55 px-5 py-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-primary">
-              Separate category
+              Separate from the chart
             </p>
             <p className="mt-1 font-serif text-lg text-brand-ink tracking-wide">
               {view.missionShareLabel}
             </p>
-            {derived.missionShareAmount !== null ? (
-              <p className="mt-1 text-brand-ink/80">{formatUsd(derived.missionShareAmount)}</p>
-            ) : null}
+            <p className="mt-1 text-brand-ink/80 tabular-nums">
+              {formatUsd(derived.missionShareAmount)}
+            </p>
             <p className="mt-2 text-sm text-brand-ink/70 leading-relaxed">
               {view.missionShareDescription}
             </p>
           </div>
-        )}
+        ) : ctx?.editMode ? (
+          <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-dashed border-brand-primary/20 bg-white/50 px-5 py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-primary">
+              Mission Share (separate category)
+            </p>
+            <p className="mt-2 text-sm text-brand-ink/70">
+              {derived.missionShareAmount !== null
+                ? formatUsd(derived.missionShareAmount)
+                : "Not set — import a snapshot or enter Mission Share in properties."}
+            </p>
+          </div>
+        ) : null}
 
         {ctx?.editMode ? (
           <AdminReconciliationNote derived={derived} />
         ) : null}
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2">
-          {view.functions.map((fn) => (
+          {view.descriptionFunctions.map((fn) => (
             <article
               key={fn.id}
               className={cn(
