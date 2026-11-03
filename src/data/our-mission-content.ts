@@ -12,13 +12,21 @@ export const OUR_MISSION_META = {
     "Our vision is to see God mobilize, train, and send 300 more workers by August 31, 2031, for the sake of reaching the unreached.",
 } as const;
 
+const OUR_MISSION_HERO_VISION =
+  "Our vision is to see God mobilize, train, and send 300 more workers by August 31, 2031, for the sake of reaching the unreached.";
+
+const OUR_MISSION_HERO_DETAIL =
+  "Some workers go directly to unreached peoples. Others equip and support those who go, while still others begin putting disciple-making principles into practice where they are. Each contributes to the ultimate purpose of seeing the Gospel reach those who have yet to hear.";
+
 export const OUR_MISSION_HERO = {
   title: "MOBILIZE. TRAIN. SEND.",
   supporting: "For the Sake of Reaching the Unreached.",
-  paragraphs: [
-    "Our vision is to see God mobilize, train, and send 300 more workers by August 31, 2031, for the sake of reaching the unreached.",
-    "Some workers go directly to unreached peoples. Others equip and support those who go, while still others begin putting disciple-making principles into practice where they are. Each contributes to the ultimate purpose of seeing the Gospel reach those who have yet to hear.",
-  ],
+  /** Short vision line shown in the compact above-the-fold hero. */
+  vision: OUR_MISSION_HERO_VISION,
+  /** Longer explanation shown beneath the above-the-fold band. */
+  detail: OUR_MISSION_HERO_DETAIL,
+  /** Both paragraphs — prefer vision + detail for layout. */
+  paragraphs: [OUR_MISSION_HERO_VISION, OUR_MISSION_HERO_DETAIL],
 } as const;
 
 export const OUR_MISSION_FUNCTIONS_TITLE = "What Does It Mean to Mobilize, Train & Send?";

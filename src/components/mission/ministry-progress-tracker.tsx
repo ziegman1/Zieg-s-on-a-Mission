@@ -1,13 +1,32 @@
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import { RECRUIT_SENT_GOAL, sentGoalPercent } from "@/lib/recruits/recruit-milestones";
+import { cn } from "@/lib/utils";
 
-function MilestoneStep({ label, value }: { label: string; value: number }) {
+function MilestoneStep({
+  label,
+  value,
+  compact = false,
+}: {
+  label: string;
+  value: number;
+  compact?: boolean;
+}) {
   return (
-    <div className="flex-1 min-w-0 text-center sm:text-left">
-      <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary/85">
+    <div className={cn("flex-1 min-w-0 text-center", !compact && "sm:text-left")}>
+      <p
+        className={cn(
+          "font-semibold uppercase tracking-[0.18em] text-brand-primary/85",
+          compact ? "text-[10px] sm:text-[11px]" : "text-[10px] sm:text-[11px]",
+        )}
+      >
         {label}
       </p>
-      <p className="mt-1 font-serif text-3xl sm:text-4xl text-brand-ink tabular-nums tracking-tight">
+      <p
+        className={cn(
+          "mt-1 font-serif text-brand-ink tabular-nums tracking-tight",
+          compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl",
+        )}
+      >
         {value}
       </p>
     </div>
@@ -30,6 +49,7 @@ function StepArrow() {
  * Public ministry progress tracker.
  *
  * Receives aggregate integers only — no recruit record ever reaches this component.
+ * `compact` shows the three milestone figures only (above-the-fold Our Mission intro).
  */
 export function MinistryProgressTracker({
   counts,
@@ -38,6 +58,7 @@ export function MinistryProgressTracker({
   trainedLabel = "Trained",
   sentLabel = "Sent",
   remainingDetail = "to reach the unreached by August 31, 2031.",
+  compact = false,
 }: {
   counts: PublicProgressCounts;
   title?: string;
@@ -46,10 +67,34 @@ export function MinistryProgressTracker({
   sentLabel?: string;
   /** Words after “more workers”. The number itself is the goal minus Sent. */
   remainingDetail?: string;
+  compact?: boolean;
 }) {
   const { mobilized, trained, sent } = counts;
   const percent = sentGoalPercent(sent);
   const remaining = Math.max(0, RECRUIT_SENT_GOAL - sent);
+
+  if (compact) {
+    return (
+      <section
+        className="rounded-xl border border-brand-primary/25 bg-white/85 shadow-sm px-4 py-4 sm:px-6 sm:py-5"
+        aria-labelledby="ministry-progress-heading"
+      >
+        <p
+          id="ministry-progress-heading"
+          className="sr-only"
+        >
+          {title}
+        </p>
+        <div className="flex items-start justify-between gap-2 sm:gap-4">
+          <MilestoneStep label={mobilizedLabel} value={mobilized} compact />
+          <StepArrow />
+          <MilestoneStep label={trainedLabel} value={trained} compact />
+          <StepArrow />
+          <MilestoneStep label={sentLabel} value={sent} compact />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

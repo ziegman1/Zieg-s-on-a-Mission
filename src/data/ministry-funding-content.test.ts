@@ -8,6 +8,7 @@ import {
   MINISTRY_FUNDING_FUNCTIONS_INTRO,
   MINISTRY_FUNDING_HERO,
   MINISTRY_FUNDING_INVITATION,
+  MINISTRY_FUNDING_PARTNER_CTA,
   MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION,
   MISSION_SHARE_CATEGORY,
 } from "./ministry-funding-content";
@@ -16,6 +17,10 @@ describe("ministry funding content defaults", () => {
   it("uses the approved hero and invitation copy", () => {
     expect(MINISTRY_FUNDING_HERO.title).toBe("FUELING THE MISSION.");
     expect(MINISTRY_FUNDING_HERO.supporting).toBe("Investing in Workers. Advancing the Gospel.");
+    expect(MINISTRY_FUNDING_PARTNER_CTA).toEqual({
+      label: "Partner With Us",
+      url: "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
+    });
     expect(MINISTRY_FUNDING_INVITATION.primaryCtaUrl).toBe(
       "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
     );

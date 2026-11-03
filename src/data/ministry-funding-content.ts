@@ -28,6 +28,12 @@ export const MINISTRY_FUNDING_GOALS = {
   updatedLabel: "Figures last updated",
 } as const;
 
+/** Above-the-fold Partner CTA under the funding progress bar (Mission Multiplied). */
+export const MINISTRY_FUNDING_PARTNER_CTA = {
+  label: "Partner With Us",
+  url: CANONICAL_GIVING_URL,
+} as const;
+
 export const MINISTRY_FUNDING_FUNCTIONS_HEADING = "How Your Partnership Supports the Mission";
 
 /** Intro under the primary functions heading (above the chart label). */

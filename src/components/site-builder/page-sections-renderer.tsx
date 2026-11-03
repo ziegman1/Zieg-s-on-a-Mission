@@ -14,7 +14,7 @@ import { MINISTRY_PROSE_CLASS } from "@/lib/site-builder/formatted-content";
 import { resolveMinistryProgressSectionKey } from "@/lib/site-builder/ministry-progress-section";
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
 import { partitionMinistrySections } from "@/lib/site-builder/ministry-sections-layout";
-import { renderOurMissionSection } from "@/components/mission/our-mission-editable-sections";
+import { renderOurMissionPageSections } from "@/components/mission/our-mission-editable-sections";
 import { renderMinistryFundingSection } from "@/components/ministry-funding/ministry-funding-editable-sections";
 import { EditableSectionShell } from "./editable-element";
 import { MinistryPageHeader } from "./ministry-page-header";
@@ -107,11 +107,7 @@ export function PageSectionsRenderer({
   if (pageKey === "our-mission") {
     return (
       <div className="bg-brand-surface text-brand-ink">
-        {toRender.map((section) => {
-          const designed = renderOurMissionSection(section, progressCounts);
-          if (designed) return wrap(section, designed);
-          return wrap(section, renderGenericSection(section, siteTagline));
-        })}
+        {renderOurMissionPageSections(toRender, progressCounts, wrap)}
       </div>
     );
   }

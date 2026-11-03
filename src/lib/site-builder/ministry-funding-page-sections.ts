@@ -15,6 +15,7 @@ import {
   MINISTRY_FUNDING_HERO,
   MINISTRY_FUNDING_INVITATION,
   MINISTRY_FUNDING_INVITATION_BODY_LEGACY,
+  MINISTRY_FUNDING_PARTNER_CTA,
   MISSION_SHARE_CATEGORY,
 } from "@/data/ministry-funding-content";
 import type { PageSection, SectionType } from "./types";
@@ -97,6 +98,8 @@ export function defaultMinistryFundingSections(): PageSection[] {
         monthlyGoal: "",
         monthlyRecurring: "",
         figuresUpdatedAt: "",
+        primaryCtaLabel: MINISTRY_FUNDING_PARTNER_CTA.label,
+        primaryCtaUrl: MINISTRY_FUNDING_PARTNER_CTA.url,
       },
       { [MINISTRY_FUNDING_GOALS_SETTING]: true },
     ),
@@ -176,6 +179,32 @@ export function migrateMinistryFundingSections(sections: PageSection[]): {
         settings: { ...row.settings, [MINISTRY_FUNDING_GOALS_SETTING]: true },
       };
       changed = true;
+    }
+    if (row.sectionKey === "funding-goals" || isMinistryFundingGoalsSection(row)) {
+      let nextContent = row.content;
+      const label =
+        typeof row.content.primaryCtaLabel === "string"
+          ? row.content.primaryCtaLabel.trim()
+          : "";
+      const url =
+        typeof row.content.primaryCtaUrl === "string" ? row.content.primaryCtaUrl.trim() : "";
+      if (!label) {
+        nextContent = {
+          ...nextContent,
+          primaryCtaLabel: MINISTRY_FUNDING_PARTNER_CTA.label,
+        };
+        changed = true;
+      }
+      if (!url || isLegacyGivingHref(url)) {
+        nextContent = {
+          ...nextContent,
+          primaryCtaUrl: MINISTRY_FUNDING_PARTNER_CTA.url,
+        };
+        changed = true;
+      }
+      if (nextContent !== row.content) {
+        row = { ...row, content: nextContent };
+      }
     }
     if (row.sectionKey === "allocation" && !isMinistryFundingAllocationSection(row)) {
       row = {

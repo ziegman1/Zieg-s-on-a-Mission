@@ -22,7 +22,12 @@ import { ChevronDown, ChevronUp, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 /** Presentation fields only — financial amounts use dedicated controls above. */
-const FUNDING_GOALS_COPY_FIELDS = new Set(["headline", "body"]);
+const FUNDING_GOALS_COPY_FIELDS = new Set([
+  "headline",
+  "body",
+  "primaryCtaLabel",
+  "primaryCtaUrl",
+]);
 
 export function SectionPropertiesPanel({
   section,
@@ -89,7 +94,11 @@ export function SectionPropertiesPanel({
                     ...field,
                     label: "Awaiting-update message (shown publicly until both amounts are set)",
                   }
-                : field
+                : fundingGoals && field.key === "primaryCtaLabel"
+                  ? { ...field, label: "Partner With Us button label" }
+                  : fundingGoals && field.key === "primaryCtaUrl"
+                    ? { ...field, label: "Partner With Us button URL (Mission Multiplied)" }
+                    : field
             }
             section={section}
             onChange={onChange}

@@ -22,6 +22,7 @@ describe("our-mission site builder sections", () => {
     expect(sections.map((s) => s.sectionKey)).toEqual([
       "hero",
       "tracker",
+      "vision-detail",
       "functions",
       "avenues-heading",
       "avenue-jonathan-training",
@@ -45,6 +46,43 @@ describe("our-mission site builder sections", () => {
     expect(invitation?.content.primaryCtaUrl).toBe("/ministry-funding");
     expect(invitation?.content.secondaryCtaLabel).toBe("");
     expect(invitation?.content.secondaryCtaUrl).toBe("");
+  });
+
+  it("seeds a compact hero with vision, intro CTA, and detail section", () => {
+    const sections = defaultOurMissionEditableSections();
+    const hero = sections.find((s) => s.sectionKey === "hero");
+    const detail = sections.find((s) => s.sectionKey === "vision-detail");
+    expect(hero?.content.body).toBe(OUR_MISSION_HERO.vision);
+    expect(hero?.content.primaryCtaLabel).toBe(OUR_MISSION_CLOSING_CTA.label);
+    expect(hero?.content.primaryCtaUrl).toBe("/ministry-funding");
+    expect(detail?.content.body).toBe(OUR_MISSION_HERO.detail);
+  });
+
+  it("migrates legacy combined hero body into vision + detail", () => {
+    const withoutDetail = defaultOurMissionEditableSections()
+      .filter((s) => s.sectionKey !== "vision-detail")
+      .map((section) =>
+        section.sectionKey === "hero"
+          ? {
+              ...section,
+              content: {
+                ...section.content,
+                body: OUR_MISSION_HERO.paragraphs.join("\n\n"),
+                primaryCtaLabel: "",
+                primaryCtaUrl: "",
+              },
+            }
+          : section,
+      );
+
+    const { sections, changed } = migrateOurMissionFullEditSections(withoutDetail);
+    expect(changed).toBe(true);
+    const hero = sections.find((s) => s.sectionKey === "hero");
+    const detail = sections.find((s) => s.sectionKey === "vision-detail");
+    expect(hero?.content.body).toBe(OUR_MISSION_HERO.vision);
+    expect(hero?.content.primaryCtaLabel).toBe(OUR_MISSION_CLOSING_CTA.label);
+    expect(hero?.content.primaryCtaUrl).toBe("/ministry-funding");
+    expect(detail?.content.body).toBe(OUR_MISSION_HERO.detail);
   });
 
   it("migrates legacy dual invitation CTAs to the single closing button", () => {

@@ -1,8 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
 import { GivingLink, StorefrontHrefLink } from "@/components/giving-link";
 import { CANONICAL_GIVING_URL } from "@/data/giving";
+import {
+  MINISTRY_FUNDING_PARTNER_CTA,
+} from "@/data/ministry-funding-content";
 import type { PageSection } from "@/lib/site-builder/types";
 import {
   contentStr,
@@ -14,7 +18,6 @@ import { EditableElement } from "@/components/site-builder/editable-element";
 import { ContentElementsBlock } from "@/components/site-builder/content-elements-block";
 import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
 import { useBuilderPreview } from "@/components/site-builder/builder-preview-context";
-import { OurMissionHeroEditable } from "@/components/mission/our-mission-editable-sections";
 import {
   AllocationDoughnut,
   chartInvestmentTotal,
@@ -33,8 +36,13 @@ import { DEFAULT_COLORS_FOR_IMPORT } from "@/lib/ministry-funding/chart-colors";
 import { normalizeFunctionName } from "@/lib/ministry-funding/zoam-schema";
 import { cn } from "@/lib/utils";
 
-function GoldRule() {
-  return <span className="mx-auto mt-5 block h-0.5 w-14 bg-brand-accent" aria-hidden />;
+function GoldRule({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      className={cn("mx-auto block h-0.5 w-14 bg-brand-accent", compact ? "mt-3" : "mt-5")}
+      aria-hidden
+    />
+  );
 }
 
 function showField(
@@ -59,7 +67,7 @@ function StatCell({
   return (
     <div
       className={cn(
-        "rounded-xl bg-white/70 px-4 py-4 text-center sm:text-left",
+        "rounded-xl bg-white/70 px-3 py-3 sm:px-4 sm:py-3.5 text-center sm:text-left",
         emphasize
           ? "border-2 border-brand-accent/70 shadow-sm"
           : "border border-brand-primary/15",
@@ -73,10 +81,65 @@ function StatCell({
       >
         {label}
       </p>
-      <p className="mt-2 font-serif text-xl sm:text-2xl text-brand-ink tracking-wide tabular-nums">
+      <p className="mt-1.5 font-serif text-xl sm:text-2xl text-brand-ink tracking-wide tabular-nums">
         {value}
       </p>
     </div>
+  );
+}
+
+/** Compact ministry-funding hero for the above-the-fold partnership band. */
+export function MinistryFundingHeroEditable({ section }: { section: PageSection }) {
+  const ctx = useBuilderPreview();
+  const c = section.content;
+  const headline = contentStr(c, "headline");
+  const sub = contentStr(c, "subheadline");
+  const body = contentStr(c, "body");
+
+  return (
+    <section className="bg-gradient-to-b from-white/80 to-brand-surface px-4 pt-6 pb-4 sm:pt-7 sm:pb-5 md:pt-8 md:pb-5">
+      <div className="mx-auto max-w-3xl text-center">
+        {showField(ctx?.editMode, "headline", headline, c) ? (
+          <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
+            <SiteBuilderFormattedContent
+              text={headline}
+              className="font-serif text-3xl sm:text-4xl md:text-[2.75rem] text-brand-ink tracking-wide leading-[1.05] [&_p]:m-0"
+              emptyPlaceholder={ctx?.editMode ? "Headline (empty)" : undefined}
+            />
+          </EditableElement>
+        ) : null}
+        {showField(ctx?.editMode, "subheadline", sub, c) ? (
+          <EditableElement
+            sectionId={section.id}
+            elementId="subheadline"
+            style={getFieldStyle(c, "subheadline")}
+            className="mt-3"
+          >
+            <SiteBuilderFormattedContent
+              text={sub}
+              className="font-serif text-lg sm:text-xl text-brand-primary tracking-wide [&_p]:m-0"
+              emptyPlaceholder={ctx?.editMode ? "Supporting line (empty)" : undefined}
+            />
+          </EditableElement>
+        ) : null}
+        <GoldRule compact />
+        {showField(ctx?.editMode, "body", body, c) ? (
+          <EditableElement
+            sectionId={section.id}
+            elementId="body"
+            style={getFieldStyle(c, "body")}
+            className="mx-auto mt-4 max-w-2xl"
+          >
+            <SiteBuilderFormattedContent
+              text={body}
+              className="text-sm sm:text-base text-brand-ink/85 leading-relaxed [&_p]:m-0"
+              emptyPlaceholder={ctx?.editMode ? "Body (empty)" : undefined}
+            />
+          </EditableElement>
+        ) : null}
+        <ContentElementsBlock section={section} />
+      </div>
+    </section>
   );
 }
 
@@ -124,8 +187,13 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
       ? percentLabel
       : `${derived.percentAchieved}% funded`;
 
+  const partnerLabel =
+    contentStr(c, "primaryCtaLabel").trim() || MINISTRY_FUNDING_PARTNER_CTA.label;
+  const partnerUrl =
+    contentStr(c, "primaryCtaUrl").trim() || MINISTRY_FUNDING_PARTNER_CTA.url;
+
   return (
-    <section className="border-b border-brand-primary/15 px-4 py-10 sm:py-12">
+    <section className="border-b border-brand-primary/15 px-4 pt-3 pb-7 sm:pt-4 sm:pb-8">
       <div className="mx-auto max-w-3xl">
         {showField(editMode, "headline", headline, c) ? (
           <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
@@ -136,10 +204,10 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
             />
           </EditableElement>
         ) : null}
-        <GoldRule />
+        <GoldRule compact />
 
         {!showDashboard ? (
-          <div className="mt-6 rounded-2xl border border-brand-primary/20 bg-white/70 px-5 py-6 sm:px-7">
+          <div className="mt-4 rounded-2xl border border-brand-primary/20 bg-white/70 px-5 py-5 sm:px-7">
             {showField(editMode, "body", awaiting, c) ? (
               <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
                 <SiteBuilderFormattedContent
@@ -153,9 +221,29 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
                 Partnership figures will appear here once they are published.
               </p>
             )}
+            <div className="mt-5 flex justify-center">
+              <EditableElement
+                sectionId={section.id}
+                elementId="cta:primary"
+                style={getFieldStyle(c, "cta:primary")}
+                layout="inline"
+                styleOnWrapper={false}
+              >
+                <GivingLink
+                  href={partnerUrl}
+                  className={cn(
+                    storefrontButtonClasses("primary"),
+                    "gap-2 px-8 sm:px-10 max-w-full text-center whitespace-normal sm:whitespace-nowrap",
+                  )}
+                >
+                  <span>{partnerLabel}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+                </GivingLink>
+              </EditableElement>
+            </div>
           </div>
         ) : (
-          <div className="mt-6 space-y-5">
+          <div className="mt-4 space-y-4">
             {editMode && !derived.isComplete ? (
               <p className="text-center text-xs text-brand-ink/55">
                 Preview: enter Monthly Funding Goal and Current Monthly Recurring Partnership in the
@@ -164,7 +252,7 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
               </p>
             ) : null}
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
               <StatCell label="Monthly Funding Goal" value={money(derived.monthlyGoal)} />
               <StatCell
                 label="Current Monthly Partnership"
@@ -177,13 +265,13 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
               />
             </div>
 
-            <div className="rounded-2xl border border-brand-primary/20 bg-[#eae5e1]/55 px-5 py-5 sm:px-6 shadow-sm">
+            <div className="rounded-2xl border border-brand-primary/20 bg-[#eae5e1]/55 px-4 py-4 sm:px-6 sm:py-5 shadow-sm">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-primary">
                     Funding Progress
                   </p>
-                  <p className="mt-1.5 font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide tabular-nums">
+                  <p className="mt-1 font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide tabular-nums">
                     {percentDisplay}
                   </p>
                 </div>
@@ -192,7 +280,7 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
                 </p>
               </div>
               <div
-                className="mt-4 h-4 w-full overflow-hidden rounded-full bg-[#1c252e]/10"
+                className="mt-3 h-3.5 sm:h-4 w-full overflow-hidden rounded-full bg-[#1c252e]/10"
                 role="progressbar"
                 aria-valuemin={0}
                 aria-valuemax={100}
@@ -204,20 +292,42 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
                   style={{ width: `${barWidth}%` }}
                 />
               </div>
-              {derived.isComplete ? (
-                <p className="mt-3 text-center text-xs sm:text-sm text-brand-ink/60 tabular-nums leading-relaxed">
-                  Annual ministry budget: {money(derived.annualGoal)}
-                  <span className="mx-1.5 text-brand-ink/35" aria-hidden>
-                    ·
-                  </span>
-                  Annualized remaining need: {money(derived.remainingAnnual)}
-                </p>
-              ) : editMode ? (
-                <p className="mt-3 text-center text-xs text-brand-ink/50">
-                  Annual ministry budget and remaining need appear once both monthly figures are set.
-                </p>
-              ) : null}
+
+              <div className="mt-5 flex justify-center">
+                <EditableElement
+                  sectionId={section.id}
+                  elementId="cta:primary"
+                  style={getFieldStyle(c, "cta:primary")}
+                  layout="inline"
+                  styleOnWrapper={false}
+                >
+                  <GivingLink
+                    href={partnerUrl}
+                    className={cn(
+                      storefrontButtonClasses("primary"),
+                      "gap-2 px-8 sm:px-10 max-w-full text-center whitespace-normal sm:whitespace-nowrap",
+                    )}
+                  >
+                    <span>{partnerLabel}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+                  </GivingLink>
+                </EditableElement>
+              </div>
             </div>
+
+            {derived.isComplete ? (
+              <p className="text-center text-xs sm:text-sm text-brand-ink/60 tabular-nums leading-relaxed">
+                Annual ministry budget: {money(derived.annualGoal)}
+                <span className="mx-1.5 text-brand-ink/35" aria-hidden>
+                  ·
+                </span>
+                Annualized remaining need: {money(derived.remainingAnnual)}
+              </p>
+            ) : editMode ? (
+              <p className="text-center text-xs text-brand-ink/50">
+                Annual ministry budget and remaining need appear once both monthly figures are set.
+              </p>
+            ) : null}
 
             {updatedLabel || editMode ? (
               <p className="text-center text-sm text-brand-ink/60">
@@ -577,7 +687,7 @@ export function InvitationEditable({ section }: { section: PageSection }) {
 
 export function renderMinistryFundingSection(section: PageSection): ReactNode {
   if (section.sectionKey === "hero") {
-    return <OurMissionHeroEditable section={section} />;
+    return <MinistryFundingHeroEditable section={section} />;
   }
   if (isMinistryFundingGoalsSection(section)) {
     return <FundingGoalsEditable section={section} />;

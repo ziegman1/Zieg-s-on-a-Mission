@@ -154,8 +154,9 @@ export function defaultOurMissionEditableSections(): PageSection[] {
     sec("hero", "hero", "Hero & ministry vision", {
       headline: OUR_MISSION_HERO.title,
       subheadline: OUR_MISSION_HERO.supporting,
-      body: OUR_MISSION_HERO.paragraphs.join("\n\n"),
-      primaryCtaLabel: "",
+      body: OUR_MISSION_HERO.vision,
+      primaryCtaLabel: OUR_MISSION_CLOSING_CTA.label,
+      primaryCtaUrl: OUR_MISSION_CLOSING_CTA.href,
       secondaryCtaLabel: "",
       tertiaryCtaLabel: "",
     }),
@@ -173,6 +174,10 @@ export function defaultOurMissionEditableSections(): PageSection[] {
       },
       { [OUR_MISSION_LIVE_TRACKER_SETTING]: true },
     ),
+    sec("vision-detail", "text_section", "Vision detail", {
+      headline: "",
+      body: OUR_MISSION_HERO.detail,
+    }),
     sec("functions", "card_grid", "Mobilize, Train & Equip, Send", {
       headline: OUR_MISSION_FUNCTIONS_TITLE,
       intro: "",
@@ -254,6 +259,44 @@ export function migrateOurMissionFullEditSections(sections: PageSection[]): {
         settings: { ...row.settings, [OUR_MISSION_LIVE_TRACKER_SETTING]: true },
       };
       changed = true;
+    }
+    // Compact hero: keep vision statement only; seed intro CTA when unset.
+    if (row.sectionKey === "hero") {
+      let nextContent = row.content;
+      const body = typeof row.content.body === "string" ? row.content.body.trim() : "";
+      const legacyFull = OUR_MISSION_HERO.paragraphs.join("\n\n");
+      if (body === legacyFull || body === OUR_MISSION_HERO.paragraphs.join("\n\n").trim()) {
+        nextContent = { ...nextContent, body: OUR_MISSION_HERO.vision };
+        changed = true;
+      } else if (
+        body.includes(OUR_MISSION_HERO.vision) &&
+        body.includes(OUR_MISSION_HERO.detail) &&
+        body !== OUR_MISSION_HERO.vision
+      ) {
+        nextContent = { ...nextContent, body: OUR_MISSION_HERO.vision };
+        changed = true;
+      }
+      const primaryLabel =
+        typeof row.content.primaryCtaLabel === "string" ? row.content.primaryCtaLabel.trim() : "";
+      const primaryUrl =
+        typeof row.content.primaryCtaUrl === "string" ? row.content.primaryCtaUrl.trim() : "";
+      if (!primaryLabel) {
+        nextContent = {
+          ...nextContent,
+          primaryCtaLabel: OUR_MISSION_CLOSING_CTA.label,
+        };
+        changed = true;
+      }
+      if (!primaryUrl || primaryUrl === "/partner") {
+        nextContent = {
+          ...nextContent,
+          primaryCtaUrl: OUR_MISSION_CLOSING_CTA.href,
+        };
+        changed = true;
+      }
+      if (nextContent !== row.content) {
+        row = { ...row, content: nextContent };
+      }
     }
     // Simplify legacy dual closing CTAs → single Ministry Funding CTA (preserve custom copy/URLs).
     if (row.sectionKey === "invitation" || row.sectionType === "cta") {

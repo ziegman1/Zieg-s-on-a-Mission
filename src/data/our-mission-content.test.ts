@@ -86,6 +86,8 @@ describe("our mission framework", () => {
     expect(view).toContain("intentionally not EditableElements");
     expect(view).toContain('"/ministry-funding"');
     expect(view).toContain("ArrowRight");
+    expect(view).toContain("OurMissionAboveFoldEditable");
+    expect(view).toContain("compact");
     expect(view).not.toContain("How We Measure Progress");
     expect(view).not.toContain("<details");
     expect(view).not.toContain("/our-impact");

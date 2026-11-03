@@ -13,6 +13,7 @@ import {
   MINISTRY_FUNDING_FUNCTIONS,
   MINISTRY_FUNDING_FUNCTIONS_INTRO,
   MINISTRY_FUNDING_INVITATION,
+  MINISTRY_FUNDING_PARTNER_CTA,
 } from "@/data/ministry-funding-content";
 
 describe("ministry-funding site builder sections", () => {
@@ -43,6 +44,38 @@ describe("ministry-funding site builder sections", () => {
 
     const view = parseFundingGoalsSection(goals!);
     expect(view?.derived.isComplete).toBe(false);
+  });
+
+  it("seeds Partner With Us CTA to Mission Multiplied under funding progress", () => {
+    const goals = defaultMinistryFundingSections().find((s) => s.sectionKey === "funding-goals");
+    expect(goals?.content.primaryCtaLabel).toBe(MINISTRY_FUNDING_PARTNER_CTA.label);
+    expect(goals?.content.primaryCtaUrl).toBe(MINISTRY_FUNDING_PARTNER_CTA.url);
+    expect(goals?.content.primaryCtaUrl).toBe(
+      "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
+    );
+  });
+
+  it("migrates missing Partner With Us CTA on funding goals", () => {
+    const base = defaultMinistryFundingSections();
+    const legacy = base.map((s) =>
+      s.sectionKey === "funding-goals"
+        ? {
+            ...s,
+            content: {
+              ...s.content,
+              primaryCtaLabel: "",
+              primaryCtaUrl: "/give",
+            },
+          }
+        : s,
+    );
+    const { sections, changed } = migrateMinistryFundingSections(legacy);
+    expect(changed).toBe(true);
+    const goals = sections.find((s) => s.sectionKey === "funding-goals");
+    expect(goals?.content.primaryCtaLabel).toBe("Partner With Us");
+    expect(goals?.content.primaryCtaUrl).toBe(
+      "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
+    );
   });
 
   it("links invitation CTA to Mission Multiplied", () => {

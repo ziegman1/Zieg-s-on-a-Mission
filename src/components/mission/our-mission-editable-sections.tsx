@@ -1,10 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { PageSection } from "@/lib/site-builder/types";
 import type { PublicProgressCounts } from "@/lib/ministry/ministry-milestones";
+import { OUR_MISSION_CLOSING_CTA } from "@/data/our-mission-content";
 import {
   contentStr,
   fieldVisible,
@@ -21,14 +22,179 @@ import { SiteBuilderFormattedContent } from "@/components/site-builder/site-buil
 import { useBuilderPreview } from "@/components/site-builder/builder-preview-context";
 import { cn } from "@/lib/utils";
 
-function GoldRule() {
-  return <span className="mx-auto mt-5 block h-0.5 w-14 bg-brand-accent" aria-hidden />;
+function GoldRule({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      className={cn("mx-auto block h-0.5 w-14 bg-brand-accent", compact ? "mt-3" : "mt-5")}
+      aria-hidden
+    />
+  );
 }
 
 function showField(editMode: boolean | undefined, key: string, text: string, content: Record<string, unknown>) {
   return Boolean(editMode) || (text.trim().length > 0 && fieldVisible(content, key));
 }
 
+function OurMissionPrimaryCta({
+  section,
+  label,
+  href,
+}: {
+  section: PageSection;
+  label: string;
+  href: string;
+}) {
+  const ctx = useBuilderPreview();
+  const c = section.content;
+  if (!label.trim() && !ctx?.editMode) return null;
+
+  return (
+    <EditableElement
+      sectionId={section.id}
+      elementId="cta:primary"
+      style={getFieldStyle(c, "cta:primary")}
+      layout="inline"
+      styleOnWrapper={false}
+    >
+      <Link
+        href={href}
+        className={cn(
+          storefrontButtonClasses("primary"),
+          "gap-2 px-8 sm:px-10 max-w-full text-center whitespace-normal sm:whitespace-nowrap",
+        )}
+      >
+        <span>{label.trim() || (ctx?.editMode ? "Primary CTA" : "")}</span>
+        <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+      </Link>
+    </EditableElement>
+  );
+}
+
+/**
+ * Compact Our Mission above-the-fold: headline, vision, live tracker, Ministry Funding CTA.
+ * Used when hero + tracker are composed together. Ministry Funding reuses the spacious hero.
+ */
+export function OurMissionAboveFoldEditable({
+  heroSection,
+  trackerSection,
+  counts,
+}: {
+  heroSection: PageSection;
+  trackerSection: PageSection;
+  counts: PublicProgressCounts | null;
+}) {
+  const ctx = useBuilderPreview();
+  const c = heroSection.content;
+  const headline = contentStr(c, "headline");
+  const sub = contentStr(c, "subheadline");
+  const body = contentStr(c, "body");
+  const primary = contentStr(c, "primaryCtaLabel") || OUR_MISSION_CLOSING_CTA.label;
+  const primaryUrl = contentStr(c, "primaryCtaUrl") || OUR_MISSION_CLOSING_CTA.href;
+
+  const tc = trackerSection.content;
+  const trackerHeadline = contentStr(tc, "headline") || "The Progress So Far";
+  const mobilizedLabel = contentStr(tc, "mobilizedLabel") || "Mobilized";
+  const trainedLabel = contentStr(tc, "trainedLabel") || "Trained & Equipped";
+  const sentLabel = contentStr(tc, "sentLabel") || "Sent";
+
+  return (
+    <section className="border-b border-brand-primary/15 bg-gradient-to-b from-white/80 to-brand-surface px-4 pt-6 pb-7 sm:pt-7 sm:pb-8 md:pt-8 md:pb-9">
+      <div className="mx-auto max-w-3xl text-center">
+        {showField(ctx?.editMode, "headline", headline, c) ? (
+          <EditableElement
+            sectionId={heroSection.id}
+            elementId="headline"
+            style={getFieldStyle(c, "headline")}
+          >
+            <SiteBuilderFormattedContent
+              text={headline}
+              className="font-serif text-3xl sm:text-4xl md:text-[2.75rem] text-brand-ink tracking-wide leading-[1.05] [&_p]:m-0"
+              emptyPlaceholder={ctx?.editMode ? "Headline (empty)" : undefined}
+            />
+          </EditableElement>
+        ) : null}
+        {showField(ctx?.editMode, "subheadline", sub, c) ? (
+          <EditableElement
+            sectionId={heroSection.id}
+            elementId="subheadline"
+            style={getFieldStyle(c, "subheadline")}
+            className="mt-3"
+          >
+            <SiteBuilderFormattedContent
+              text={sub}
+              className="font-serif text-lg sm:text-xl text-brand-primary tracking-wide [&_p]:m-0"
+              emptyPlaceholder={ctx?.editMode ? "Supporting line (empty)" : undefined}
+            />
+          </EditableElement>
+        ) : null}
+        <GoldRule compact />
+        {showField(ctx?.editMode, "body", body, c) ? (
+          <EditableElement
+            sectionId={heroSection.id}
+            elementId="body"
+            style={getFieldStyle(c, "body")}
+            className="mx-auto mt-4 max-w-2xl"
+          >
+            <SiteBuilderFormattedContent
+              text={body}
+              className="text-sm sm:text-base text-brand-ink/85 leading-relaxed [&_p]:m-0"
+              emptyPlaceholder={ctx?.editMode ? "Vision statement (empty)" : undefined}
+            />
+          </EditableElement>
+        ) : null}
+
+        <div className="mt-5 text-left sm:text-center">
+          {ctx?.editMode ? (
+            <div className="mb-2 flex flex-wrap justify-center gap-2 text-[11px] text-brand-ink/70">
+              <EditableElement
+                sectionId={trackerSection.id}
+                elementId="mobilizedLabel"
+                layout="inline"
+              >
+                <span>{mobilizedLabel}</span>
+              </EditableElement>
+              <span aria-hidden>·</span>
+              <EditableElement
+                sectionId={trackerSection.id}
+                elementId="trainedLabel"
+                layout="inline"
+              >
+                <span>{trainedLabel}</span>
+              </EditableElement>
+              <span aria-hidden>·</span>
+              <EditableElement sectionId={trackerSection.id} elementId="sentLabel" layout="inline">
+                <span>{sentLabel}</span>
+              </EditableElement>
+            </div>
+          ) : null}
+          {/* Numeric totals are intentionally not EditableElements */}
+          {counts ? (
+            <MinistryProgressTracker
+              counts={counts}
+              title={trackerHeadline}
+              mobilizedLabel={mobilizedLabel}
+              trainedLabel={trainedLabel}
+              sentLabel={sentLabel}
+              compact
+            />
+          ) : (
+            <p className="rounded-xl border border-brand-primary/25 bg-white/75 px-4 py-4 text-sm text-brand-ink/70">
+              Progress totals are temporarily unavailable.
+            </p>
+          )}
+        </div>
+
+        <div className="mt-5 flex justify-center">
+          <OurMissionPrimaryCta section={heroSection} label={primary} href={primaryUrl} />
+        </div>
+        <ContentElementsBlock section={heroSection} />
+        <ContentElementsBlock section={trackerSection} />
+      </div>
+    </section>
+  );
+}
+
+/** Spacious hero used by Ministry Funding (and fallbacks). */
 export function OurMissionHeroEditable({ section }: { section: PageSection }) {
   const ctx = useBuilderPreview();
   const c = section.content;
@@ -259,7 +425,7 @@ export function OurMissionTextEditable({
   variant = "default",
 }: {
   section: PageSection;
-  variant?: "default" | "heading-only" | "measurement" | "invitation";
+  variant?: "default" | "heading-only" | "measurement" | "invitation" | "vision-detail";
 }) {
   const ctx = useBuilderPreview();
   const c = section.content;
@@ -279,6 +445,7 @@ export function OurMissionTextEditable({
   const isInvitation = variant === "invitation" || section.sectionType === "cta";
   const isHeadingOnly = variant === "heading-only";
   const isMeasurement = variant === "measurement";
+  const isVisionDetail = variant === "vision-detail";
 
   const sectionClass = cn(
     "px-4",
@@ -286,9 +453,11 @@ export function OurMissionTextEditable({
       ? "border-t border-brand-primary/15 pt-16 sm:pt-20 pb-2"
       : isAvenue
         ? "px-4 pb-6"
-        : isInvitation || isMeasurement
-          ? "border-t border-brand-primary/15 px-4 py-16 sm:py-20"
-          : "px-4 pb-16 sm:pb-20",
+        : isVisionDetail
+          ? "px-4 pt-8 pb-10 sm:pt-10 sm:pb-12"
+          : isInvitation || isMeasurement
+            ? "border-t border-brand-primary/15 px-4 py-16 sm:py-20"
+            : "px-4 pb-16 sm:pb-20",
   );
 
   const inner = (
@@ -339,11 +508,17 @@ export function OurMissionTextEditable({
           sectionId={section.id}
           elementId="body"
           style={getFieldStyle(c, "body")}
-          className={cn("mt-4 sm:mt-6", isInvitation && "text-center")}
+          className={cn(
+            isVisionDetail ? "mt-0" : "mt-4 sm:mt-6",
+            (isInvitation || isVisionDetail) && "text-center",
+          )}
         >
           <SiteBuilderFormattedContent
             text={body}
-            className="text-brand-ink/85 leading-relaxed"
+            className={cn(
+              "text-brand-ink/85 leading-relaxed",
+              isVisionDetail && "text-base sm:text-lg",
+            )}
             emptyPlaceholder={ctx?.editMode ? "Body (empty)" : undefined}
           />
         </EditableElement>
@@ -439,16 +614,71 @@ export function OurMissionTextEditable({
 
   return (
     <section className={sectionClass}>
-      <div className={cn("mx-auto max-w-3xl", isInvitation && "text-center")}>{inner}</div>
+      <div
+        className={cn(
+          "mx-auto max-w-3xl",
+          (isInvitation || isVisionDetail) && "text-center",
+        )}
+      >
+        {inner}
+      </div>
     </section>
   );
+}
+
+export function isOurMissionTrackerSection(section: PageSection): boolean {
+  return (
+    section.settings?.liveMinistryTracker === true || section.sectionKey === "tracker"
+  );
+}
+
+/**
+ * Render Our Mission sections, composing hero + tracker into one above-the-fold band
+ * when both are present (single tracker source of truth).
+ */
+export function renderOurMissionPageSections(
+  sections: PageSection[],
+  progressCounts: PublicProgressCounts | null,
+  wrap: (section: PageSection, node: ReactNode) => ReactNode,
+): ReactNode[] {
+  const hero = sections.find((s) => s.sectionKey === "hero");
+  const tracker = sections.find((s) => isOurMissionTrackerSection(s));
+  const composed = Boolean(hero && tracker);
+  const nodes: ReactNode[] = [];
+
+  if (composed && hero && tracker) {
+    nodes.push(
+      <Fragment key={`above-fold-${hero.id}-${tracker.id}`}>
+        {wrap(
+          hero,
+          <OurMissionAboveFoldEditable
+            heroSection={hero}
+            trackerSection={tracker}
+            counts={progressCounts}
+          />,
+        )}
+      </Fragment>,
+    );
+  }
+
+  for (const section of sections) {
+    if (composed && (section.sectionKey === "hero" || isOurMissionTrackerSection(section))) {
+      continue;
+    }
+    const designed = renderOurMissionSection(section, progressCounts);
+    if (designed) {
+      nodes.push(<Fragment key={section.id}>{wrap(section, designed)}</Fragment>);
+    }
+  }
+
+  return nodes;
 }
 
 export function renderOurMissionSection(
   section: PageSection,
   progressCounts: PublicProgressCounts | null,
 ): ReactNode {
-  if (section.settings?.liveMinistryTracker === true || section.sectionKey === "tracker") {
+  if (isOurMissionTrackerSection(section)) {
     return <OurMissionTrackerEditable section={section} counts={progressCounts} />;
   }
   if (section.sectionKey === "hero") {
@@ -468,6 +698,9 @@ export function renderOurMissionSection(
   }
   if (section.sectionKey === "invitation" || section.sectionType === "cta") {
     return <OurMissionTextEditable section={section} variant="invitation" />;
+  }
+  if (section.sectionKey === "vision-detail") {
+    return <OurMissionTextEditable section={section} variant="vision-detail" />;
   }
   if (section.sectionKey === "beyond") {
     return <OurMissionTextEditable section={section} />;
