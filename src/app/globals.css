@@ -156,6 +156,8 @@ html.mission-hub-standalone {
 /* Comment composer — sits above mobile keyboard when Visual Viewport API updates inset */
 html {
   --mh-keyboard-inset: 0px;
+  /* Measured by StorefrontHeader; fallback matches typical sticky nav height. */
+  --storefront-header-height: 5rem;
 }
 
 @keyframes mh-shimmer {

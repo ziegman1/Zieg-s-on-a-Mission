@@ -21,6 +21,13 @@ describe("ministry funding content defaults", () => {
       label: "Partner With Us",
       url: "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
     });
+    const fundingUi = readFileSync(
+      resolve(process.cwd(), "src/components/ministry-funding/ministry-funding-editable-sections.tsx"),
+      "utf8",
+    );
+    expect(fundingUi).toContain("MinistryFundingAboveFoldEditable");
+    expect(fundingUi).toContain("StorefrontIntroViewport");
+    expect(fundingUi).toContain("PartnerWithUsCta");
     expect(MINISTRY_FUNDING_INVITATION.primaryCtaUrl).toBe(
       "https://mission-multiplied.raiselysite.com/jeremy-ziegenhorn",
     );

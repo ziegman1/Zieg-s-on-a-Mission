@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { GivingLink, StorefrontHrefLink } from "@/components/giving-link";
 import { CANONICAL_GIVING_URL } from "@/data/giving";
@@ -18,6 +18,10 @@ import { EditableElement } from "@/components/site-builder/editable-element";
 import { ContentElementsBlock } from "@/components/site-builder/content-elements-block";
 import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
 import { useBuilderPreview } from "@/components/site-builder/builder-preview-context";
+import {
+  StorefrontIntroInner,
+  StorefrontIntroViewport,
+} from "@/components/storefront-intro-viewport";
 import {
   AllocationDoughnut,
   chartInvestmentTotal,
@@ -88,7 +92,38 @@ function StatCell({
   );
 }
 
-/** Compact ministry-funding hero for the above-the-fold partnership band. */
+function PartnerWithUsCta({
+  section,
+  label,
+  href,
+}: {
+  section: PageSection;
+  label: string;
+  href: string;
+}) {
+  return (
+    <EditableElement
+      sectionId={section.id}
+      elementId="cta:primary"
+      style={getFieldStyle(section.content, "cta:primary")}
+      layout="inline"
+      styleOnWrapper={false}
+    >
+      <GivingLink
+        href={href}
+        className={cn(
+          storefrontButtonClasses("primary"),
+          "gap-2 px-8 sm:px-10 max-w-full text-center whitespace-normal sm:whitespace-nowrap",
+        )}
+      >
+        <span>{label}</span>
+        <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+      </GivingLink>
+    </EditableElement>
+  );
+}
+
+/** Standalone hero fallback when funding-goals is hidden. */
 export function MinistryFundingHeroEditable({ section }: { section: PageSection }) {
   const ctx = useBuilderPreview();
   const c = section.content;
@@ -140,6 +175,240 @@ export function MinistryFundingHeroEditable({ section }: { section: PageSection 
         <ContentElementsBlock section={section} />
       </div>
     </section>
+  );
+}
+
+/**
+ * Full-viewport Ministry Funding intro: hero + financial dashboard + Partner CTA at bottom.
+ */
+export function MinistryFundingAboveFoldEditable({
+  heroSection,
+  goalsSection,
+}: {
+  heroSection: PageSection;
+  goalsSection: PageSection;
+}) {
+  const ctx = useBuilderPreview();
+  const editMode = Boolean(ctx?.editMode);
+  const hc = heroSection.content;
+  const headline = contentStr(hc, "headline");
+  const sub = contentStr(hc, "subheadline");
+  const heroBody = contentStr(hc, "body");
+
+  const view = parseFundingGoalsSection(goalsSection);
+  const gc = goalsSection.content;
+  const goalsHeadline = view?.headline ?? contentStr(gc, "headline");
+  const awaiting = view?.awaitingCopy ?? contentStr(gc, "body");
+  const derived = view?.derived;
+  const money = (n: number | null | undefined) =>
+    n === null || n === undefined ? "—" : formatUsd(n);
+  const showDashboard = Boolean(derived?.isComplete || editMode);
+  const updatedLabel = formatFiguresUpdatedAt(view?.figuresUpdatedAt ?? "");
+  const barWidth = derived?.progressBarPercent ?? 0;
+  const percentDisplay =
+    derived?.percentAchieved === null || derived?.percentAchieved === undefined
+      ? derived?.isComplete
+        ? "n/a"
+        : "—"
+      : `${derived.percentAchieved}% funded`;
+
+  const partnerLabel =
+    contentStr(gc, "primaryCtaLabel").trim() || MINISTRY_FUNDING_PARTNER_CTA.label;
+  const partnerUrl =
+    contentStr(gc, "primaryCtaUrl").trim() || MINISTRY_FUNDING_PARTNER_CTA.url;
+
+  return (
+    <StorefrontIntroViewport className="bg-gradient-to-b from-white/80 to-brand-surface">
+      <StorefrontIntroInner
+        cta={
+          <PartnerWithUsCta section={goalsSection} label={partnerLabel} href={partnerUrl} />
+        }
+      >
+        <div className="text-center">
+          {showField(editMode, "headline", headline, hc) ? (
+            <EditableElement
+              sectionId={heroSection.id}
+              elementId="headline"
+              style={getFieldStyle(hc, "headline")}
+            >
+              <SiteBuilderFormattedContent
+                text={headline}
+                className="font-serif text-3xl sm:text-4xl md:text-[2.75rem] text-brand-ink tracking-wide leading-[1.05] [&_p]:m-0"
+                emptyPlaceholder={editMode ? "Headline (empty)" : undefined}
+              />
+            </EditableElement>
+          ) : null}
+          {showField(editMode, "subheadline", sub, hc) ? (
+            <EditableElement
+              sectionId={heroSection.id}
+              elementId="subheadline"
+              style={getFieldStyle(hc, "subheadline")}
+              className="mt-3"
+            >
+              <SiteBuilderFormattedContent
+                text={sub}
+                className="font-serif text-lg sm:text-xl text-brand-primary tracking-wide [&_p]:m-0"
+                emptyPlaceholder={editMode ? "Supporting line (empty)" : undefined}
+              />
+            </EditableElement>
+          ) : null}
+          <GoldRule compact />
+          {showField(editMode, "body", heroBody, hc) ? (
+            <EditableElement
+              sectionId={heroSection.id}
+              elementId="body"
+              style={getFieldStyle(hc, "body")}
+              className="mx-auto mt-4 max-w-2xl"
+            >
+              <SiteBuilderFormattedContent
+                text={heroBody}
+                className="text-sm sm:text-base text-brand-ink/85 leading-relaxed [&_p]:m-0"
+                emptyPlaceholder={editMode ? "Body (empty)" : undefined}
+              />
+            </EditableElement>
+          ) : null}
+        </div>
+
+        <div className="mt-5">
+          {showField(editMode, "headline", goalsHeadline, gc) ? (
+            <EditableElement
+              sectionId={goalsSection.id}
+              elementId="headline"
+              style={getFieldStyle(gc, "headline")}
+            >
+              <SiteBuilderFormattedContent
+                text={goalsHeadline}
+                className="text-center font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide [&_p]:m-0"
+                emptyPlaceholder={editMode ? "Section heading (empty)" : undefined}
+              />
+            </EditableElement>
+          ) : null}
+          <GoldRule compact />
+
+          {!showDashboard ? (
+            <div className="mt-4 rounded-2xl border border-brand-primary/20 bg-white/70 px-5 py-5 sm:px-7">
+              {showField(editMode, "body", awaiting, gc) ? (
+                <EditableElement
+                  sectionId={goalsSection.id}
+                  elementId="body"
+                  style={getFieldStyle(gc, "body")}
+                >
+                  <SiteBuilderFormattedContent
+                    text={awaiting}
+                    className="text-center text-brand-ink/85 leading-relaxed"
+                    emptyPlaceholder={undefined}
+                  />
+                </EditableElement>
+              ) : (
+                <p className="text-center text-brand-ink/75">
+                  Partnership figures will appear here once they are published.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3.5">
+              {editMode && !derived?.isComplete ? (
+                <p className="text-center text-xs text-brand-ink/55">
+                  Preview: enter Monthly Funding Goal and Current Monthly Recurring Partnership in
+                  the properties panel. The public page keeps the awaiting message until both values
+                  are saved and published.
+                </p>
+              ) : null}
+
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
+                <StatCell label="Monthly Funding Goal" value={money(derived?.monthlyGoal ?? null)} />
+                <StatCell
+                  label="Current Monthly Partnership"
+                  value={money(derived?.monthlyRecurring ?? null)}
+                />
+                <StatCell
+                  label="Remaining Monthly Need"
+                  value={money(derived?.remainingMonthly ?? null)}
+                  emphasize
+                />
+              </div>
+
+              <div className="rounded-2xl border border-brand-primary/20 bg-[#eae5e1]/55 px-4 py-4 sm:px-6 sm:py-5 shadow-sm">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-primary">
+                      Funding Progress
+                    </p>
+                    <p className="mt-1 font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide tabular-nums">
+                      {percentDisplay}
+                    </p>
+                  </div>
+                  <p className="text-sm text-brand-ink/70 tabular-nums">
+                    {money(derived?.monthlyRecurring ?? null)} of{" "}
+                    {money(derived?.monthlyGoal ?? null)} / month
+                  </p>
+                </div>
+                <div
+                  className="mt-3 h-3.5 sm:h-4 w-full overflow-hidden rounded-full bg-[#1c252e]/10"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={barWidth}
+                  aria-label="Percentage of recurring funding goal achieved"
+                >
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#1c252e] to-[#edb73e] transition-all duration-500 ease-out"
+                    style={{ width: `${barWidth}%` }}
+                  />
+                </div>
+              </div>
+
+              {derived?.isComplete ? (
+                <p className="text-center text-xs sm:text-sm text-brand-ink/60 tabular-nums leading-relaxed">
+                  Annual ministry budget: {money(derived.annualGoal)}
+                  <span className="mx-1.5 text-brand-ink/35" aria-hidden>
+                    ·
+                  </span>
+                  Annualized remaining need: {money(derived.remainingAnnual)}
+                </p>
+              ) : editMode ? (
+                <p className="text-center text-xs text-brand-ink/50">
+                  Annual ministry budget and remaining need appear once both monthly figures are
+                  set.
+                </p>
+              ) : null}
+
+              {updatedLabel || editMode ? (
+                <p className="text-center text-sm text-brand-ink/60">
+                  Figures last updated{" "}
+                  <span className="text-brand-ink/80">
+                    {updatedLabel || (editMode ? "(set Last Updated in properties)" : "")}
+                  </span>
+                </p>
+              ) : null}
+
+              {editMode ? (
+                <div className="rounded-xl border border-dashed border-brand-primary/25 bg-white/50 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-primary">
+                    Awaiting-update message
+                  </p>
+                  <EditableElement
+                    sectionId={goalsSection.id}
+                    elementId="body"
+                    style={getFieldStyle(gc, "body")}
+                    className="mt-2"
+                  >
+                    <SiteBuilderFormattedContent
+                      text={awaiting}
+                      className="text-sm text-brand-ink/75 leading-relaxed"
+                      emptyPlaceholder="Shown on the public page until both amounts are published"
+                    />
+                  </EditableElement>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        <ContentElementsBlock section={heroSection} />
+        <ContentElementsBlock section={goalsSection} />
+      </StorefrontIntroInner>
+    </StorefrontIntroViewport>
   );
 }
 
@@ -221,26 +490,6 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
                 Partnership figures will appear here once they are published.
               </p>
             )}
-            <div className="mt-5 flex justify-center">
-              <EditableElement
-                sectionId={section.id}
-                elementId="cta:primary"
-                style={getFieldStyle(c, "cta:primary")}
-                layout="inline"
-                styleOnWrapper={false}
-              >
-                <GivingLink
-                  href={partnerUrl}
-                  className={cn(
-                    storefrontButtonClasses("primary"),
-                    "gap-2 px-8 sm:px-10 max-w-full text-center whitespace-normal sm:whitespace-nowrap",
-                  )}
-                >
-                  <span>{partnerLabel}</span>
-                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-                </GivingLink>
-              </EditableElement>
-            </div>
           </div>
         ) : (
           <div className="mt-4 space-y-4">
@@ -292,27 +541,6 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
                   style={{ width: `${barWidth}%` }}
                 />
               </div>
-
-              <div className="mt-5 flex justify-center">
-                <EditableElement
-                  sectionId={section.id}
-                  elementId="cta:primary"
-                  style={getFieldStyle(c, "cta:primary")}
-                  layout="inline"
-                  styleOnWrapper={false}
-                >
-                  <GivingLink
-                    href={partnerUrl}
-                    className={cn(
-                      storefrontButtonClasses("primary"),
-                      "gap-2 px-8 sm:px-10 max-w-full text-center whitespace-normal sm:whitespace-nowrap",
-                    )}
-                  >
-                    <span>{partnerLabel}</span>
-                    <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-                  </GivingLink>
-                </EditableElement>
-              </div>
             </div>
 
             {derived.isComplete ? (
@@ -359,6 +587,10 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
             ) : null}
           </div>
         )}
+
+        <div className="mt-6 flex justify-center">
+          <PartnerWithUsCta section={section} label={partnerLabel} href={partnerUrl} />
+        </div>
 
         <ContentElementsBlock section={section} />
       </div>
@@ -683,6 +915,45 @@ export function InvitationEditable({ section }: { section: PageSection }) {
       </div>
     </section>
   );
+}
+
+/**
+ * Compose hero + funding goals into one full-viewport intro when both are present.
+ */
+export function renderMinistryFundingPageSections(
+  sections: PageSection[],
+  wrap: (section: PageSection, node: ReactNode) => ReactNode,
+): ReactNode[] {
+  const hero = sections.find((s) => s.sectionKey === "hero");
+  const goals = sections.find((s) => isMinistryFundingGoalsSection(s));
+  const composed = Boolean(hero && goals);
+  const nodes: ReactNode[] = [];
+
+  if (composed && hero && goals) {
+    nodes.push(
+      <Fragment key={`above-fold-${hero.id}-${goals.id}`}>
+        {wrap(
+          hero,
+          <MinistryFundingAboveFoldEditable heroSection={hero} goalsSection={goals} />,
+        )}
+      </Fragment>,
+    );
+  }
+
+  for (const section of sections) {
+    if (
+      composed &&
+      (section.sectionKey === "hero" || isMinistryFundingGoalsSection(section))
+    ) {
+      continue;
+    }
+    const designed = renderMinistryFundingSection(section);
+    if (designed) {
+      nodes.push(<Fragment key={section.id}>{wrap(section, designed)}</Fragment>);
+    }
+  }
+
+  return nodes;
 }
 
 export function renderMinistryFundingSection(section: PageSection): ReactNode {

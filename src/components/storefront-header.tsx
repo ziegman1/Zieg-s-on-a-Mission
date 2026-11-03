@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown, Menu, X } from "lucide-react";
@@ -48,6 +48,22 @@ export function StorefrontHeader({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [involvedOpen, setInvolvedOpen] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const publishHeight = () => {
+      document.documentElement.style.setProperty(
+        "--storefront-header-height",
+        `${el.offsetHeight}px`,
+      );
+    };
+    publishHeight();
+    const observer = new ResizeObserver(publishHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [mobileOpen]);
   const mobilePanelId = useId();
   const involvedPanelId = useId();
 
@@ -197,7 +213,10 @@ export function StorefrontHeader({
   );
 
   return (
-    <header className="border-b border-white/30 sticky top-0 z-50 bg-brand-primary shadow-sm">
+    <header
+      ref={headerRef}
+      className="border-b border-white/30 sticky top-0 z-50 bg-brand-primary shadow-sm"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between min-h-[4.5rem] md:min-h-[4.75rem] lg:min-h-20 py-3 md:py-2 gap-2 md:gap-3">
         <a
           href="https://www.teamexpansion.org"

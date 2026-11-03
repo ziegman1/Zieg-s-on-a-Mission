@@ -20,6 +20,10 @@ import { EditableElement } from "@/components/site-builder/editable-element";
 import { ContentElementsBlock } from "@/components/site-builder/content-elements-block";
 import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
 import { useBuilderPreview } from "@/components/site-builder/builder-preview-context";
+import {
+  StorefrontIntroInner,
+  StorefrontIntroViewport,
+} from "@/components/storefront-intro-viewport";
 import { cn } from "@/lib/utils";
 
 function GoldRule({ compact = false }: { compact?: boolean }) {
@@ -71,16 +75,18 @@ function OurMissionPrimaryCta({
 }
 
 /**
- * Compact Our Mission above-the-fold: headline, vision, live tracker, Ministry Funding CTA.
- * Used when hero + tracker are composed together. Ministry Funding reuses the spacious hero.
+ * Full-viewport Our Mission intro: vision, live tracker, explanatory detail, then CTA.
+ * Composes hero + tracker + vision-detail without duplicating content sources.
  */
 export function OurMissionAboveFoldEditable({
   heroSection,
   trackerSection,
+  detailSection,
   counts,
 }: {
   heroSection: PageSection;
   trackerSection: PageSection;
+  detailSection?: PageSection | null;
   counts: PublicProgressCounts | null;
 }) {
   const ctx = useBuilderPreview();
@@ -97,9 +103,16 @@ export function OurMissionAboveFoldEditable({
   const trainedLabel = contentStr(tc, "trainedLabel") || "Trained & Equipped";
   const sentLabel = contentStr(tc, "sentLabel") || "Sent";
 
+  const detailBody = detailSection ? contentStr(detailSection.content, "body") : "";
+
   return (
-    <section className="border-b border-brand-primary/15 bg-gradient-to-b from-white/80 to-brand-surface px-4 pt-6 pb-7 sm:pt-7 sm:pb-8 md:pt-8 md:pb-9">
-      <div className="mx-auto max-w-3xl text-center">
+    <StorefrontIntroViewport className="bg-gradient-to-b from-white/80 to-brand-surface">
+      <StorefrontIntroInner
+        className="text-center"
+        cta={
+          <OurMissionPrimaryCta section={heroSection} label={primary} href={primaryUrl} />
+        }
+      >
         {showField(ctx?.editMode, "headline", headline, c) ? (
           <EditableElement
             sectionId={heroSection.id}
@@ -184,13 +197,26 @@ export function OurMissionAboveFoldEditable({
           )}
         </div>
 
-        <div className="mt-5 flex justify-center">
-          <OurMissionPrimaryCta section={heroSection} label={primary} href={primaryUrl} />
-        </div>
+        {detailSection && showField(ctx?.editMode, "body", detailBody, detailSection.content) ? (
+          <EditableElement
+            sectionId={detailSection.id}
+            elementId="body"
+            style={getFieldStyle(detailSection.content, "body")}
+            className="mx-auto mt-5 max-w-2xl"
+          >
+            <SiteBuilderFormattedContent
+              text={detailBody}
+              className="text-sm sm:text-base text-brand-ink/85 leading-relaxed"
+              emptyPlaceholder={ctx?.editMode ? "Vision detail (empty)" : undefined}
+            />
+          </EditableElement>
+        ) : null}
+
         <ContentElementsBlock section={heroSection} />
         <ContentElementsBlock section={trackerSection} />
-      </div>
-    </section>
+        {detailSection ? <ContentElementsBlock section={detailSection} /> : null}
+      </StorefrontIntroInner>
+    </StorefrontIntroViewport>
   );
 }
 
@@ -633,8 +659,8 @@ export function isOurMissionTrackerSection(section: PageSection): boolean {
 }
 
 /**
- * Render Our Mission sections, composing hero + tracker into one above-the-fold band
- * when both are present (single tracker source of truth).
+ * Render Our Mission sections, composing hero + tracker + vision-detail into one
+ * full-viewport intro when present (single content sources; no duplication).
  */
 export function renderOurMissionPageSections(
   sections: PageSection[],
@@ -643,6 +669,7 @@ export function renderOurMissionPageSections(
 ): ReactNode[] {
   const hero = sections.find((s) => s.sectionKey === "hero");
   const tracker = sections.find((s) => isOurMissionTrackerSection(s));
+  const detail = sections.find((s) => s.sectionKey === "vision-detail");
   const composed = Boolean(hero && tracker);
   const nodes: ReactNode[] = [];
 
@@ -654,6 +681,7 @@ export function renderOurMissionPageSections(
           <OurMissionAboveFoldEditable
             heroSection={hero}
             trackerSection={tracker}
+            detailSection={detail}
             counts={progressCounts}
           />,
         )}
@@ -662,7 +690,12 @@ export function renderOurMissionPageSections(
   }
 
   for (const section of sections) {
-    if (composed && (section.sectionKey === "hero" || isOurMissionTrackerSection(section))) {
+    if (
+      composed &&
+      (section.sectionKey === "hero" ||
+        isOurMissionTrackerSection(section) ||
+        (detail && section.sectionKey === "vision-detail"))
+    ) {
       continue;
     }
     const designed = renderOurMissionSection(section, progressCounts);
