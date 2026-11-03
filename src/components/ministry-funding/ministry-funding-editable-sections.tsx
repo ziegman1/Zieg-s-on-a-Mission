@@ -224,7 +224,7 @@ export function FunctionsHeadingEditable({ section }: { section: PageSection }) 
   const body = contentStr(c, "body");
 
   return (
-    <section className="px-4 pt-14 sm:pt-16">
+    <section className="px-4 pt-12 sm:pt-14 pb-0">
       <div className="mx-auto max-w-3xl text-center">
         {showField(ctx?.editMode, "headline", headline, c) ? (
           <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
@@ -241,12 +241,12 @@ export function FunctionsHeadingEditable({ section }: { section: PageSection }) 
             sectionId={section.id}
             elementId="body"
             style={getFieldStyle(c, "body")}
-            className="mt-6"
+            className="mt-4"
           >
             <SiteBuilderFormattedContent
               text={body}
               className="text-brand-ink/85 leading-relaxed"
-              emptyPlaceholder={ctx?.editMode ? "Intro (optional)" : undefined}
+              emptyPlaceholder={ctx?.editMode ? "Section intro (empty)" : undefined}
             />
           </EditableElement>
         ) : null}
@@ -279,35 +279,20 @@ export function AllocationEditable({ section }: { section: PageSection }) {
   });
 
   return (
-    <section className="border-b border-brand-primary/15 px-4 py-12 sm:py-14">
+    <section className="border-b border-brand-primary/15 px-4 pt-5 sm:pt-6 pb-12 sm:pb-14">
       <div className="mx-auto max-w-4xl">
         {showField(ctx?.editMode, "headline", view.headline, c) ? (
           <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
             <SiteBuilderFormattedContent
               text={view.headline}
-              className="text-center font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide [&_p]:m-0"
-              emptyPlaceholder={ctx?.editMode ? "Chart title (empty)" : undefined}
-            />
-          </EditableElement>
-        ) : null}
-
-        {showField(ctx?.editMode, "intro", view.explanation, c) ? (
-          <EditableElement
-            sectionId={section.id}
-            elementId="intro"
-            style={getFieldStyle(c, "intro")}
-            className="mx-auto mt-6 max-w-3xl"
-          >
-            <SiteBuilderFormattedContent
-              text={view.explanation}
-              className="text-center text-brand-ink/85 leading-relaxed"
-              emptyPlaceholder={ctx?.editMode ? "Chart explanation (empty)" : undefined}
+              className="text-center text-[11px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary [&_p]:m-0"
+              emptyPlaceholder={ctx?.editMode ? "Chart label (empty)" : undefined}
             />
           </EditableElement>
         ) : null}
 
         {view.reportingMonth.trim() || ctx?.editMode ? (
-          <p className="mt-3 text-center text-sm text-brand-ink/60">
+          <p className="mt-2 text-center text-sm text-brand-ink/60">
             Reporting period:{" "}
             <EditableElement
               sectionId={section.id}
@@ -324,7 +309,7 @@ export function AllocationEditable({ section }: { section: PageSection }) {
           </p>
         ) : null}
 
-        <div className="mt-10">
+        <div className="mt-5">
           {showChart ? (
             <AllocationDoughnut slices={coloredSlices} title={view.headline} />
           ) : (
@@ -354,12 +339,27 @@ export function AllocationEditable({ section }: { section: PageSection }) {
           )}
         </div>
 
+        {showField(ctx?.editMode, "intro", view.explanation, c) ? (
+          <EditableElement
+            sectionId={section.id}
+            elementId="intro"
+            style={getFieldStyle(c, "intro")}
+            className="mx-auto mt-5 max-w-3xl"
+          >
+            <SiteBuilderFormattedContent
+              text={view.explanation}
+              className="text-center text-sm text-brand-ink/70 leading-relaxed"
+              emptyPlaceholder={ctx?.editMode ? "Chart methodology note (empty)" : undefined}
+            />
+          </EditableElement>
+        ) : null}
+
         {showField(ctx?.editMode, "body", view.distinction, c) ? (
           <EditableElement
             sectionId={section.id}
             elementId="body"
             style={getFieldStyle(c, "body")}
-            className="mx-auto mt-6 max-w-3xl"
+            className="mx-auto mt-3 max-w-3xl"
           >
             <SiteBuilderFormattedContent
               text={view.distinction}

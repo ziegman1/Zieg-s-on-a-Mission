@@ -8,7 +8,11 @@ import {
   prepareMinistryFundingAdminSections,
 } from "./ministry-funding-page-sections";
 import { parseAllocationSection, parseFundingGoalsSection } from "@/lib/ministry-funding/from-sections";
-import { MINISTRY_FUNDING_FUNCTIONS, MINISTRY_FUNDING_INVITATION } from "@/data/ministry-funding-content";
+import {
+  MINISTRY_FUNDING_FUNCTIONS,
+  MINISTRY_FUNDING_FUNCTIONS_INTRO,
+  MINISTRY_FUNDING_INVITATION,
+} from "@/data/ministry-funding-content";
 
 describe("ministry-funding site builder sections", () => {
   it("seeds seven starter functions with empty amounts (no fabricated figures)", () => {
@@ -77,5 +81,25 @@ describe("ministry-funding site builder sections", () => {
   it("prepareMinistryFundingAdminSections returns defaults for empty storage", () => {
     const prepared = prepareMinistryFundingAdminSections([]);
     expect(prepared.length).toBe(defaultMinistryFundingSections().length);
+  });
+
+  it("seeds and migrates the functions-heading intro under the primary heading", () => {
+    const defaults = defaultMinistryFundingSections();
+    const heading = defaults.find((s) => s.sectionKey === "functions-heading");
+    expect(heading?.content.body).toBe(MINISTRY_FUNDING_FUNCTIONS_INTRO);
+
+    const emptyBody = {
+      ...heading!,
+      content: { ...heading!.content, body: "" },
+    };
+    const migrated = migrateMinistryFundingSections([
+      defaults.find((s) => s.sectionKey === "hero")!,
+      emptyBody,
+      defaults.find((s) => s.sectionKey === "allocation")!,
+    ]);
+    expect(migrated.changed).toBe(true);
+    expect(
+      migrated.sections.find((s) => s.sectionKey === "functions-heading")?.content.body,
+    ).toBe(MINISTRY_FUNDING_FUNCTIONS_INTRO);
   });
 });

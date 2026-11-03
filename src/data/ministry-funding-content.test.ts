@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import {
   MINISTRY_FUNDING_CHART,
   MINISTRY_FUNDING_FUNCTIONS,
+  MINISTRY_FUNDING_FUNCTIONS_HEADING,
+  MINISTRY_FUNDING_FUNCTIONS_INTRO,
   MINISTRY_FUNDING_HERO,
   MINISTRY_FUNDING_INVITATION,
   MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION,
@@ -28,6 +30,14 @@ describe("ministry funding content defaults", () => {
       "Partnership Development & Support Raising",
       "Ministry Operations & Stewardship",
     ]);
+  });
+
+  it("keeps a single primary functions heading with supporting intro and chart label", () => {
+    expect(MINISTRY_FUNDING_FUNCTIONS_HEADING).toBe(
+      "How Your Partnership Supports the Mission",
+    );
+    expect(MINISTRY_FUNDING_FUNCTIONS_INTRO).toContain("seven areas of ministry");
+    expect(MINISTRY_FUNDING_CHART.title).toBe("Estimated Ministry Investment by Function");
   });
 
   it("keeps Mission Share as a source reporting category folded into Operations on the chart", () => {

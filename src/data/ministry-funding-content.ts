@@ -28,7 +28,12 @@ export const MINISTRY_FUNDING_GOALS = {
 
 export const MINISTRY_FUNDING_FUNCTIONS_HEADING = "How Your Partnership Supports the Mission";
 
+/** Intro under the primary functions heading (above the chart label). */
+export const MINISTRY_FUNDING_FUNCTIONS_INTRO =
+  "Your partnership helps sustain seven areas of ministry, from mobilizing and equipping workers to making disciples and supporting the work behind the scenes.";
+
 export const MINISTRY_FUNDING_CHART = {
+  /** Understated label above the doughnut — not a second page headline. */
   title: "Estimated Ministry Investment by Function",
   explanation:
     "These figures illustrate how ministry expenses are allocated across our seven areas of service. Direct expenses are assigned to their respective functions, while shared expenses are distributed according to recorded ministry time. Team Expansion Mission Share is included in Ministry Operations & Stewardship.",

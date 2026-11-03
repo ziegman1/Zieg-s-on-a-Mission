@@ -8,6 +8,7 @@ import {
   MINISTRY_FUNDING_CHART_EXPLANATION_LEGACY,
   MINISTRY_FUNDING_FUNCTIONS,
   MINISTRY_FUNDING_FUNCTIONS_HEADING,
+  MINISTRY_FUNDING_FUNCTIONS_INTRO,
   MINISTRY_FUNDING_GOALS,
   MINISTRY_FUNDING_HERO,
   MINISTRY_FUNDING_INVITATION,
@@ -98,7 +99,7 @@ export function defaultMinistryFundingSections(): PageSection[] {
     ),
     sec("functions-heading", "text_section", "Ministry functions heading", {
       headline: MINISTRY_FUNDING_FUNCTIONS_HEADING,
-      body: "",
+      body: MINISTRY_FUNDING_FUNCTIONS_INTRO,
     }),
     sec(
       "allocation",
@@ -179,6 +180,17 @@ export function migrateMinistryFundingSections(sections: PageSection[]): {
         settings: { ...row.settings, [MINISTRY_FUNDING_ALLOCATION_SETTING]: true },
       };
       changed = true;
+    }
+    // Seed the functions-heading intro when the section still has an empty body.
+    if (row.sectionKey === "functions-heading") {
+      const body = typeof row.content.body === "string" ? row.content.body.trim() : "";
+      if (!body) {
+        row = {
+          ...row,
+          content: { ...row.content, body: MINISTRY_FUNDING_FUNCTIONS_INTRO },
+        };
+        changed = true;
+      }
     }
     // Refresh legacy chart explanation that said Mission Share was excluded.
     if (row.sectionKey === "allocation") {
