@@ -17,21 +17,33 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 0 ${end.x} ${end.y}`;
 }
 
+/** Sum of displayed slice amounts — same totals used by the legend. */
+export function chartInvestmentTotal(slices: AllocationSlice[]): number {
+  return slices.reduce((sum, slice) => sum + slice.amount, 0);
+}
+
 export function AllocationDoughnut({
   slices,
   title,
+  centerTotalLabel,
+  centerSubtitle,
 }: {
   slices: SliceWithColor[];
   title: string;
+  /** Formatted total shown in the doughnut hole (derived from slices). */
+  centerTotalLabel?: string | null;
+  /** Reporting month (or similar) under the total. */
+  centerSubtitle?: string | null;
 }) {
   const positive = slices.filter((s) => s.amount > 0);
   if (positive.length === 0) return null;
 
-  const size = 220;
+  // ~18% larger than the prior 220px chart for desktop presence.
+  const size = 260;
   const cx = size / 2;
   const cy = size / 2;
-  const outer = 96;
-  const inner = 58;
+  const outer = 113;
+  const inner = 72;
 
   let angle = 0;
   const arcs = positive.map((slice) => {
@@ -43,10 +55,7 @@ export function AllocationDoughnut({
     if (positive.length === 1 && slice.percent >= 99.9) {
       return {
         ...slice,
-        d: [
-          arcPath(cx, cy, outer, 0, 180),
-          arcPath(cx, cy, outer, 180, 360),
-        ].join(" "),
+        d: [arcPath(cx, cy, outer, 0, 180), arcPath(cx, cy, outer, 180, 360)].join(" "),
         full: true,
       };
     }
@@ -57,15 +66,25 @@ export function AllocationDoughnut({
     };
   });
 
+  const total = chartInvestmentTotal(slices);
+  const totalLabel = centerTotalLabel ?? formatUsd(total);
+  const ariaLabel = [
+    title,
+    `Total monthly ministry investment ${totalLabel}`,
+    centerSubtitle?.trim() ? `Reporting period ${centerSubtitle.trim()}` : null,
+  ]
+    .filter(Boolean)
+    .join(". ");
+
   return (
-    <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-start lg:justify-center lg:gap-10">
+    <div className="flex flex-col items-center gap-5 lg:flex-row lg:items-center lg:justify-center lg:gap-8">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg
           width={size}
           height={size}
           viewBox={`0 0 ${size} ${size}`}
           role="img"
-          aria-label={title}
+          aria-label={ariaLabel}
         >
           {positive.length === 1 ? (
             <>
@@ -87,9 +106,23 @@ export function AllocationDoughnut({
             <circle cx={cx} cy={cy} r={inner} fill="var(--brand-surface, #f7f5f1)" />
           ) : null}
         </svg>
+
+        <div
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center"
+          aria-hidden
+        >
+          <p className="font-serif text-[1.65rem] leading-none text-brand-ink tracking-wide tabular-nums">
+            {totalLabel}
+          </p>
+          {centerSubtitle?.trim() ? (
+            <p className="mt-1.5 max-w-[7.5rem] text-[11px] leading-snug text-brand-ink/60">
+              {centerSubtitle.trim()}
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      <ul className="w-full max-w-md space-y-3 text-left">
+      <ul className="w-full max-w-md space-y-2.5 text-left">
         {slices.map((slice) => (
           <li key={slice.id} className="flex items-start gap-3 text-sm text-brand-ink/90">
             <span

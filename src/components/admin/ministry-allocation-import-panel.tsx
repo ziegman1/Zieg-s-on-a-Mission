@@ -10,8 +10,12 @@ import {
 } from "@/lib/ministry-funding/apply-zoam-import";
 import type { ZoamImportResult } from "@/lib/ministry-funding/zoam-import";
 import { formatUsdFromCents } from "@/lib/ministry-funding/zoam-schema";
-import { AllocationDoughnut } from "@/components/ministry-funding/allocation-doughnut";
+import {
+  AllocationDoughnut,
+  chartInvestmentTotal,
+} from "@/components/ministry-funding/allocation-doughnut";
 import { DEFAULT_COLORS_FOR_IMPORT } from "@/lib/ministry-funding/chart-colors";
+import { formatUsd } from "@/lib/ministry-funding/calculations";
 import { validateZoamMinistryAllocationAction } from "@/app/admin/site-builder/zoam-import-actions";
 
 export function MinistryAllocationImportPanel({
@@ -227,6 +231,8 @@ export function MinistryAllocationImportPanel({
                   <AllocationDoughnut
                     slices={coloredSlices}
                     title="Estimated Ministry Investment by Function"
+                    centerTotalLabel={formatUsd(chartInvestmentTotal(coloredSlices))}
+                    centerSubtitle={result.preview.reportingMonthLabel}
                   />
                 ) : (
                   <p className="text-[11px] text-amber-200">

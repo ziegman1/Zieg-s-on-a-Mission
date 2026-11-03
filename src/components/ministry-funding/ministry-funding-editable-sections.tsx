@@ -14,7 +14,10 @@ import { ContentElementsBlock } from "@/components/site-builder/content-elements
 import { SiteBuilderFormattedContent } from "@/components/site-builder/site-builder-formatted-content";
 import { useBuilderPreview } from "@/components/site-builder/builder-preview-context";
 import { OurMissionHeroEditable } from "@/components/mission/our-mission-editable-sections";
-import { AllocationDoughnut } from "@/components/ministry-funding/allocation-doughnut";
+import {
+  AllocationDoughnut,
+  chartInvestmentTotal,
+} from "@/components/ministry-funding/allocation-doughnut";
 import { MinistryFunctionAccordion } from "@/components/ministry-funding/ministry-function-accordion";
 import {
   isMinistryFundingAllocationSection,
@@ -42,10 +45,31 @@ function showField(
   return Boolean(editMode) || (text.trim().length > 0 && fieldVisible(content, key));
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatCell({
+  label,
+  value,
+  emphasize = false,
+}: {
+  label: string;
+  value: string;
+  /** Gold accent for the primary partnership opportunity card. */
+  emphasize?: boolean;
+}) {
   return (
-    <div className="rounded-xl border border-brand-primary/15 bg-white/70 px-4 py-4 text-center sm:text-left">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-primary">
+    <div
+      className={cn(
+        "rounded-xl bg-white/70 px-4 py-4 text-center sm:text-left",
+        emphasize
+          ? "border-2 border-brand-accent/70 shadow-sm"
+          : "border border-brand-primary/15",
+      )}
+    >
+      <p
+        className={cn(
+          "text-[11px] font-semibold uppercase tracking-[0.14em]",
+          emphasize ? "text-brand-accent" : "text-brand-primary",
+        )}
+      >
         {label}
       </p>
       <p className="mt-2 font-serif text-xl sm:text-2xl text-brand-ink tracking-wide tabular-nums">
@@ -94,8 +118,13 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
         : "—"
       : `${derived.percentAchieved}%`;
 
+  const percentDisplay =
+    derived.percentAchieved === null
+      ? percentLabel
+      : `${derived.percentAchieved}% funded`;
+
   return (
-    <section className="border-b border-brand-primary/15 px-4 py-14 sm:py-16">
+    <section className="border-b border-brand-primary/15 px-4 py-10 sm:py-12">
       <div className="mx-auto max-w-3xl">
         {showField(editMode, "headline", headline, c) ? (
           <EditableElement sectionId={section.id} elementId="headline" style={getFieldStyle(c, "headline")}>
@@ -109,7 +138,7 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
         <GoldRule />
 
         {!showDashboard ? (
-          <div className="mt-8 rounded-2xl border border-brand-primary/20 bg-white/70 px-5 py-6 sm:px-7">
+          <div className="mt-6 rounded-2xl border border-brand-primary/20 bg-white/70 px-5 py-6 sm:px-7">
             {showField(editMode, "body", awaiting, c) ? (
               <EditableElement sectionId={section.id} elementId="body" style={getFieldStyle(c, "body")}>
                 <SiteBuilderFormattedContent
@@ -125,7 +154,7 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
             )}
           </div>
         ) : (
-          <div className="mt-8 space-y-8">
+          <div className="mt-6 space-y-5">
             {editMode && !derived.isComplete ? (
               <p className="text-center text-xs text-brand-ink/55">
                 Preview: enter Monthly Funding Goal and Current Monthly Recurring Partnership in the
@@ -134,32 +163,27 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
               </p>
             ) : null}
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <StatCell label="Annual Funding Goal" value={money(derived.annualGoal)} />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
               <StatCell label="Monthly Funding Goal" value={money(derived.monthlyGoal)} />
               <StatCell
-                label="Current Monthly Recurring Partnership"
+                label="Current Monthly Partnership"
                 value={money(derived.monthlyRecurring)}
               />
               <StatCell
-                label="Annualized Recurring Partnership"
-                value={money(derived.annualizedRecurring)}
-              />
-              <StatCell label="Remaining Monthly Need" value={money(derived.remainingMonthly)} />
-              <StatCell
-                label="Remaining Annualized Need"
-                value={money(derived.remainingAnnual)}
+                label="Remaining Monthly Need"
+                value={money(derived.remainingMonthly)}
+                emphasize
               />
             </div>
 
-            <div className="rounded-2xl border border-brand-primary/20 bg-[#eae5e1]/55 px-5 py-6 sm:px-7 shadow-sm">
+            <div className="rounded-2xl border border-brand-primary/20 bg-[#eae5e1]/55 px-5 py-5 sm:px-6 shadow-sm">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-primary">
                     Funding Progress
                   </p>
-                  <p className="mt-2 font-serif text-3xl text-brand-ink tracking-wide tabular-nums">
-                    {percentLabel}
+                  <p className="mt-1.5 font-serif text-2xl sm:text-3xl text-brand-ink tracking-wide tabular-nums">
+                    {percentDisplay}
                   </p>
                 </div>
                 <p className="text-sm text-brand-ink/70 tabular-nums">
@@ -167,7 +191,7 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
                 </p>
               </div>
               <div
-                className="mt-5 h-4 w-full overflow-hidden rounded-full bg-[#1c252e]/10"
+                className="mt-4 h-4 w-full overflow-hidden rounded-full bg-[#1c252e]/10"
                 role="progressbar"
                 aria-valuemin={0}
                 aria-valuemax={100}
@@ -179,6 +203,19 @@ export function FundingGoalsEditable({ section }: { section: PageSection }) {
                   style={{ width: `${barWidth}%` }}
                 />
               </div>
+              {derived.isComplete ? (
+                <p className="mt-3 text-center text-xs sm:text-sm text-brand-ink/60 tabular-nums leading-relaxed">
+                  Annual ministry budget: {money(derived.annualGoal)}
+                  <span className="mx-1.5 text-brand-ink/35" aria-hidden>
+                    ·
+                  </span>
+                  Annualized remaining need: {money(derived.remainingAnnual)}
+                </p>
+              ) : editMode ? (
+                <p className="mt-3 text-center text-xs text-brand-ink/50">
+                  Annual ministry budget and remaining need appear once both monthly figures are set.
+                </p>
+              ) : null}
             </div>
 
             {updatedLabel || editMode ? (
@@ -292,7 +329,7 @@ export function AllocationEditable({ section }: { section: PageSection }) {
           </EditableElement>
         ) : null}
 
-        {view.reportingMonth.trim() || ctx?.editMode ? (
+        {!showChart && (view.reportingMonth.trim() || ctx?.editMode) ? (
           <p className="mt-2 text-center text-sm text-brand-ink/60">
             Reporting period:{" "}
             <EditableElement
@@ -312,7 +349,12 @@ export function AllocationEditable({ section }: { section: PageSection }) {
 
         <div className="mt-5">
           {showChart ? (
-            <AllocationDoughnut slices={coloredSlices} title={view.headline} />
+            <AllocationDoughnut
+              slices={coloredSlices}
+              title={view.headline}
+              centerTotalLabel={formatUsd(chartInvestmentTotal(coloredSlices))}
+              centerSubtitle={view.reportingMonth.trim() || null}
+            />
           ) : (
             <div className="rounded-2xl border border-dashed border-brand-primary/25 bg-white/50 px-5 py-6 text-center">
               {showField(ctx?.editMode, "awaitingCopy", view.awaitingCopy, c) ? (
@@ -350,12 +392,12 @@ export function AllocationEditable({ section }: { section: PageSection }) {
             <SiteBuilderFormattedContent
               text={view.explanation}
               className="text-center text-sm text-brand-ink/70 leading-relaxed"
-              emptyPlaceholder={ctx?.editMode ? "Chart methodology note (empty)" : undefined}
+              emptyPlaceholder={ctx?.editMode ? "Chart explanation (empty)" : undefined}
             />
           </EditableElement>
         ) : null}
 
-        {showField(ctx?.editMode, "body", view.distinction, c) ? (
+        {ctx?.editMode && showField(ctx?.editMode, "body", view.distinction, c) ? (
           <EditableElement
             sectionId={section.id}
             elementId="body"
@@ -365,9 +407,16 @@ export function AllocationEditable({ section }: { section: PageSection }) {
             <SiteBuilderFormattedContent
               text={view.distinction}
               className="text-center text-sm text-brand-ink/70 leading-relaxed"
-              emptyPlaceholder={ctx?.editMode ? "Distinction note (empty)" : undefined}
+              emptyPlaceholder="Optional secondary chart note (hidden on public page when empty)"
             />
           </EditableElement>
+        ) : null}
+
+        {ctx?.editMode && showChart ? (
+          <p className="mt-3 text-center text-xs text-brand-ink/55">
+            Reporting month shown in the chart center
+            {view.reportingMonth.trim() ? `: ${view.reportingMonth.trim()}` : " (set in properties)"}.
+          </p>
         ) : null}
 
         {ctx?.editMode ? (

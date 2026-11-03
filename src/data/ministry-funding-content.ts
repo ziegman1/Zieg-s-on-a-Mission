@@ -36,9 +36,9 @@ export const MINISTRY_FUNDING_CHART = {
   /** Understated label above the doughnut — not a second page headline. */
   title: "Estimated Ministry Investment by Function",
   explanation:
-    "These figures illustrate how ministry expenses are allocated across our seven areas of service. Direct expenses are assigned to their respective functions, while shared expenses are distributed according to recorded ministry time. Team Expansion Mission Share is included in Ministry Operations & Stewardship.",
-  distinction:
-    "This chart shows estimated ministry expense allocation. It is not a report of how individual donations were designated, and it is separate from our recurring financial partnership income progress above.",
+    "This chart illustrates how ministry expenses support our seven areas of service. Direct expenses are assigned to their respective functions, while shared expenses are allocated according to recorded ministry time. Team Expansion Mission Share is included in Ministry Operations & Stewardship.",
+  /** Optional secondary note — kept empty by default to avoid overlapping chart copy. */
+  distinction: "",
   awaitingCopy:
     "Ministry function descriptions are shown below. A numerical investment chart will appear once a reconciled allocation for the reporting period is published.",
 } as const;
@@ -47,14 +47,23 @@ export const MINISTRY_FUNDING_CHART = {
 export const MINISTRY_FUNDING_CHART_EXPLANATION_LEGACY = [
   "These figures represent an allocation of ministry expenses across our areas of service. Shared expenses are distributed according to recorded ministry time, while direct expenses are assigned to their respective functions.",
   "These figures represent an allocation of ministry expenses across our areas of service. Shared ministry expenses may be distributed according to recorded ministry time, while direct expenses are assigned to their respective functions.",
+  "These figures illustrate how ministry expenses are allocated across our seven areas of service. Direct expenses are assigned to their respective functions, while shared expenses are distributed according to recorded ministry time. Team Expansion Mission Share is included in Ministry Operations & Stewardship.",
+] as const;
+
+export const MINISTRY_FUNDING_CHART_DISTINCTION_LEGACY = [
+  "This chart shows estimated ministry expense allocation. It is not a report of how individual donations were designated, and it is separate from our recurring financial partnership income progress above.",
 ] as const;
 
 export const MINISTRY_FUNDING_INVITATION = {
   title: "YOUR PARTNERSHIP MAKES THIS POSSIBLE.",
-  body: "Join us as we mobilize, train, and send 300 more workers by August 31, 2031, for the sake of reaching the unreached.",
+  body: "Together, we're mobilizing, training, and sending 300 more workers by August 31, 2031, for the sake of reaching the unreached.",
   primaryCtaLabel: "Become a Financial Partner",
   primaryCtaUrl: "/give",
 } as const;
+
+export const MINISTRY_FUNDING_INVITATION_BODY_LEGACY = [
+  "Join us as we mobilize, train, and send 300 more workers by August 31, 2031, for the sake of reaching the unreached.",
+] as const;
 
 export type MinistryFundingProgram = {
   name: string;

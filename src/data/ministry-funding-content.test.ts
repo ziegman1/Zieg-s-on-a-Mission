@@ -18,6 +18,9 @@ describe("ministry funding content defaults", () => {
     expect(MINISTRY_FUNDING_HERO.supporting).toBe("Investing in Workers. Advancing the Gospel.");
     expect(MINISTRY_FUNDING_INVITATION.primaryCtaUrl).toBe("/give");
     expect(MINISTRY_FUNDING_INVITATION.title).toContain("YOUR PARTNERSHIP");
+    expect(MINISTRY_FUNDING_INVITATION.body).toBe(
+      "Together, we're mobilizing, training, and sending 300 more workers by August 31, 2031, for the sake of reaching the unreached.",
+    );
   });
 
   it("includes the seven PD starter ministry functions", () => {
@@ -44,10 +47,10 @@ describe("ministry funding content defaults", () => {
     expect(MISSION_SHARE_CATEGORY.name).toBe("Team Expansion Mission Share");
     expect(MISSION_SHARE_CATEGORY.description).toMatch(/Ministry Operations & Stewardship/);
     expect(MINISTRY_FUNDING_TRANSFER_SCHEMA_VERSION).toBe("zoam-ministry-allocation/v1");
-    expect(MINISTRY_FUNDING_CHART.explanation).toContain(
-      "Team Expansion Mission Share is included in Ministry Operations & Stewardship",
+    expect(MINISTRY_FUNDING_CHART.explanation).toBe(
+      "This chart illustrates how ministry expenses support our seven areas of service. Direct expenses are assigned to their respective functions, while shared expenses are allocated according to recorded ministry time. Team Expansion Mission Share is included in Ministry Operations & Stewardship.",
     );
-    expect(MINISTRY_FUNDING_CHART.explanation).not.toMatch(/excluded/i);
+    expect(MINISTRY_FUNDING_CHART.distinction).toBe("");
   });
 
   it("does not hardcode verified funding figures in defaults", () => {

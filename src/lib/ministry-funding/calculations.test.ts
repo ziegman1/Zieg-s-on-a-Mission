@@ -67,6 +67,18 @@ describe("deriveFundingGoals", () => {
     expect(full.progressBarPercent).toBe(40);
   });
 
+  it("matches the compact three-card presentation example ($8,000 / $4,360)", () => {
+    const full = deriveFundingGoals({ monthlyGoal: 8000, monthlyRecurring: 4360 });
+    expect(full.remainingMonthly).toBe(3640);
+    expect(full.annualGoal).toBe(96000);
+    expect(full.remainingAnnual).toBe(43680);
+    expect(full.percentAchieved).toBe(55);
+    expect(full.progressBarPercent).toBe(55);
+    expect(formatUsd(full.monthlyGoal!)).toBe("$8,000");
+    expect(formatUsd(full.monthlyRecurring!)).toBe("$4,360");
+    expect(formatUsd(full.remainingMonthly!)).toBe("$3,640");
+  });
+
   it("treats explicit zero recurring as complete data", () => {
     const zero = deriveFundingGoals({ monthlyGoal: 5000, monthlyRecurring: 0 });
     expect(zero.isComplete).toBe(true);

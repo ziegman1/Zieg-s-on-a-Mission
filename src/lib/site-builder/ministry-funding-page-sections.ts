@@ -5,6 +5,7 @@
 
 import {
   MINISTRY_FUNDING_CHART,
+  MINISTRY_FUNDING_CHART_DISTINCTION_LEGACY,
   MINISTRY_FUNDING_CHART_EXPLANATION_LEGACY,
   MINISTRY_FUNDING_FUNCTIONS,
   MINISTRY_FUNDING_FUNCTIONS_HEADING,
@@ -12,6 +13,7 @@ import {
   MINISTRY_FUNDING_GOALS,
   MINISTRY_FUNDING_HERO,
   MINISTRY_FUNDING_INVITATION,
+  MINISTRY_FUNDING_INVITATION_BODY_LEGACY,
   MISSION_SHARE_CATEGORY,
 } from "@/data/ministry-funding-content";
 import type { PageSection, SectionType } from "./types";
@@ -192,16 +194,32 @@ export function migrateMinistryFundingSections(sections: PageSection[]): {
         changed = true;
       }
     }
-    // Refresh legacy chart explanation that said Mission Share was excluded.
+    // Refresh legacy chart explanation / overlapping distinction copy.
     if (row.sectionKey === "allocation") {
       const intro = typeof row.content.intro === "string" ? row.content.intro.trim() : "";
+      const distinction = typeof row.content.body === "string" ? row.content.body.trim() : "";
+      let nextContent = row.content;
       if (
         MINISTRY_FUNDING_CHART_EXPLANATION_LEGACY.some((legacy) => legacy === intro) ||
         /Mission Share is (excluded|tracked separately|shown separately)/i.test(intro)
       ) {
+        nextContent = { ...nextContent, intro: MINISTRY_FUNDING_CHART.explanation };
+        changed = true;
+      }
+      if (MINISTRY_FUNDING_CHART_DISTINCTION_LEGACY.some((legacy) => legacy === distinction)) {
+        nextContent = { ...nextContent, body: MINISTRY_FUNDING_CHART.distinction };
+        changed = true;
+      }
+      if (nextContent !== row.content) {
+        row = { ...row, content: nextContent };
+      }
+    }
+    if (row.sectionKey === "invitation") {
+      const body = typeof row.content.body === "string" ? row.content.body.trim() : "";
+      if (MINISTRY_FUNDING_INVITATION_BODY_LEGACY.some((legacy) => legacy === body)) {
         row = {
           ...row,
-          content: { ...row.content, intro: MINISTRY_FUNDING_CHART.explanation },
+          content: { ...row.content, body: MINISTRY_FUNDING_INVITATION.body },
         };
         changed = true;
       }

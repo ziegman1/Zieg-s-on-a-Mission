@@ -9,6 +9,7 @@ import {
 } from "./ministry-funding-page-sections";
 import { parseAllocationSection, parseFundingGoalsSection } from "@/lib/ministry-funding/from-sections";
 import {
+  MINISTRY_FUNDING_CHART,
   MINISTRY_FUNDING_FUNCTIONS,
   MINISTRY_FUNDING_FUNCTIONS_INTRO,
   MINISTRY_FUNDING_INVITATION,
@@ -101,5 +102,35 @@ describe("ministry-funding site builder sections", () => {
     expect(
       migrated.sections.find((s) => s.sectionKey === "functions-heading")?.content.body,
     ).toBe(MINISTRY_FUNDING_FUNCTIONS_INTRO);
+  });
+
+  it("migrates legacy chart explanation, distinction, and invitation body", () => {
+    const defaults = defaultMinistryFundingSections();
+    const allocation = defaults.find((s) => s.sectionKey === "allocation")!;
+    const invitation = defaults.find((s) => s.sectionKey === "invitation")!;
+    const migrated = migrateMinistryFundingSections([
+      {
+        ...allocation,
+        content: {
+          ...allocation.content,
+          intro:
+            "These figures illustrate how ministry expenses are allocated across our seven areas of service. Direct expenses are assigned to their respective functions, while shared expenses are distributed according to recorded ministry time. Team Expansion Mission Share is included in Ministry Operations & Stewardship.",
+          body: "This chart shows estimated ministry expense allocation. It is not a report of how individual donations were designated, and it is separate from our recurring financial partnership income progress above.",
+        },
+      },
+      {
+        ...invitation,
+        content: {
+          ...invitation.content,
+          body: "Join us as we mobilize, train, and send 300 more workers by August 31, 2031, for the sake of reaching the unreached.",
+        },
+      },
+    ]);
+    expect(migrated.changed).toBe(true);
+    const nextAllocation = migrated.sections.find((s) => s.sectionKey === "allocation")!;
+    const nextInvitation = migrated.sections.find((s) => s.sectionKey === "invitation")!;
+    expect(nextAllocation.content.intro).toBe(MINISTRY_FUNDING_CHART.explanation);
+    expect(nextAllocation.content.body).toBe("");
+    expect(nextInvitation.content.body).toBe(MINISTRY_FUNDING_INVITATION.body);
   });
 });
