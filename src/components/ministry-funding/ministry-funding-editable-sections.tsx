@@ -15,6 +15,7 @@ import { SiteBuilderFormattedContent } from "@/components/site-builder/site-buil
 import { useBuilderPreview } from "@/components/site-builder/builder-preview-context";
 import { OurMissionHeroEditable } from "@/components/mission/our-mission-editable-sections";
 import { AllocationDoughnut } from "@/components/ministry-funding/allocation-doughnut";
+import { MinistryFunctionAccordion } from "@/components/ministry-funding/ministry-function-accordion";
 import {
   isMinistryFundingAllocationSection,
   isMinistryFundingGoalsSection,
@@ -388,47 +389,10 @@ export function AllocationEditable({ section }: { section: PageSection }) {
           </>
         ) : null}
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2">
-          {view.descriptionFunctions.map((fn) => (
-            <article
-              key={fn.id}
-              className={cn(
-                "rounded-2xl border border-brand-primary/20 bg-white/75 px-5 py-6 shadow-sm",
-                !fn.visible && ctx?.editMode && "opacity-50",
-              )}
-            >
-              <div className="flex items-start gap-3">
-                <span
-                  className="mt-1 h-3 w-3 shrink-0 rounded-sm"
-                  style={{ backgroundColor: fn.color }}
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <h3 className="font-serif text-xl text-brand-ink tracking-wide">{fn.name}</h3>
-                  {fn.description ? (
-                    <p className="mt-3 text-sm text-brand-ink/85 leading-relaxed">{fn.description}</p>
-                  ) : null}
-                  {fn.programs.length > 0 ? (
-                    <ul className="mt-4 space-y-1.5">
-                      {fn.programs.map((program) => (
-                        <li
-                          key={program}
-                          className="flex gap-2 text-sm text-brand-ink/75 leading-snug"
-                        >
-                          <span
-                            className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-brand-accent"
-                            aria-hidden
-                          />
-                          <span>{program}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        <MinistryFunctionAccordion
+          functions={view.descriptionFunctions}
+          dimHidden={Boolean(ctx?.editMode)}
+        />
 
         <ContentElementsBlock section={section} />
       </div>
