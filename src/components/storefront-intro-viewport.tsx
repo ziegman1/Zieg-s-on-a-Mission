@@ -26,16 +26,25 @@ export function StorefrontIntroViewport({
   );
 }
 
-/** Inner column: content above, CTA pinned toward the bottom via flex. */
+/**
+ * Inner column for intro CTAs.
+ * - `bottom` (default): CTA sits near the bottom of the viewport (Ministry Funding).
+ * - `follow`: CTA stays visually connected under the content; leftover viewport space
+ *   remains beneath the button so the next section stays below the fold (Our Mission).
+ */
 export function StorefrontIntroInner({
   children,
   cta,
   className,
+  ctaPlacement = "bottom",
 }: {
   children: ReactNode;
   cta: ReactNode;
   className?: string;
+  ctaPlacement?: "bottom" | "follow";
 }) {
+  const follow = ctaPlacement === "follow";
+
   return (
     <div
       className={cn(
@@ -44,7 +53,17 @@ export function StorefrontIntroInner({
       )}
     >
       <div className="flex flex-col">{children}</div>
-      <div className="mt-6 flex justify-center md:mt-auto md:pt-8">{cta}</div>
+      <div
+        className={cn(
+          "flex justify-center",
+          follow
+            ? "mt-14 sm:mt-16"
+            : "mt-6 md:mt-auto md:pt-8",
+        )}
+      >
+        {cta}
+      </div>
+      {follow ? <div className="hidden md:block flex-1 min-h-10" aria-hidden /> : null}
     </div>
   );
 }

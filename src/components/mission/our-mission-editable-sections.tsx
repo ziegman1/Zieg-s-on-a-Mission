@@ -109,6 +109,7 @@ export function OurMissionAboveFoldEditable({
     <StorefrontIntroViewport className="bg-gradient-to-b from-white/80 to-brand-surface">
       <StorefrontIntroInner
         className="text-center"
+        ctaPlacement="follow"
         cta={
           <OurMissionPrimaryCta section={heroSection} label={primary} href={primaryUrl} />
         }
@@ -202,7 +203,7 @@ export function OurMissionAboveFoldEditable({
             sectionId={detailSection.id}
             elementId="body"
             style={getFieldStyle(detailSection.content, "body")}
-            className="mx-auto mt-5 max-w-2xl"
+            className="mx-auto mt-12 max-w-2xl"
           >
             <SiteBuilderFormattedContent
               text={detailBody}
