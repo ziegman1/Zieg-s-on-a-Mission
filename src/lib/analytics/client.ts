@@ -1,7 +1,10 @@
 "use client";
 
 import type { AnalyticsEventType } from "./constants";
+import { isAnalyticsEngagementEnabled } from "./engagement-flag";
 import { touchClientSession } from "./session-id";
+
+export { isAnalyticsEngagementEnabled } from "./engagement-flag";
 
 type TrackPayload = {
   type: AnalyticsEventType;
@@ -17,16 +20,6 @@ let lastPageViewAt = 0;
 function prefersNoTracking(): boolean {
   if (typeof navigator === "undefined") return false;
   return navigator.doNotTrack === "1" || navigator.doNotTrack === "yes";
-}
-
-/**
- * Optional engagement/CTA tracking (scroll, active time, CTA clicks).
- * Requires explicit opt-in via NEXT_PUBLIC_ANALYTICS_ENGAGEMENT_ENABLED=true
- * after a consent/privacy decision. Page views remain available without this flag.
- */
-export function isAnalyticsEngagementEnabled(): boolean {
-  const raw = process.env.NEXT_PUBLIC_ANALYTICS_ENGAGEMENT_ENABLED;
-  return raw === "1" || raw === "true";
 }
 
 function isEngagementOrCtaEvent(type: AnalyticsEventType): boolean {

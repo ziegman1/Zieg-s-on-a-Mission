@@ -12,7 +12,8 @@ export function parseTrafficFilter(raw: string | undefined): StatsTrafficFilter 
   if (raw === "likely_human" || raw === "likely_bot" || raw === "unverified" || raw === "all") {
     return raw;
   }
-  return "likely_human";
+  // Default to All Traffic so Likely Human=0 (when engagement is off) does not hide visits.
+  return "all";
 }
 
 /** Prisma where fragment for PageView.trafficClass given filter. */

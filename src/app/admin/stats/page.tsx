@@ -7,14 +7,15 @@ import {
   type StatsRangeDays,
   type StatsTrafficFilter,
 } from "@/lib/analytics/admin-stats";
+import { isAnalyticsEngagementEnabled } from "@/lib/analytics/engagement-flag";
 
 export const dynamic = "force-dynamic";
 
 const FILTERS: { id: StatsTrafficFilter; label: string }[] = [
+  { id: "all", label: "All Traffic" },
   { id: "likely_human", label: "Likely Human" },
   { id: "unverified", label: "Unverified" },
   { id: "likely_bot", label: "Likely Bot" },
-  { id: "all", label: "All Traffic" },
 ];
 
 const RANGES: StatsRangeDays[] = [7, 30, 90];
@@ -40,6 +41,7 @@ export default async function AdminStatsPage({
   const filter = parseTrafficFilter(typeof sp.filter === "string" ? sp.filter : undefined);
   const rangeDays = parseStatsRange(typeof sp.range === "string" ? sp.range : undefined);
   const stats = await loadAdminStats({ rangeDays, trafficFilter: filter });
+  const engagementEnabled = isAnalyticsEngagementEnabled();
   const cutoffLabel = stats.cutoffIso.replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
   const cutoffSourceLabel =
     stats.cutoffSource === "env"
@@ -70,6 +72,30 @@ export default async function AdminStatsPage({
         </p>
       </div>
 
+      {!engagementEnabled ? (
+        <Card className="border-amber-500/40 bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-amber-200 text-base">Engagement tracking is off</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-amber-100/80 space-y-2 leading-relaxed">
+            <p>
+              Scroll depth, active time, internal navigation, and CTA click events are not being
+              collected because{" "}
+              <span className="font-mono text-amber-100">NEXT_PUBLIC_ANALYTICS_ENGAGEMENT_ENABLED</span>{" "}
+              is unset. Page views still record.{" "}
+              <strong className="text-amber-100 font-medium">Likely Human</strong> stays near zero
+              until engagement is enabled — a browser User-Agent alone never qualifies as human.
+            </p>
+            <p>
+              Use <strong className="text-amber-100 font-medium">All Traffic</strong> or{" "}
+              <strong className="text-amber-100 font-medium">Unverified</strong> to review real visits
+              meanwhile. Enabling engagement requires a privacy/consent decision and a production
+              redeploy.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card className="border-amber-500/30 bg-zinc-900">
         <CardHeader className="pb-2">
           <CardTitle className="text-cream text-base">Historical data & cutoff</CardTitle>
@@ -90,10 +116,11 @@ export default async function AdminStatsPage({
             retroactively guess human/bot labels for legacy traffic.
           </p>
           <p>
-            Default filter is <strong className="text-zinc-300 font-medium">Likely Human</strong>.
-            Check <strong className="text-zinc-300 font-medium">Unverified</strong> and{" "}
-            <strong className="text-zinc-300 font-medium">All Traffic</strong> so uncertainty
-            is not hidden. Unique visitors are estimated from salted IP hashes — not identities.
+            Default filter is <strong className="text-zinc-300 font-medium">All Traffic</strong>.
+            Use <strong className="text-zinc-300 font-medium">Likely Human</strong>,{" "}
+            <strong className="text-zinc-300 font-medium">Unverified</strong>, and{" "}
+            <strong className="text-zinc-300 font-medium">Likely Bot</strong> to slice certainty.
+            Unique visitors are estimated from salted IP hashes — not identities.
           </p>
         </CardContent>
       </Card>

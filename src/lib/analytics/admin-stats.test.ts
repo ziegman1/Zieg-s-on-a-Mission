@@ -7,8 +7,14 @@ import {
 import { resolveCutoffDisplay } from "./cutoff";
 
 describe("admin stats filters", () => {
-  it("defaults to likely_human and 30 days", () => {
-    expect(parseTrafficFilter(undefined)).toBe("likely_human");
+  it("defaults to all traffic and 30 days", () => {
+    expect(parseTrafficFilter(undefined)).toBe("all");
+    expect(parseTrafficFilter("")).toBe("all");
+    expect(parseTrafficFilter("bogus")).toBe("all");
+    expect(parseTrafficFilter("likely_human")).toBe("likely_human");
+    expect(parseTrafficFilter("unverified")).toBe("unverified");
+    expect(parseTrafficFilter("likely_bot")).toBe("likely_bot");
+    expect(parseTrafficFilter("all")).toBe("all");
     expect(parseStatsRange(undefined)).toBe(30);
     expect(parseStatsRange("7")).toBe(7);
     expect(parseStatsRange("90")).toBe(90);

@@ -70,6 +70,22 @@ describe("classifySession", () => {
     expect(strong.classSource).toBe("combined");
   });
 
+  it("does not elevate with zero engagement even when session is old", () => {
+    const idle = classifySession({
+      ua: browserUa,
+      engagement: {
+        maxScrollDepth: 0,
+        activeMs: 0,
+        hasInternalNav: false,
+        hasCtaClick: false,
+        signalCodes: [],
+      },
+      sessionAgeMs: 120_000,
+      engagementSpanMs: 60_000,
+    });
+    expect(idle.trafficClass).toBe("unverified");
+  });
+
   it("rejects single-request spoof bundles without timing evidence", () => {
     const spoofed = classifySession({
       ua: browserUa,
