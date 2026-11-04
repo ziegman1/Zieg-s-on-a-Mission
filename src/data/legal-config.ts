@@ -37,17 +37,16 @@ export const LEGAL_CONFIG = {
 } as const;
 
 /**
- * Analytics note (privacy-first):
- * - No analytics cookies, no localStorage analytics IDs, no fingerprints, no third-party
- *   pixels, no cross-site tracking. Visitor uniqueness uses a salted IP hash server-side
- *   (raw IP not stored on PageView). Engagement metadata is allowlisted/coarse only.
- * - Client session IDs use sessionStorage (tab-scoped, 30m idle / 12h max). Under ePrivacy
- *   Art. 5(3), device storage is technology-neutral — sessionStorage is not exempt merely
- *   for being temporary. Page views already write that key today; engagement adds more
- *   first-party events under the same session, gated by NEXT_PUBLIC_ANALYTICS_ENGAGEMENT_ENABLED.
- * - DNT skips engagement/CTA; page_view may still record. No consent banner exists.
- * - Do not enable engagement in production until the owner chooses: (A) disclosure-only
- *   worldwide with residual EEA/UK risk, (B) regional opt-in / skip device storage for
- *   EEA/UK (and UK) before engagement there, or (C) counsel-approved exemption path.
+ * Analytics note (privacy-first, Option B):
+ * - No analytics marketing cookies, no localStorage analytics IDs, no fingerprints, no
+ *   third-party pixels, no cross-site tracking. Visitor uniqueness uses a salted IP hash
+ *   server-side (raw IP not stored on PageView). Engagement metadata is allowlisted/coarse.
+ * - Geography from Vercel `x-vercel-ip-country` when VERCEL=1 (or ANALYTICS_GEO_COUNTRY_OVERRIDE
+ *   for local tests). Client-supplied country is ignored. EEA/UK + unknown → consent required
+ *   before sessionStorage analytics IDs, page views, engagement, and visitorId ingest.
+ *   Other known regions (e.g. US) → disclosed first-party; DNT still skips engagement/CTA.
+ * - Consent choice stored in HttpOnly `zoam_analytics_consent` (granted|denied) after affirmative
+ *   Accept/Decline; changeable via Analytics preferences. Engagement events also require
+ *   NEXT_PUBLIC_ANALYTICS_ENGAGEMENT_ENABLED.
  * Essential session/cart cookies and Mission Hub visitor cookies are separate systems.
  */

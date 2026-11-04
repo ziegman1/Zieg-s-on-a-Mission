@@ -89,8 +89,8 @@ export default async function AdminStatsPage({
             <p>
               Use <strong className="text-amber-100 font-medium">All Traffic</strong> or{" "}
               <strong className="text-amber-100 font-medium">Unverified</strong> to review real visits
-              meanwhile. Enabling engagement requires a privacy/consent decision and a production
-              redeploy.
+              meanwhile. EEA/UK visitors need analytics opt-in before any collection. Enabling the
+              engagement flag still requires a production env change and redeploy after you approve.
             </p>
           </CardContent>
         </Card>

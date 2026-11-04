@@ -61,7 +61,30 @@ export function writeClientSession(state: ClientSessionState): void {
   }
 }
 
-export function touchClientSession(now = Date.now()): ClientSessionState {
+/** Remove analytics sessionStorage key (e.g. before consent or after decline). */
+export function clearClientSession(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Touch or create the tab session. Returns null when device storage is not allowed
+ * (EEA/UK/unknown without opt-in) so callers skip analytics entirely.
+ */
+export function touchClientSession(
+  now = Date.now(),
+  options?: { allowDeviceStorage?: boolean },
+): ClientSessionState | null {
+  const allowDeviceStorage = options?.allowDeviceStorage !== false;
+  if (!allowDeviceStorage) {
+    clearClientSession();
+    return null;
+  }
+
   const existing = readClientSession();
   if (existing && isValidSessionId(existing.id) && !isSessionExpired(existing, now)) {
     const next = { ...existing, lastActivityAt: now };

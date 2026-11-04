@@ -11,14 +11,21 @@ import {
   trackAnalyticsEvent,
   trackPageView,
 } from "@/lib/analytics/client";
+import { isAnalyticsCollectionAllowed } from "@/lib/analytics/privacy-client";
 import { touchClientSession } from "@/lib/analytics/session-id";
+import { useAnalyticsPrivacyOptional } from "./analytics-privacy-provider";
 
 /**
  * Storefront analytics: SPA page views, throttled engagement, short-lived session.
  * Failures never break navigation. Mission Hub activity system is untouched.
+ * Collection is gated by regional privacy (EEA/UK/unknown require opt-in).
  */
 export function PageViewTracker() {
   const pathname = usePathname();
+  const privacy = useAnalyticsPrivacyOptional();
+  const collectionAllowed = privacy?.collectionAllowed ?? isAnalyticsCollectionAllowed();
+  const privacyReady = privacy?.ready ?? false;
+
   const prevPathRef = useRef<string | null>(null);
   const scrollFiredRef = useRef<Set<number>>(new Set());
   const activeBucketRef = useRef(0);
@@ -28,21 +35,28 @@ export function PageViewTracker() {
   // Page views + internal nav on App Router pathname changes
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!privacyReady || !collectionAllowed) {
+      touchClientSession(Date.now(), { allowDeviceStorage: false });
+      return;
+    }
     if (!pathname || pathname.startsWith("/admin") || pathname.startsWith("/api")) return;
 
-    touchClientSession();
+    touchClientSession(Date.now(), { allowDeviceStorage: true });
     const prev = prevPathRef.current;
     if (prev && prev !== pathname) {
       trackAnalyticsEvent("internal_nav", pathname, { from: prev, to: pathname });
     }
     prevPathRef.current = pathname;
     scrollFiredRef.current = new Set();
+    activeBucketRef.current = 0;
+    activeAccumRef.current = 0;
     trackPageView(pathname);
-  }, [pathname]);
+  }, [pathname, privacyReady, collectionAllowed]);
 
   // Scroll depth (once per threshold per path)
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!privacyReady || !collectionAllowed) return;
     if (!pathname || pathname.startsWith("/admin")) return;
 
     let ticking = false;
@@ -51,6 +65,7 @@ export function PageViewTracker() {
       ticking = true;
       requestAnimationFrame(() => {
         ticking = false;
+        if (!isAnalyticsCollectionAllowed()) return;
         const doc = document.documentElement;
         const scrollTop = window.scrollY || doc.scrollTop;
         const height = doc.scrollHeight - window.innerHeight;
@@ -74,14 +89,16 @@ export function PageViewTracker() {
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
-  }, [pathname]);
+  }, [pathname, privacyReady, collectionAllowed]);
 
   // Coarse active time — only when visible and focused
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!privacyReady || !collectionAllowed) return;
     if (!pathname || pathname.startsWith("/admin")) return;
 
     const tick = () => {
+      if (!isAnalyticsCollectionAllowed()) return;
       const now = Date.now();
       const visible =
         document.visibilityState === "visible" &&
@@ -124,7 +141,7 @@ export function PageViewTracker() {
       window.removeEventListener("blur", onVis);
       window.removeEventListener("pagehide", flushAnalytics);
     };
-  }, [pathname]);
+  }, [pathname, privacyReady, collectionAllowed]);
 
   return null;
 }

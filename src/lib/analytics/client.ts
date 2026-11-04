@@ -2,6 +2,10 @@
 
 import type { AnalyticsEventType } from "./constants";
 import { isAnalyticsEngagementEnabled } from "./engagement-flag";
+import {
+  isAnalyticsCollectionAllowed,
+  isAnalyticsPrivacyStatusLoaded,
+} from "./privacy-client";
 import { touchClientSession } from "./session-id";
 
 export { isAnalyticsEngagementEnabled } from "./engagement-flag";
@@ -46,7 +50,11 @@ function sendBeaconOrFetch(body: string): void {
 function flush(): void {
   flushTimer = null;
   if (!queue.length) return;
-  const session = touchClientSession();
+  if (!isAnalyticsCollectionAllowed()) {
+    queue.length = 0;
+    return;
+  }
+  const session = touchClientSession(Date.now(), { allowDeviceStorage: true });
   if (!session?.id) {
     queue.length = 0;
     return;
@@ -67,8 +75,9 @@ function scheduleFlush(): void {
 
 /**
  * Queue an analytics event. Safe no-op on failure.
- * Engagement/CTA require NEXT_PUBLIC_ANALYTICS_ENGAGEMENT_ENABLED and are skipped under DNT.
- * page_view still records (existing first-party behavior).
+ * Requires regional collection permission (US open / EEA+UK after opt-in).
+ * Engagement/CTA also require NEXT_PUBLIC_ANALYTICS_ENGAGEMENT_ENABLED and are skipped under DNT.
+ * page_view still records when collection is allowed (existing first-party behavior).
  */
 export function trackAnalyticsEvent(
   type: AnalyticsEventType,
@@ -76,6 +85,7 @@ export function trackAnalyticsEvent(
   metadata?: Record<string, string | number>,
 ): void {
   if (typeof window === "undefined") return;
+  if (!isAnalyticsPrivacyStatusLoaded() || !isAnalyticsCollectionAllowed()) return;
   if (isEngagementOrCtaEvent(type) && !isAnalyticsEngagementEnabled()) return;
   if (prefersNoTracking() && type !== "page_view") return;
   try {

@@ -21,6 +21,10 @@ import {
   serializeSignals,
   type EngagementEvidence,
 } from "./classification";
+import {
+  consentCookieFromRequest,
+  decideAnalyticsPrivacy,
+} from "./consent";
 import { shouldRecordLegacyPageView } from "./dedupe";
 import { sanitizeEventMetadata } from "./metadata";
 import { isMinistryFunnelPath, normalizeAnalyticsPath } from "./paths";
@@ -306,12 +310,25 @@ export async function ingestAnalyticsRequest(
     return { ok: false, error: "payload_too_large", status: 413 };
   }
 
+  // Regional gate: EEA/UK/unknown without opt-in → no page views, engagement, or visitorId rows.
+  // Client-supplied country on the body is ignored (decideAnalyticsPrivacy uses headers only).
+  const privacy = decideAnalyticsPrivacy({
+    headers: req.headers,
+    consentCookie: consentCookieFromRequest(req),
+  });
+  if (!privacy.collectionAllowed) {
+    return { ok: true };
+  }
+
   const payload = (body && typeof body === "object" ? body : {}) as {
     sessionId?: unknown;
     events?: unknown;
     // Legacy single page-view shape
     path?: unknown;
+    country?: unknown;
   };
+  // Never trust client geography for classification or gating.
+  void payload.country;
 
   if (!isValidSessionId(payload.sessionId) && typeof payload.path === "string") {
     // Legacy clients without session: still accept a solitary page view (never human).

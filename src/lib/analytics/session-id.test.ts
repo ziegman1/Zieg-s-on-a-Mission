@@ -3,13 +3,17 @@ import {
   SESSION_INACTIVITY_MS,
   SESSION_MAX_LIFETIME_MS,
 } from "./constants";
-import { isSessionExpired, isValidSessionId } from "./session-id";
+import { isSessionExpired, isValidSessionId, touchClientSession } from "./session-id";
 
 describe("session id", () => {
   it("validates UUID shape", () => {
     expect(isValidSessionId("550e8400-e29b-41d4-a716-446655440000")).toBe(true);
     expect(isValidSessionId("not-a-uuid")).toBe(false);
     expect(isValidSessionId(null)).toBe(false);
+  });
+
+  it("returns null without writing when device storage is disallowed", () => {
+    expect(touchClientSession(Date.now(), { allowDeviceStorage: false })).toBeNull();
   });
 
   it("expires on inactivity and max lifetime", () => {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PrivacyAnalyticsPreferences } from "@/components/privacy-analytics-preferences";
 import { LegalPageShell } from "../legal/page-shell";
 import { getMergedLegalConfig, getSiteCopy } from "@/lib/site-copy";
 
@@ -67,10 +68,24 @@ export default async function PrivacyPage() {
         We use essential cookies for sessions and cart persistence. Short-lived analytics session
         identifiers use browser session storage (cleared when the tab/session ends) and are not
         marketing cookies. No third-party analytics or marketing cookies. If your browser sends a
-        Do Not Track signal, we skip engagement and CTA analytics events; basic first-party page
-        view recording for site operations may still occur and is labeled unverified unless other
-        server-side signals apply.
+        Do Not Track signal, we skip engagement and CTA analytics events; where analytics is
+        otherwise allowed, basic first-party page view recording for site operations may still
+        occur and is labeled unverified unless other server-side signals apply.
       </p>
+
+      <h2>Regional analytics choice (EEA / UK)</h2>
+      <p>
+        When our hosting provider indicates you are visiting from the EEA or United Kingdom — or
+        when we cannot determine your location — we do not write analytics session storage, record
+        page views or engagement, or store salted visitor estimates until you accept analytics.
+        You can Accept or Decline in the on-site prompt, and change your choice later via
+        &quot;Analytics preferences&quot; in the site footer (shown in those regions). An HttpOnly
+        preference cookie stores only your choice (granted or denied), not a tracking profile.
+        Visitors in other regions (including the United States) receive the disclosed first-party
+        analytics described above without that prompt, still with Do Not Track honored for
+        engagement and CTA events.
+      </p>
+      <PrivacyAnalyticsPreferences />
 
       <h2>Data Retention</h2>
       <p>
